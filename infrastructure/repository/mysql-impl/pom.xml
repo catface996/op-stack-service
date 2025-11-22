@@ -57,6 +57,12 @@
             <artifactId>spring-context</artifactId>
         </dependency>
 
+        <!-- Jackson for JSON validation -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>

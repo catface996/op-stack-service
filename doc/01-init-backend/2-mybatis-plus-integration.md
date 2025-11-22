@@ -149,7 +149,7 @@ NodeEntity 需要包含以下属性：
 配置内容：
 1. **Mapper 扫描**：
    - 使用 `@MapperScan` 注解指定 Mapper 接口包路径
-   - 扫描路径：`com.demo.infrastructure.repository.mysql.mapper`
+   - 扫描路径：`com.catface996.aiops.repository.mysql.mapper`
 
 2. **插件配置**（通过 `MybatisPlusInterceptor` 注册）：
    - **分页插件**（`PaginationInnerInterceptor`）：
@@ -180,7 +180,7 @@ NodeEntity 需要包含以下属性：
    - XML 文件实际位置：`infrastructure/repository/mysql-impl/src/main/resources/mapper/`
 
 2. **类型别名包路径**：
-   - `type-aliases-package: com.demo.infrastructure.repository.mysql.po`
+   - `type-aliases-package: com.catface996.aiops.repository.mysql.po`
    - 注意：配置的是 PO 类路径，不是 Entity 类路径
 
 3. **全局配置**：
@@ -228,13 +228,13 @@ NodeEntity 需要包含以下属性：
 
 | 组件类型 | 包路径 | 文件位置 |
 |---------|--------|---------|
-| **Mapper 接口** | `com.demo.infrastructure.repository.mysql.mapper` | `infrastructure/repository/mysql-impl/src/main/java/com/demo/infrastructure/repository/mysql/mapper/` |
-| **PO 类** | `com.demo.infrastructure.repository.mysql.po` | `infrastructure/repository/mysql-impl/src/main/java/com/demo/infrastructure/repository/mysql/po/` |
+| **Entity 类** | `com.catface996.aiops.repository` | `infrastructure/repository/repository-api/src/main/java/com/catface996/aiops/repository/` |
+| **Repository 接口** | `com.catface996.aiops.repository` | `infrastructure/repository/repository-api/src/main/java/com/catface996/aiops/repository/` |
+| **Repository 实现** | `com.catface996.aiops.repository.mysql.impl` | `infrastructure/repository/mysql-impl/src/main/java/com/catface996/aiops/repository/mysql/impl/` |
+| **Mapper 接口** | `com.catface996.aiops.repository.mysql.mapper` | `infrastructure/repository/mysql-impl/src/main/java/com/catface996/aiops/repository/mysql/mapper/` |
+| **PO 类** | `com.catface996.aiops.repository.mysql.po` | `infrastructure/repository/mysql-impl/src/main/java/com/catface996/aiops/repository/mysql/po/` |
+| **配置类** | `com.catface996.aiops.repository.mysql.config` | `infrastructure/repository/mysql-impl/src/main/java/com/catface996/aiops/repository/mysql/config/` |
 | **Mapper XML** | `classpath*:/mapper/**/*.xml` | `infrastructure/repository/mysql-impl/src/main/resources/mapper/` |
-| **Repository 接口** | `com.demo.infrastructure.repository.api` | `infrastructure/repository/repository-api/src/main/java/com/demo/infrastructure/repository/api/` |
-| **Repository 实现** | `com.demo.infrastructure.repository.mysql.impl` | `infrastructure/repository/mysql-impl/src/main/java/com/demo/infrastructure/repository/mysql/impl/` |
-| **Entity 类** | `com.demo.infrastructure.repository.entity` | `infrastructure/repository/repository-api/src/main/java/com/demo/infrastructure/repository/entity/` |
-| **配置类** | `com.demo.infrastructure.repository.mysql.config` | `infrastructure/repository/mysql-impl/src/main/java/com/demo/infrastructure/repository/mysql/config/` |
 
 ### 4.2 通用分页结果类设计
 
@@ -296,18 +296,18 @@ NodeEntity 需要包含以下属性：
 **Package 结构**：
 
 ```
-com.demo.ordercore.infrastructure.repository
-├── api/                          # 仓储接口包
-│   ├── NodeRepository.java       # 节点仓储接口
-│   └── package-info.java          # 包说明文档
-│
-└── entity/                        # 领域实体包
-    └── NodeEntity.java            # 节点实体（纯 POJO，无框架注解）
+com.catface996.aiops.repository
+├── NodeEntity.java               # 节点实体（纯 POJO，无框架注解）
+└── NodeRepository.java           # 节点仓储接口
 ```
 
 **文件位置**：
-- `infrastructure/repository/repository-api/src/main/java/com/demo/infrastructure/repository/api/`
-- `infrastructure/repository/repository-api/src/main/java/com/demo/infrastructure/repository/entity/`
+- `infrastructure/repository/repository-api/src/main/java/com/catface996/aiops/repository/`
+
+**设计说明**：
+- 采用扁平化结构，不使用 api/ 和 entity/ 子包
+- 模块路径已经在 infrastructure/repository 下，Java 包无需再包含 infrastructure
+- 对于只有两个类的模块，扁平化结构更简洁清晰
 
 **关键原则**：
 - ✅ 只包含接口定义和纯 Java 实体
@@ -329,28 +329,26 @@ com.demo.ordercore.infrastructure.repository
 **Package 结构**：
 
 ```
-com.demo.ordercore.infrastructure.repository
-└── mysql/                         # MySQL 实现包（体现技术选型）
-    ├── config/                    # MySQL 配置包
-    │   └── MybatisPlusConfig.java # MyBatis-Plus 配置类
-    │
-    ├── impl/                      # 仓储实现类
-    │   └── NodeRepositoryImpl.java    # 节点仓储实现
-    │
-    ├── mapper/                    # MyBatis Mapper 接口
-    │   └── NodeMapper.java        # 节点 Mapper
-    │
-    ├── po/                        # 持久化对象（Persistent Object）
-    │   └── NodePO.java            # 节点 PO（包含 MyBatis-Plus 注解）
-    │
-    └── package-info.java          # 包说明文档
+com.catface996.aiops.repository.mysql
+├── config/                        # MySQL 配置包
+│   ├── MybatisPlusConfig.java     # MyBatis-Plus 配置类
+│   └── CustomMetaObjectHandler.java # 元数据自动填充处理器
+│
+├── impl/                          # 仓储实现类
+│   └── NodeRepositoryImpl.java    # 节点仓储实现
+│
+├── mapper/                        # MyBatis Mapper 接口
+│   └── NodeMapper.java            # 节点 Mapper
+│
+└── po/                            # 持久化对象（Persistent Object）
+    └── NodePO.java                # 节点 PO（包含 MyBatis-Plus 注解）
 ```
 
 **文件位置**：
-- `infrastructure/repository/mysql-impl/src/main/java/com/demo/infrastructure/repository/mysql/config/`
-- `infrastructure/repository/mysql-impl/src/main/java/com/demo/infrastructure/repository/mysql/impl/`
-- `infrastructure/repository/mysql-impl/src/main/java/com/demo/infrastructure/repository/mysql/mapper/`
-- `infrastructure/repository/mysql-impl/src/main/java/com/demo/infrastructure/repository/mysql/po/`
+- `infrastructure/repository/mysql-impl/src/main/java/com/catface996/aiops/repository/mysql/config/`
+- `infrastructure/repository/mysql-impl/src/main/java/com/catface996/aiops/repository/mysql/impl/`
+- `infrastructure/repository/mysql-impl/src/main/java/com/catface996/aiops/repository/mysql/mapper/`
+- `infrastructure/repository/mysql-impl/src/main/java/com/catface996/aiops/repository/mysql/po/`
 
 **资源文件位置**：
 ```
@@ -370,38 +368,47 @@ src/main/resources
 
 **核心类说明**：
 
-| 类名 | Package | 职责 | 框架依赖 | 设计要求 |
-|------|---------|------|---------|---------|
-| **MybatisPlusConfig** | `...repository.mysql.config` | MyBatis-Plus 配置，插件注册 | MyBatis-Plus | 使用 `@Configuration` 和 `@MapperScan` 注解，注册分页、乐观锁、防全表更新删除插件 |
-| **CustomMetaObjectHandler** | `...repository.mysql.config` | 元数据自动填充处理器 | MyBatis-Plus | 实现 `MetaObjectHandler` 接口，使用 `@Component` 注解 |
-| **NodePO** | `...repository.mysql.po` | 持久化对象，数据库表映射 | MyBatis-Plus | 包含 MyBatis-Plus 注解（`@TableName`、`@TableId`、`@TableField`、`@TableLogic`、`@Version`） |
-| **NodeMapper** | `...repository.mysql.mapper` | MyBatis Mapper 接口 | MyBatis-Plus | 继承 `BaseMapper<NodePO>`，使用 `@Mapper` 注解 |
-| **NodeRepositoryImpl** | `...repository.mysql.impl` | 仓储实现，Entity/PO 转换 | MyBatis-Plus | 实现 `NodeRepository` 接口，使用 `@Repository` 注解，负责 Entity 和 PO 之间的转换 |
+| 类名 | 完整包路径 | 职责 | 框架依赖 | 设计要求 |
+|------|-----------|------|---------|---------|
+| **MybatisPlusConfig** | `com.catface996.aiops.repository.mysql.config` | MyBatis-Plus 配置，插件注册 | MyBatis-Plus | 使用 `@Configuration` 和 `@MapperScan` 注解，注册分页、乐观锁、防全表更新删除插件 |
+| **CustomMetaObjectHandler** | `com.catface996.aiops.repository.mysql.config` | 元数据自动填充处理器 | MyBatis-Plus | 实现 `MetaObjectHandler` 接口，使用 `@Component` 注解 |
+| **NodePO** | `com.catface996.aiops.repository.mysql.po` | 持久化对象，数据库表映射 | MyBatis-Plus | 包含 MyBatis-Plus 注解（`@TableName`、`@TableId`、`@TableField`、`@TableLogic`、`@Version`） |
+| **NodeMapper** | `com.catface996.aiops.repository.mysql.mapper` | MyBatis Mapper 接口 | MyBatis-Plus | 继承 `BaseMapper<NodePO>`，使用 `@Mapper` 注解 |
+| **NodeRepositoryImpl** | `com.catface996.aiops.repository.mysql.impl` | 仓储实现，Entity/PO 转换 | MyBatis-Plus | 实现 `NodeRepository` 接口，使用 `@Repository` 注解，负责 Entity 和 PO 之间的转换 |
 
 #### 4.3.3 数据流转示意
 
 ```
 业务层 (Application/Domain)
     ↓ 使用
-NodeEntity + NodeRepository (repository-api)
+NodeEntity + NodeRepository
+(com.catface996.aiops.repository)
     ↓ 实现
-NodeRepositoryImpl (mysql-impl: mysql.impl)
+NodeRepositoryImpl
+(com.catface996.aiops.repository.mysql.impl)
     ↓ 转换
 NodePO ←→ NodeEntity
     ↓ 映射
-NodeMapper (mysql-impl: mysql.mapper)
+NodeMapper
+(com.catface996.aiops.repository.mysql.mapper)
     ↓ 操作
 数据库表 (t_node)
 ```
 
 #### 4.3.4 Package 命名规范说明
 
+**为什么使用 `com.catface996.aiops.repository` 而不是 `com.catface996.aiops.infrastructure.repository`？**
+
+1. **避免路径重复**：模块路径已经在 `infrastructure/repository` 目录下，Java 包路径无需再包含 `infrastructure`
+2. **简洁清晰**：对于只有两个类的模块（NodeEntity、NodeRepository），扁平化结构更简洁
+3. **符合实用主义**：包结构清晰表达意图即可，无需过度嵌套
+
 **为什么使用 `mysql` 而不是 `sql`？**
 
 1. **明确技术选型**：`mysql` 清楚表明这是 MySQL 数据库的实现
 2. **便于扩展**：未来如果需要支持其他数据库（PostgreSQL、Oracle），可以创建对应的 package：
-   - `com.demo.ordercore.infrastructure.repository.postgresql.*`
-   - `com.demo.ordercore.infrastructure.repository.oracle.*`
+   - `com.catface996.aiops.repository.postgresql.*`
+   - `com.catface996.aiops.repository.oracle.*`
 3. **符合模块命名**：模块名是 `mysql-impl`，package 名也应该体现 MySQL
 4. **避免歧义**：`sql` 太泛化，不能明确表示具体的数据库实现
 
@@ -420,12 +427,12 @@ NodeMapper (mysql-impl: mysql.mapper)
 
 #### 4.4.1 Mapper 扫描配置
 
-**配置位置**：`infrastructure/repository/mysql-impl/src/main/java/com/demo/infrastructure/repository/mysql/config/MybatisPlusConfig.java`
+**配置位置**：`infrastructure/repository/mysql-impl/src/main/java/com/catface996/aiops/repository/mysql/config/MybatisPlusConfig.java`
 
 **配置原则**：
 - ✅ **配置内聚**：MybatisPlusConfig 位于 mysql-impl 模块，确保 MySQL 相关配置与实现在一起
-- ✅ **自动扫描**：Spring Boot 主类配置了 `scanBasePackages = "com.demo"`，会自动扫描到此配置类
-- ✅ **Mapper 扫描路径**：`@MapperScan` 注解必须指向 `com.demo.ordercore.infrastructure.repository.mysql.mapper`
+- ✅ **自动扫描**：Spring Boot 主类配置了 `scanBasePackages = "com.catface996.aiops"`，会自动扫描到此配置类
+- ✅ **Mapper 扫描路径**：`@MapperScan` 注解必须指向 `com.catface996.aiops.repository.mysql.mapper`
 - ✅ **插件配置**：配置分页插件（单页最大 100 条）、乐观锁插件、防全表更新删除插件
 
 **验证要点**：
@@ -438,7 +445,7 @@ NodeMapper (mysql-impl: mysql.mapper)
 **配置位置**：`bootstrap/src/main/resources/application.yml`
 
 **配置原则**：
-- ✅ `type-aliases-package` 必须指向 PO 类的包路径：`com.demo.ordercore.infrastructure.repository.mysql.po`
+- ✅ `type-aliases-package` 必须指向 PO 类的包路径：`com.catface996.aiops.repository.mysql.po`
 - ⚠️ **注意**：配置的是 PO 类路径，不是 Entity 类路径
 - ⚠️ **原因**：MyBatis-Plus 直接操作 PO（包含框架注解），而不是 Entity（纯 POJO）
 
@@ -578,11 +585,11 @@ NodeMapper (mysql-impl: mysql.mapper)
 
 1. **文件位置**：`infrastructure/repository/mysql-impl/src/main/resources/mapper/NodeMapper.xml`
 
-2. **namespace**：必须与 Mapper 接口的全限定名一致（`com.demo.infrastructure.repository.mysql.mapper.NodeMapper`）
+2. **namespace**：必须与 Mapper 接口的全限定名一致（`com.catface996.aiops.repository.mysql.mapper.NodeMapper`）
 
 3. **resultMap**：
    - id：`BaseResultMap`
-   - type：必须与 PO 类的全限定名一致（`com.demo.infrastructure.repository.mysql.po.NodePO`）
+   - type：必须与 PO 类的全限定名一致（`com.catface996.aiops.repository.mysql.po.NodePO`）
    - 映射所有字段，包括 id、name、type、description、properties、createTime、updateTime、createBy、updateBy、deleted、version
 
 4. **SQL 语句**：

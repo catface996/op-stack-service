@@ -4,11 +4,55 @@
 # 说明:
 # - 日志输出到控制台，彩色格式 (在 logback-spring.xml 中配置)
 # - 日志级别: 项目包 DEBUG，框架包 WARN
-# - 数据库/Redis/SQS 配置可根据本地环境添加
+# - 数据库连接池: Druid (initial-size=2/min-idle=1/max-active=5)
+# - MyBatis-Plus: DEBUG 日志 + SQL 格式化
+# - Druid 监控: 启用 StatViewServlet
 
 spring:
-  # 禁用数据源自动配置 (可在需要时启用)
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
-      - com.alibaba.druid.spring.boot3.autoconfigure.DruidDataSourceAutoConfigure
+  # 数据源配置
+  datasource:
+    url: jdbc:mysql://localhost:3306/aiops_local?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC&useSSL=false
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    type: com.alibaba.druid.pool.DruidDataSource
+
+    # Druid 连接池配置
+    druid:
+      initial-size: 2
+      min-idle: 1
+      max-active: 5
+      max-wait: 60000
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      validation-query: SELECT 1
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+
+      # Druid 监控配置
+      stat-view-servlet:
+        enabled: true
+        url-pattern: /druid/*
+        login-username: admin
+        login-password: admin
+        reset-enable: false
+
+      # SQL 监控配置
+      filter:
+        stat:
+          enabled: true
+          log-slow-sql: true
+          slow-sql-millis: 1000
+        wall:
+          enabled: true
+
+# MyBatis-Plus 配置 (Local 环境特定)
+mybatis-plus:
+  configuration:
+    # DEBUG 日志 + SQL 格式化
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      # SQL 格式化输出 (便于调试)
+      banner: true
