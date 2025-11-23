@@ -47,7 +47,7 @@
 
 ## 阶段2：Domain Layer - 领域模型（6个任务，5小时）
 
-- [ ] 2. 实现领域实体和值对象
+- [x] 2. 实现领域实体和值对象
   - 创建 Account 实体（包含 id, username, email, password, role, status 等字段）
   - 创建 Session 实体和 DeviceInfo 值对象
   - 创建 PasswordStrengthResult 和 AccountLockInfo 值对象
