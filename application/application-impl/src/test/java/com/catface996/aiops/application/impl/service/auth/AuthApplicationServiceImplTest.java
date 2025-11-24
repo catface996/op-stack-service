@@ -420,6 +420,84 @@ class AuthApplicationServiceImplTest {
         assertThat(result.getMessage()).contains("会话无效或已过期");
     }
 
+    // ==================== 强制登出其他设备测试 ====================
+
+    @Test
+    @DisplayName("强制登出其他设备成功")
+    void testForceLogoutOthersSuccess() {
+        // Given
+        String token = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test.token";
+        String password = "SecureP@ss123";
+
+        // Mock parseTokenAndGetAccount 流程
+        when(authDomainService.validateSession(anyString())).thenReturn(testSession);
+        when(accountRepository.findById(1L)).thenReturn(Optional.of(testAccount));
+
+        // Mock 密码验证
+        when(authDomainService.verifyPassword(eq(password), eq(testAccount.getPassword())))
+                .thenReturn(true);
+
+        // Mock 创建新会话
+        Session newSession = new Session();
+        newSession.setId(UUID.randomUUID().toString());
+        newSession.setUserId(testAccount.getId());
+        newSession.setToken("new_jwt_token");
+        newSession.setCreatedAt(LocalDateTime.now());
+        newSession.setExpiresAt(LocalDateTime.now().plusHours(2));
+
+        when(authDomainService.createSession(eq(testAccount), eq(false), any(DeviceInfo.class)))
+                .thenReturn(newSession);
+        when(sessionRepository.save(any(Session.class))).thenReturn(newSession);
+
+        // When
+        com.catface996.aiops.application.api.dto.auth.request.ForceLogoutRequest request =
+                com.catface996.aiops.application.api.dto.auth.request.ForceLogoutRequest.of(token, password);
+        LoginResult result = authApplicationService.forceLogoutOthers(request);
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.getToken()).isEqualTo("new_jwt_token");
+        assertThat(result.getSessionId()).isEqualTo(newSession.getId());
+        assertThat(result.getUserInfo()).isNotNull();
+        assertThat(result.getUserInfo().getUsername()).isEqualTo("john_doe");
+
+        // 验证方法调用
+        verify(authDomainService).validateSession(anyString());
+        verify(authDomainService).verifyPassword(eq(password), eq(testAccount.getPassword()));
+        verify(authDomainService).createSession(eq(testAccount), eq(false), any(DeviceInfo.class));
+        verify(authDomainService).handleSessionMutex(eq(testAccount), eq(newSession));
+        verify(sessionRepository).save(eq(newSession));
+    }
+
+    @Test
+    @DisplayName("强制登出其他设备 - 密码错误")
+    void testForceLogoutOthersWithInvalidPassword() {
+        // Given
+        String token = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test.token";
+        String wrongPassword = "WrongPassword123";
+
+        // Mock parseTokenAndGetAccount 流程
+        when(authDomainService.validateSession(anyString())).thenReturn(testSession);
+        when(accountRepository.findById(1L)).thenReturn(Optional.of(testAccount));
+
+        // Mock 密码验证失败
+        when(authDomainService.verifyPassword(eq(wrongPassword), eq(testAccount.getPassword())))
+                .thenReturn(false);
+
+        // When & Then
+        com.catface996.aiops.application.api.dto.auth.request.ForceLogoutRequest request =
+                com.catface996.aiops.application.api.dto.auth.request.ForceLogoutRequest.of(token, wrongPassword);
+
+        assertThatThrownBy(() -> authApplicationService.forceLogoutOthers(request))
+                .isInstanceOf(AuthenticationException.class)
+                .hasMessageContaining("密码验证失败");
+
+        // 验证不会创建新会话
+        verify(authDomainService, never()).createSession(any(), anyBoolean(), any());
+        verify(authDomainService, never()).handleSessionMutex(any(), any());
+        verify(sessionRepository, never()).save(any());
+    }
+
     // ==================== 管理员解锁账号测试 ====================
 
     @Test

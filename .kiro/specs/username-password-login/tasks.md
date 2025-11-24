@@ -239,12 +239,12 @@
   - _依赖: 任务10, 任务11, 任务12, 任务13_
   - _工时: 5小时_
 
-- [ ] 15. 实现会话管理应用服务
+- [x] 15. 实现会话管理应用服务
   - 实现用户登出流程（会话失效、审计日志）
   - 实现会话验证流程（Token 解析、会话检查、用户信息查询）
   - 实现强制登出其他设备流程（密码验证、旧会话失效、新会话创建）
   - **验证方法**:
-    - 【单元测试】执行 `mvn test -Dtest=*SessionApplicationService*Test`，所有测试通过
+    - 【单元测试】执行 `mvn test -Dtest=*AuthApplicationService*Test`，所有测试通过
     - 【单元测试】验证登出后会话失效
     - 【单元测试】验证过期 Token 抛出 SessionExpiredException
     - 【单元测试】验证强制登出后返回新的 JWT Token

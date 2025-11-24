@@ -210,9 +210,20 @@ public class AuthApplicationServiceImpl implements AuthApplicationService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public LoginResult forceLogoutOthers(ForceLogoutRequest request) {
-        log.info("[应用层] 开始强制登出其他设备流程");
-        // TODO: 实现强制登出其他设备逻辑
-        throw new UnsupportedOperationException("强制登出其他设备功能尚未实现");
+        // 1. 解析 Token 并获取用户账号
+        Account account = parseTokenAndGetAccount(request.getToken());
+
+        // 2. 验证密码
+        verifyPasswordForAccount(account, request.getPassword());
+
+        // 3. 创建新会话（包含会话互斥逻辑）
+        Session newSession = createAndSaveSession(account, false);
+
+        // 4. 记录审计日志
+        logForceLogoutOthers(account, newSession);
+
+        // 5. 返回结果
+        return buildLoginResult(account, newSession);
     }
 
     /**
@@ -555,6 +566,60 @@ public class AuthApplicationServiceImpl implements AuthApplicationService {
         log.info("[审计日志] 管理员解锁账号 | accountId={} | adminToken={} | timestamp={}",
                 accountId,
                 adminToken,
+                LocalDateTime.now());
+    }
+
+    // ==================== 强制登出相关私有方法 ====================
+
+    /**
+     * 解析 Token 并获取用户账号
+     *
+     * @param token JWT Token
+     * @return 用户账号
+     * @throws com.catface996.aiops.domain.api.exception.auth.SessionNotFoundException 如果会话不存在
+     * @throws com.catface996.aiops.domain.api.exception.auth.SessionExpiredException 如果会话已过期
+     * @throws AccountNotFoundException 如果账号不存在
+     */
+    private Account parseTokenAndGetAccount(String token) {
+        // 1. 解析 Token 获取会话ID
+        String sessionId = parseSessionId(token);
+
+        // 2. 验证会话
+        Session session = authDomainService.validateSession(sessionId);
+
+        // 3. 查询用户账号
+        return accountRepository.findById(session.getUserId())
+                .orElseThrow(() -> new AccountNotFoundException("账号不存在"));
+    }
+
+    /**
+     * 验证账号密码
+     *
+     * @param account 账号实体
+     * @param password 待验证的密码
+     * @throws AuthenticationException 如果密码验证失败
+     */
+    private void verifyPasswordForAccount(Account account, String password) {
+        boolean passwordMatches = authDomainService.verifyPassword(password, account.getPassword());
+
+        if (!passwordMatches) {
+            log.warn("[应用层] 强制登出密码验证失败, accountId={}, username={}",
+                    account.getId(), account.getUsername());
+            throw new AuthenticationException("密码验证失败");
+        }
+    }
+
+    /**
+     * 记录强制登出其他设备的审计日志
+     *
+     * @param account 账号实体
+     * @param session 新会话
+     */
+    private void logForceLogoutOthers(Account account, Session session) {
+        log.info("[审计日志] 强制登出其他设备 | accountId={} | username={} | newSessionId={} | timestamp={}",
+                account.getId(),
+                account.getUsername(),
+                session.getId(),
                 LocalDateTime.now());
     }
 
