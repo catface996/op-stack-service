@@ -117,7 +117,7 @@
   - _依赖: 任务4, 任务5_
   - _工时: 3小时_
 
-- [ ] 7. 实现 Redis 缓存层
+- [x] 7. 实现 Redis 缓存层
   - 实现 LoginAttemptCache（登录失败计数，TTL 30分钟）
   - 实现 SessionCache（会话存储，支持不同 TTL）
   - 实现 Redis 降级到 MySQL 的逻辑

@@ -14,9 +14,19 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 /**
  * Redis 配置类
  * 
- * 配置 Redis 序列化方式：
- * - Key: String 序列化
- * - Value: JSON 序列化
+ * <p>配置 Redis 序列化方式和连接参数：</p>
+ * <ul>
+ *   <li>Key: String 序列化</li>
+ *   <li>Value: JSON 序列化（Jackson）</li>
+ *   <li>Key 前缀：aiops:（通过application.yml配置）</li>
+ * </ul>
+ * 
+ * <p>Key 命名规范：</p>
+ * <ul>
+ *   <li>登录失败计数：login:fail:{identifier}</li>
+ *   <li>会话数据：session:{sessionId}</li>
+ *   <li>会话互斥：session:user:{userId}</li>
+ * </ul>
  * 
  * @author AI Assistant
  * @since 2025-01-23
@@ -26,6 +36,14 @@ public class RedisConfig {
 
     /**
      * 配置 RedisTemplate
+     * 
+     * <p>配置序列化方式：</p>
+     * <ul>
+     *   <li>Key: StringRedisSerializer</li>
+     *   <li>Value: Jackson2JsonRedisSerializer</li>
+     *   <li>Hash Key: StringRedisSerializer</li>
+     *   <li>Hash Value: Jackson2JsonRedisSerializer</li>
+     * </ul>
      * 
      * @param connectionFactory Redis 连接工厂
      * @return RedisTemplate
