@@ -1,5 +1,5 @@
 ---
-inclusion: manual
+inclusion: always
 ---
 
 # Task Execution Phase Best Practices

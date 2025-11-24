@@ -191,7 +191,7 @@
   - _依赖: 任务4, 任务7, 任务8_
   - _工时: 3小时_
 
-- [ ] 12. 实现账号锁定领域服务
+- [x] 12. 实现账号锁定领域服务
   - 实现登录失败记录（增加计数、设置 TTL）
   - 实现账号锁定检查（判断是否达到阈值）
   - 实现账号锁定和解锁（更新状态、清除计数）
@@ -211,7 +211,7 @@
 
 ## 阶段5：Application Layer - 应用服务（4个任务，10小时）
 
-- [ ] 13. 定义应用层接口和 DTO
+- [x] 13. 定义应用层接口和 DTO
   - 定义 AuthApplicationService 接口（包含所有业务方法）
   - 创建请求 DTO（RegisterRequest, LoginRequest, ForceLogoutRequest）
   - 创建响应 DTO（RegisterResult, LoginResult, SessionValidationResult, UserInfo）
