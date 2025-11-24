@@ -61,7 +61,7 @@
   - _依赖: 任务1_
   - _工时: 2小时_
 
-- [ ] 3. 定义领域异常体系
+- [x] 3. 定义领域异常体系
   - 创建认证相关异常类（AuthenticationException, AccountLockedException 等）
   - 创建会话相关异常类（SessionExpiredException, SessionNotFoundException）
   - 创建数据冲突异常类（DuplicateUsernameException, DuplicateEmailException）
