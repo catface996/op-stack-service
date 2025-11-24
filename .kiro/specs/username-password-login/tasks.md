@@ -92,7 +92,7 @@
 
 ## 阶段3：Infrastructure Layer - 基础设施（5个任务，9小时）
 
-- [ ] 5. 创建数据库表结构
+- [x] 5. 创建数据库表结构
   - 创建 account 表（包含唯一索引：username, email）
   - 创建 session 表作为降级方案（包含索引：user_id, expires_at）
   - 创建数据库迁移脚本（Flyway 或 Liquibase）

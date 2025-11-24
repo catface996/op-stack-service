@@ -15,6 +15,15 @@ spring:
           min-idle: 0
           max-wait: -1ms
 
+  # Flyway 数据库迁移配置
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+    locations: classpath:db/migration
+    encoding: UTF-8
+    validate-on-migrate: true
+
 server:
   port: 8080
 
