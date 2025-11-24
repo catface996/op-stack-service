@@ -1,8 +1,6 @@
 package com.catface996.aiops.repository.mysql.impl.auth;
 
-import com.catface996.aiops.domain.api.exception.auth.AccountNotFoundException;
-import com.catface996.aiops.domain.api.exception.auth.DuplicateEmailException;
-import com.catface996.aiops.domain.api.exception.auth.DuplicateUsernameException;
+import com.catface996.aiops.common.exception.BusinessException;
 import com.catface996.aiops.domain.api.model.auth.Account;
 import com.catface996.aiops.domain.api.model.auth.AccountRole;
 import com.catface996.aiops.domain.api.model.auth.AccountStatus;
@@ -233,7 +231,7 @@ class AccountRepositoryImplTest {
             .thenThrow(new DuplicateKeyException("Duplicate entry 'john_doe' for key 'uk_username'"));
         
         // When & Then
-        assertThrows(DuplicateUsernameException.class, () -> accountRepository.save(newAccount));
+        assertThrows(BusinessException.class, () -> accountRepository.save(newAccount));
         verify(accountMapper, times(1)).insert(any(AccountPO.class));
     }
     
@@ -251,7 +249,7 @@ class AccountRepositoryImplTest {
             .thenThrow(new DuplicateKeyException("Duplicate entry 'john@example.com' for key 'uk_email'"));
         
         // When & Then
-        assertThrows(DuplicateEmailException.class, () -> accountRepository.save(newAccount));
+        assertThrows(BusinessException.class, () -> accountRepository.save(newAccount));
         verify(accountMapper, times(1)).insert(any(AccountPO.class));
     }
     
@@ -275,7 +273,7 @@ class AccountRepositoryImplTest {
         when(accountMapper.selectById(999L)).thenReturn(null);
         
         // When & Then
-        assertThrows(AccountNotFoundException.class, 
+        assertThrows(BusinessException.class,
             () -> accountRepository.updateStatus(999L, AccountStatus.LOCKED));
         verify(accountMapper, times(1)).selectById(999L);
         verify(accountMapper, never()).updateById(any(AccountPO.class));

@@ -1,7 +1,6 @@
 package com.catface996.aiops.domain.impl.service.auth;
 
-import com.catface996.aiops.domain.api.exception.auth.SessionExpiredException;
-import com.catface996.aiops.domain.api.exception.auth.SessionNotFoundException;
+import com.catface996.aiops.common.exception.BusinessException;
 import com.catface996.aiops.domain.api.model.auth.Account;
 import com.catface996.aiops.domain.api.model.auth.AccountRole;
 import com.catface996.aiops.domain.api.model.auth.AccountStatus;
@@ -337,7 +336,7 @@ class AuthDomainServiceImplSessionTest {
         }
 
         @Test
-        @DisplayName("会话不存在应该抛出SessionNotFoundException")
+        @DisplayName("会话不存在应该抛出BusinessException")
         void shouldThrowExceptionForNonExistentSession() {
             // Given
             String sessionId = "non-existent-session";
@@ -345,9 +344,9 @@ class AuthDomainServiceImplSessionTest {
             when(sessionRepository.findById(sessionId)).thenReturn(Optional.empty());
 
             // When & Then
-            assertThrows(SessionNotFoundException.class, () -> {
+            assertThrows(BusinessException.class, () -> {
                 authDomainService.validateSession(sessionId);
-            }, "不存在的会话应该抛出SessionNotFoundException");
+            }, "不存在的会话应该抛出BusinessException");
 
             // 验证SessionCache被调用
             verify(sessionCache, times(1)).get(sessionId);
@@ -355,7 +354,7 @@ class AuthDomainServiceImplSessionTest {
         }
 
         @Test
-        @DisplayName("过期会话应该抛出SessionExpiredException")
+        @DisplayName("过期会话应该抛出BusinessException")
         void shouldThrowExceptionForExpiredSession() throws JsonProcessingException {
             // Given
             String sessionId = "expired-session-id";
@@ -372,9 +371,9 @@ class AuthDomainServiceImplSessionTest {
             when(sessionCache.get(sessionId)).thenReturn(Optional.of(sessionJson));
 
             // When & Then
-            assertThrows(SessionExpiredException.class, () -> {
+            assertThrows(BusinessException.class, () -> {
                 authDomainService.validateSession(sessionId);
-            }, "过期的会话应该抛出SessionExpiredException");
+            }, "过期的会话应该抛出BusinessException");
 
             // 验证SessionCache被调用，且删除过期会话
             verify(sessionCache, times(1)).get(sessionId);

@@ -1,6 +1,6 @@
 package com.catface996.aiops.repository.mysql.impl.auth;
 
-import com.catface996.aiops.domain.api.exception.auth.SessionNotFoundException;
+import com.catface996.aiops.common.exception.BusinessException;
 import com.catface996.aiops.domain.api.model.auth.DeviceInfo;
 import com.catface996.aiops.domain.api.model.auth.Session;
 import com.catface996.aiops.repository.mysql.mapper.auth.SessionMapper;
@@ -229,7 +229,7 @@ class SessionRepositoryImplTest {
         when(sessionMapper.selectById("nonexistent")).thenReturn(null);
         
         // When & Then
-        assertThrows(SessionNotFoundException.class, 
+        assertThrows(BusinessException.class,
             () -> sessionRepository.updateExpiresAt("nonexistent", newExpiresAt));
         verify(sessionMapper, times(1)).selectById("nonexistent");
         verify(sessionMapper, never()).updateById(any(SessionPO.class));

@@ -1,8 +1,7 @@
 package com.catface996.aiops.repository.mysql.impl.auth;
 
-import com.catface996.aiops.domain.api.exception.auth.AccountNotFoundException;
-import com.catface996.aiops.domain.api.exception.auth.DuplicateEmailException;
-import com.catface996.aiops.domain.api.exception.auth.DuplicateUsernameException;
+import com.catface996.aiops.common.enums.ResourceErrorCode;
+import com.catface996.aiops.common.exception.BusinessException;
 import com.catface996.aiops.domain.api.model.auth.Account;
 import com.catface996.aiops.domain.api.model.auth.AccountRole;
 import com.catface996.aiops.domain.api.model.auth.AccountStatus;
@@ -96,11 +95,11 @@ public class AccountRepositoryImpl implements AccountRepository {
             // 处理唯一约束冲突
             String message = e.getMessage();
             if (message != null && message.contains("uk_username")) {
-                throw new DuplicateUsernameException("用户名已存在: " + account.getUsername());
+                throw new BusinessException(ResourceErrorCode.USERNAME_CONFLICT);
             } else if (message != null && message.contains("uk_email")) {
-                throw new DuplicateEmailException("邮箱已存在: " + account.getEmail());
+                throw new BusinessException(ResourceErrorCode.EMAIL_CONFLICT);
             } else {
-                throw new DuplicateUsernameException("账号信息重复");
+                throw new BusinessException(ResourceErrorCode.USERNAME_CONFLICT, "账号信息重复");
             }
         }
     }
@@ -117,7 +116,7 @@ public class AccountRepositoryImpl implements AccountRepository {
         // 检查账号是否存在
         AccountPO po = accountMapper.selectById(id);
         if (po == null) {
-            throw new AccountNotFoundException("账号不存在: " + id);
+            throw new BusinessException(ResourceErrorCode.ACCOUNT_NOT_FOUND);
         }
         
         // 更新状态

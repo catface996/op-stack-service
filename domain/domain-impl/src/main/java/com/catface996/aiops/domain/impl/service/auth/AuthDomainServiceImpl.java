@@ -1,7 +1,7 @@
 package com.catface996.aiops.domain.impl.service.auth;
 
-import com.catface996.aiops.domain.api.exception.auth.SessionExpiredException;
-import com.catface996.aiops.domain.api.exception.auth.SessionNotFoundException;
+import com.catface996.aiops.common.enums.AuthErrorCode;
+import com.catface996.aiops.common.exception.BusinessException;
 import com.catface996.aiops.domain.api.model.auth.Account;
 import com.catface996.aiops.domain.api.model.auth.AccountLockInfo;
 import com.catface996.aiops.domain.api.model.auth.AccountStatus;
@@ -299,7 +299,7 @@ public class AuthDomainServiceImpl implements AuthDomainService {
         // 优先从缓存获取，缓存未命中则回源仓储
         Optional<Session> sessionOpt = findSession(sessionId, true);
         if (!sessionOpt.isPresent()) {
-            throw SessionNotFoundException.notFound(sessionId);
+            throw new BusinessException(AuthErrorCode.SESSION_NOT_FOUND);
         }
 
         Session session = sessionOpt.get();
@@ -308,7 +308,7 @@ public class AuthDomainServiceImpl implements AuthDomainService {
         if (session.isExpired()) {
             // 删除过期的会话（缓存 + 仓储）
             removeSessionData(sessionId, session.getUserId());
-            throw SessionExpiredException.expired();
+            throw new BusinessException(AuthErrorCode.SESSION_EXPIRED);
         }
 
         return session;

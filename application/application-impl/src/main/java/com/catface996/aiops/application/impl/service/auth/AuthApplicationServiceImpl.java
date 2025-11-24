@@ -8,12 +8,11 @@ import com.catface996.aiops.application.api.dto.auth.request.ForceLogoutRequest;
 import com.catface996.aiops.application.api.dto.auth.request.LoginRequest;
 import com.catface996.aiops.application.api.dto.auth.request.RegisterRequest;
 import com.catface996.aiops.application.api.service.auth.AuthApplicationService;
-import com.catface996.aiops.domain.api.exception.auth.AccountLockedException;
-import com.catface996.aiops.domain.api.exception.auth.AccountNotFoundException;
-import com.catface996.aiops.domain.api.exception.auth.AuthenticationException;
-import com.catface996.aiops.domain.api.exception.auth.DuplicateEmailException;
-import com.catface996.aiops.domain.api.exception.auth.DuplicateUsernameException;
-import com.catface996.aiops.domain.api.exception.auth.InvalidPasswordException;
+import com.catface996.aiops.common.enums.AuthErrorCode;
+import com.catface996.aiops.common.enums.ParamErrorCode;
+import com.catface996.aiops.common.enums.ResourceErrorCode;
+import com.catface996.aiops.common.exception.BusinessException;
+import com.catface996.aiops.common.exception.ParameterException;
 import com.catface996.aiops.domain.api.model.auth.Account;
 import com.catface996.aiops.domain.api.model.auth.AccountLockInfo;
 import com.catface996.aiops.domain.api.model.auth.AccountRole;
@@ -73,9 +72,8 @@ public class AuthApplicationServiceImpl implements AuthApplicationService {
      *
      * @param request 注册请求
      * @return 注册结果
-     * @throws DuplicateUsernameException 如果用户名已存在
-     * @throws DuplicateEmailException 如果邮箱已存在
-     * @throws InvalidPasswordException 如果密码不符合强度要求
+     * @throws BusinessException 如果用户名或邮箱已存在
+     * @throws ParameterException 如果密码不符合强度要求
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -106,9 +104,7 @@ public class AuthApplicationServiceImpl implements AuthApplicationService {
      *
      * @param request 登录请求
      * @return 登录结果（包含JWT Token）
-     * @throws AccountNotFoundException 如果账号不存在
-     * @throws AccountLockedException 如果账号被锁定
-     * @throws AuthenticationException 如果认证失败
+     * @throws BusinessException 如果账号不存在、被锁定或认证失败
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -171,7 +167,7 @@ public class AuthApplicationServiceImpl implements AuthApplicationService {
 
             // 3. 查询用户信息
             Account account = accountRepository.findById(session.getUserId())
-                    .orElseThrow(() -> new AccountNotFoundException("账号不存在"));
+                    .orElseThrow(() -> new BusinessException(ResourceErrorCode.ACCOUNT_NOT_FOUND));
 
             // 4. 返回结果
             return buildSessionValidationResult(session, account);
@@ -233,7 +229,7 @@ public class AuthApplicationServiceImpl implements AuthApplicationService {
      *
      * @param adminToken 管理员JWT Token
      * @param accountId 账号ID
-     * @throws AccountNotFoundException 如果账号不存在
+     * @throws BusinessException 如果账号不存在
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -254,18 +250,17 @@ public class AuthApplicationServiceImpl implements AuthApplicationService {
      * 验证账号唯一性
      *
      * @param request 注册请求
-     * @throws DuplicateUsernameException 如果用户名已存在
-     * @throws DuplicateEmailException 如果邮箱已存在
+     * @throws BusinessException 如果用户名或邮箱已存在
      */
     private void validateAccountUniqueness(RegisterRequest request) {
         if (accountRepository.existsByUsername(request.getUsername())) {
             log.warn("[应用层] 用户名已存在, username={}", request.getUsername());
-            throw new DuplicateUsernameException("用户名已存在");
+            throw new BusinessException(ResourceErrorCode.USERNAME_CONFLICT);
         }
 
         if (accountRepository.existsByEmail(request.getEmail())) {
             log.warn("[应用层] 邮箱已存在, email={}", request.getEmail());
-            throw new DuplicateEmailException("邮箱已存在");
+            throw new BusinessException(ResourceErrorCode.EMAIL_CONFLICT);
         }
     }
 
@@ -273,7 +268,7 @@ public class AuthApplicationServiceImpl implements AuthApplicationService {
      * 验证密码强度
      *
      * @param request 注册请求
-     * @throws InvalidPasswordException 如果密码不符合强度要求
+     * @throws ParameterException 如果密码不符合强度要求
      */
     private void validatePasswordStrength(RegisterRequest request) {
         PasswordStrengthResult result = authDomainService.validatePasswordStrength(
@@ -285,7 +280,7 @@ public class AuthApplicationServiceImpl implements AuthApplicationService {
         if (!result.isValid()) {
             log.warn("[应用层] 密码强度不符合要求, username={}, errors={}",
                     request.getUsername(), result.getErrors());
-            throw InvalidPasswordException.weakPassword(result.getErrors());
+            throw new ParameterException(ParamErrorCode.INVALID_PASSWORD, result.getErrors());
         }
     }
 
@@ -347,7 +342,7 @@ public class AuthApplicationServiceImpl implements AuthApplicationService {
      * 检查账号是否被锁定
      *
      * @param identifier 用户标识符
-     * @throws AccountLockedException 如果账号被锁定
+     * @throws BusinessException 如果账号被锁定
      */
     private void checkAccountNotLocked(String identifier) {
         Optional<AccountLockInfo> lockInfo = authDomainService.checkAccountLock(identifier);
@@ -356,7 +351,7 @@ public class AuthApplicationServiceImpl implements AuthApplicationService {
             AccountLockInfo info = lockInfo.get();
             log.warn("[审计日志] 登录失败-账号已锁定 | identifier={} | remainingMinutes={} | timestamp={}",
                     identifier, info.getRemainingMinutes(), LocalDateTime.now());
-            throw AccountLockedException.locked((int) info.getRemainingMinutes());
+            throw new BusinessException(ResourceErrorCode.ACCOUNT_LOCKED, (int) info.getRemainingMinutes());
         }
     }
 
@@ -365,7 +360,7 @@ public class AuthApplicationServiceImpl implements AuthApplicationService {
      *
      * @param request 登录请求
      * @return 验证通过的账号
-     * @throws AuthenticationException 如果账号不存在或密码错误
+     * @throws BusinessException 如果账号不存在或密码错误
      */
     private Account findAndVerifyAccount(LoginRequest request) {
         Account account = findAccountByIdentifier(request.getIdentifier());
@@ -377,7 +372,7 @@ public class AuthApplicationServiceImpl implements AuthApplicationService {
 
         if (!passwordMatches) {
             handleLoginFailure(request.getIdentifier(), account);
-            throw new AuthenticationException("用户名或密码错误");
+            throw new BusinessException(AuthErrorCode.INVALID_CREDENTIALS);
         }
 
         return account;
@@ -390,7 +385,7 @@ public class AuthApplicationServiceImpl implements AuthApplicationService {
      *
      * @param identifier 用户标识符
      * @return 账号实体
-     * @throws AuthenticationException 如果账号不存在
+     * @throws BusinessException 如果账号不存在
      */
     private Account findAccountByIdentifier(String identifier) {
         return accountRepository.findByUsername(identifier)
@@ -398,7 +393,7 @@ public class AuthApplicationServiceImpl implements AuthApplicationService {
                 .orElseThrow(() -> {
                     log.warn("[应用层] 账号不存在, identifier={}", identifier);
                     // 为了安全，返回通用错误消息
-                    return new AuthenticationException("用户名或密码错误");
+                    return new BusinessException(AuthErrorCode.INVALID_CREDENTIALS);
                 });
     }
 
@@ -550,10 +545,7 @@ public class AuthApplicationServiceImpl implements AuthApplicationService {
      * 验证管理员权限
      *
      * @param adminToken 管理员Token
-     * @throws com.catface996.aiops.domain.api.exception.auth.SessionNotFoundException 如果会话不存在
-     * @throws com.catface996.aiops.domain.api.exception.auth.SessionExpiredException 如果会话已过期
-     * @throws AccountNotFoundException 如果账号不存在
-     * @throws AuthenticationException 如果不是管理员
+     * @throws BusinessException 如果会话不存在、已过期、账号不存在或不是管理员
      */
     private void validateAdminPermission(String adminToken) {
         // 1. 解析 Token 获取会话ID
@@ -564,13 +556,13 @@ public class AuthApplicationServiceImpl implements AuthApplicationService {
 
         // 3. 查询用户账号
         Account account = accountRepository.findById(session.getUserId())
-                .orElseThrow(() -> new AccountNotFoundException("账号不存在"));
+                .orElseThrow(() -> new BusinessException(ResourceErrorCode.ACCOUNT_NOT_FOUND));
 
         // 4. 验证角色是否为 ADMIN
         if (account.getRole() != AccountRole.ROLE_ADMIN) {
             log.warn("[应用层] 非管理员尝试访问管理功能, accountId={}, username={}, role={}",
                     account.getId(), account.getUsername(), account.getRole());
-            throw new AuthenticationException("权限不足，仅管理员可以执行此操作");
+            throw new BusinessException(AuthErrorCode.INVALID_CREDENTIALS, "权限不足，仅管理员可以执行此操作");
         }
 
         log.debug("[应用层] 管理员权限验证通过, accountId={}, username={}",
@@ -597,9 +589,7 @@ public class AuthApplicationServiceImpl implements AuthApplicationService {
      *
      * @param token JWT Token
      * @return 用户账号
-     * @throws com.catface996.aiops.domain.api.exception.auth.SessionNotFoundException 如果会话不存在
-     * @throws com.catface996.aiops.domain.api.exception.auth.SessionExpiredException 如果会话已过期
-     * @throws AccountNotFoundException 如果账号不存在
+     * @throws BusinessException 如果会话不存在、已过期或账号不存在
      */
     private Account parseTokenAndGetAccount(String token) {
         // 1. 解析 Token 获取会话ID
@@ -610,7 +600,7 @@ public class AuthApplicationServiceImpl implements AuthApplicationService {
 
         // 3. 查询用户账号
         return accountRepository.findById(session.getUserId())
-                .orElseThrow(() -> new AccountNotFoundException("账号不存在"));
+                .orElseThrow(() -> new BusinessException(ResourceErrorCode.ACCOUNT_NOT_FOUND));
     }
 
     /**
@@ -618,7 +608,7 @@ public class AuthApplicationServiceImpl implements AuthApplicationService {
      *
      * @param account 账号实体
      * @param password 待验证的密码
-     * @throws AuthenticationException 如果密码验证失败
+     * @throws BusinessException 如果密码验证失败
      */
     private void verifyPasswordForAccount(Account account, String password) {
         boolean passwordMatches = authDomainService.verifyPassword(password, account.getPassword());
@@ -626,7 +616,7 @@ public class AuthApplicationServiceImpl implements AuthApplicationService {
         if (!passwordMatches) {
             log.warn("[应用层] 强制登出密码验证失败, accountId={}, username={}",
                     account.getId(), account.getUsername());
-            throw new AuthenticationException("密码验证失败");
+            throw new BusinessException(AuthErrorCode.INVALID_CREDENTIALS, "密码验证失败");
         }
     }
 

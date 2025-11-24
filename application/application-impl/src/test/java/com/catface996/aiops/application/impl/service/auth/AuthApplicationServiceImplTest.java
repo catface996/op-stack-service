@@ -5,12 +5,8 @@ import com.catface996.aiops.application.api.dto.auth.RegisterResult;
 import com.catface996.aiops.application.api.dto.auth.SessionValidationResult;
 import com.catface996.aiops.application.api.dto.auth.request.LoginRequest;
 import com.catface996.aiops.application.api.dto.auth.request.RegisterRequest;
-import com.catface996.aiops.domain.api.exception.auth.AccountLockedException;
-import com.catface996.aiops.domain.api.exception.auth.AccountNotFoundException;
-import com.catface996.aiops.domain.api.exception.auth.AuthenticationException;
-import com.catface996.aiops.domain.api.exception.auth.DuplicateEmailException;
-import com.catface996.aiops.domain.api.exception.auth.DuplicateUsernameException;
-import com.catface996.aiops.domain.api.exception.auth.InvalidPasswordException;
+import com.catface996.aiops.common.exception.BusinessException;
+import com.catface996.aiops.common.exception.ParameterException;
 import com.catface996.aiops.domain.api.model.auth.Account;
 import com.catface996.aiops.domain.api.model.auth.AccountLockInfo;
 import com.catface996.aiops.domain.api.model.auth.AccountRole;
@@ -53,7 +49,7 @@ import static org.mockito.Mockito.when;
  *
  * <p>验收标准：</p>
  * <ul>
- *   <li>验证注册时用户名重复抛出 DuplicateUsernameException</li>
+ *   <li>验证注册时用户名重复抛出 BusinessException</li>
  *   <li>验证登录成功返回 JWT Token</li>
  *   <li>验证连续 5 次登录失败后账号被锁定</li>
  *   <li>验证登录成功后失败计数重置</li>
@@ -152,7 +148,7 @@ class AuthApplicationServiceImplTest {
 
         // When & Then
         assertThatThrownBy(() -> authApplicationService.register(registerRequest))
-                .isInstanceOf(DuplicateUsernameException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("用户名已存在");
 
         // 验证方法调用
@@ -170,7 +166,7 @@ class AuthApplicationServiceImplTest {
 
         // When & Then
         assertThatThrownBy(() -> authApplicationService.register(registerRequest))
-                .isInstanceOf(DuplicateEmailException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("邮箱已存在");
 
         // 验证方法调用
@@ -191,7 +187,7 @@ class AuthApplicationServiceImplTest {
 
         // When & Then
         assertThatThrownBy(() -> authApplicationService.register(registerRequest))
-                .isInstanceOf(InvalidPasswordException.class)
+                .isInstanceOf(ParameterException.class)
                 .hasMessageContaining("密码不符合强度要求");
 
         // 验证方法调用
@@ -250,7 +246,7 @@ class AuthApplicationServiceImplTest {
 
         // When & Then
         assertThatThrownBy(() -> authApplicationService.login(loginRequest))
-                .isInstanceOf(AccountLockedException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("账号已锁定");
 
         // 验证方法调用
@@ -270,7 +266,7 @@ class AuthApplicationServiceImplTest {
 
         // When & Then
         assertThatThrownBy(() -> authApplicationService.login(loginRequest))
-                .isInstanceOf(AuthenticationException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("用户名或密码错误");
 
         // 验证方法调用
@@ -292,7 +288,7 @@ class AuthApplicationServiceImplTest {
 
         // When & Then
         assertThatThrownBy(() -> authApplicationService.login(loginRequest))
-                .isInstanceOf(AuthenticationException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("用户名或密码错误");
 
         // 验证方法调用
@@ -491,7 +487,7 @@ class AuthApplicationServiceImplTest {
                 com.catface996.aiops.application.api.dto.auth.request.ForceLogoutRequest.of(token, wrongPassword);
 
         assertThatThrownBy(() -> authApplicationService.forceLogoutOthers(request))
-                .isInstanceOf(AuthenticationException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("密码验证失败");
 
         // 验证不会创建新会话
@@ -547,7 +543,7 @@ class AuthApplicationServiceImplTest {
 
         // When & Then
         assertThatThrownBy(() -> authApplicationService.unlockAccount(userToken, accountId))
-                .isInstanceOf(AuthenticationException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("权限不足");
 
         // 验证不会调用解锁方法
@@ -592,12 +588,12 @@ class AuthApplicationServiceImplTest {
         when(accountRepository.findById(testSession.getUserId())).thenReturn(Optional.of(adminAccount));
 
         // Mock Domain 层抛出账号不存在异常（使用 doThrow 语法用于 void 方法）
-        doThrow(new AccountNotFoundException("账号不存在"))
+        doThrow(new BusinessException("NOT_FOUND_001", "账号不存在"))
                 .when(authDomainService).unlockAccount(nonExistentAccountId);
 
         // When & Then
         assertThatThrownBy(() -> authApplicationService.unlockAccount(adminToken, nonExistentAccountId))
-                .isInstanceOf(AccountNotFoundException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("账号不存在");
 
         // 验证调用了解锁方法（但失败了）
