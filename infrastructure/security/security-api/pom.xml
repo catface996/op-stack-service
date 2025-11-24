@@ -7,22 +7,24 @@
 
     <parent>
         <groupId>com.catface996.aiops</groupId>
-        <artifactId>aiops-service</artifactId>
+        <artifactId>security</artifactId>
         <version>1.0.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>infrastructure</artifactId>
-    <packaging>pom</packaging>
+    <artifactId>security-api</artifactId>
+    <packaging>jar</packaging>
 
-    <name>Infrastructure</name>
-    <description>Infrastructure Layer - Aggregation Module</description>
+    <name>Security API</name>
+    <description>Security Infrastructure - API Definitions</description>
 
-    <modules>
-        <module>repository</module>
-        <module>cache</module>
-        <module>mq</module>
-        <module>security</module>
-    </modules>
+    <dependencies>
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
 
 </project>

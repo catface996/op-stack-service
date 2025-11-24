@@ -7,22 +7,20 @@
 
     <parent>
         <groupId>com.catface996.aiops</groupId>
-        <artifactId>aiops-service</artifactId>
+        <artifactId>infrastructure</artifactId>
         <version>1.0.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>infrastructure</artifactId>
+    <artifactId>security</artifactId>
     <packaging>pom</packaging>
 
-    <name>Infrastructure</name>
-    <description>Infrastructure Layer - Aggregation Module</description>
+    <name>Security</name>
+    <description>Security Infrastructure - Aggregation Module</description>
 
     <modules>
-        <module>repository</module>
-        <module>cache</module>
-        <module>mq</module>
-        <module>security</module>
+        <module>security-api</module>
+        <module>jwt-impl</module>
     </modules>
 
 </project>
