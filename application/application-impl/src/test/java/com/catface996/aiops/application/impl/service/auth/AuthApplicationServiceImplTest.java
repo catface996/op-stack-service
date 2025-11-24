@@ -6,6 +6,7 @@ import com.catface996.aiops.application.api.dto.auth.SessionValidationResult;
 import com.catface996.aiops.application.api.dto.auth.request.LoginRequest;
 import com.catface996.aiops.application.api.dto.auth.request.RegisterRequest;
 import com.catface996.aiops.domain.api.exception.auth.AccountLockedException;
+import com.catface996.aiops.domain.api.exception.auth.AccountNotFoundException;
 import com.catface996.aiops.domain.api.exception.auth.AuthenticationException;
 import com.catface996.aiops.domain.api.exception.auth.DuplicateEmailException;
 import com.catface996.aiops.domain.api.exception.auth.DuplicateUsernameException;
@@ -39,6 +40,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -505,13 +507,100 @@ class AuthApplicationServiceImplTest {
     void testUnlockAccountSuccess() {
         // Given
         String adminToken = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.admin.token";
-        Long accountId = 1L;
+        Long accountId = 2L;
+
+        // Mock 管理员账号
+        Account adminAccount = new Account();
+        adminAccount.setId(1L);
+        adminAccount.setUsername("admin");
+        adminAccount.setRole(AccountRole.ROLE_ADMIN);
+
+        // Mock validateAdminPermission 流程
+        when(authDomainService.validateSession(anyString())).thenReturn(testSession);
+        when(accountRepository.findById(testSession.getUserId())).thenReturn(Optional.of(adminAccount));
 
         // When
         authApplicationService.unlockAccount(adminToken, accountId);
 
         // Then
         // 验证方法调用
+        verify(authDomainService).validateSession(anyString());
         verify(authDomainService).unlockAccount(accountId);
+    }
+
+    @Test
+    @DisplayName("非管理员无法解锁账号")
+    void testUnlockAccountWithNonAdminUser() {
+        // Given
+        String userToken = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.user.token";
+        Long accountId = 2L;
+
+        // Mock 普通用户账号
+        Account normalUser = new Account();
+        normalUser.setId(1L);
+        normalUser.setUsername("john_doe");
+        normalUser.setRole(AccountRole.ROLE_USER);  // 普通用户
+
+        // Mock validateAdminPermission 流程
+        when(authDomainService.validateSession(anyString())).thenReturn(testSession);
+        when(accountRepository.findById(testSession.getUserId())).thenReturn(Optional.of(normalUser));
+
+        // When & Then
+        assertThatThrownBy(() -> authApplicationService.unlockAccount(userToken, accountId))
+                .isInstanceOf(AuthenticationException.class)
+                .hasMessageContaining("权限不足");
+
+        // 验证不会调用解锁方法
+        verify(authDomainService, never()).unlockAccount(any());
+    }
+
+    @Test
+    @DisplayName("无效Token无法解锁账号")
+    void testUnlockAccountWithInvalidToken() {
+        // Given
+        String invalidToken = "Bearer invalid.token";
+        Long accountId = 2L;
+
+        // Mock 会话验证失败
+        when(authDomainService.validateSession(anyString()))
+                .thenThrow(new RuntimeException("Session not found"));
+
+        // When & Then
+        assertThatThrownBy(() -> authApplicationService.unlockAccount(invalidToken, accountId))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Session not found");
+
+        // 验证不会调用解锁方法
+        verify(authDomainService, never()).unlockAccount(any());
+    }
+
+    @Test
+    @DisplayName("解锁不存在的账号")
+    void testUnlockAccountNotFound() {
+        // Given
+        String adminToken = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.admin.token";
+        Long nonExistentAccountId = 999L;
+
+        // Mock 管理员账号
+        Account adminAccount = new Account();
+        adminAccount.setId(1L);
+        adminAccount.setUsername("admin");
+        adminAccount.setRole(AccountRole.ROLE_ADMIN);
+
+        // Mock validateAdminPermission 流程
+        when(authDomainService.validateSession(anyString())).thenReturn(testSession);
+        when(accountRepository.findById(testSession.getUserId())).thenReturn(Optional.of(adminAccount));
+
+        // Mock Domain 层抛出账号不存在异常（使用 doThrow 语法用于 void 方法）
+        doThrow(new AccountNotFoundException("账号不存在"))
+                .when(authDomainService).unlockAccount(nonExistentAccountId);
+
+        // When & Then
+        assertThatThrownBy(() -> authApplicationService.unlockAccount(adminToken, nonExistentAccountId))
+                .isInstanceOf(AccountNotFoundException.class)
+                .hasMessageContaining("账号不存在");
+
+        // 验证调用了解锁方法（但失败了）
+        verify(authDomainService).unlockAccount(nonExistentAccountId);
     }
 }

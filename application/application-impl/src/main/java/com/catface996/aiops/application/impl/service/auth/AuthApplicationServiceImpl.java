@@ -550,10 +550,31 @@ public class AuthApplicationServiceImpl implements AuthApplicationService {
      * 验证管理员权限
      *
      * @param adminToken 管理员Token
+     * @throws com.catface996.aiops.domain.api.exception.auth.SessionNotFoundException 如果会话不存在
+     * @throws com.catface996.aiops.domain.api.exception.auth.SessionExpiredException 如果会话已过期
+     * @throws AccountNotFoundException 如果账号不存在
+     * @throws AuthenticationException 如果不是管理员
      */
     private void validateAdminPermission(String adminToken) {
-        // TODO: 验证管理员权限
-        log.debug("[应用层] 验证管理员权限, adminToken={}", adminToken);
+        // 1. 解析 Token 获取会话ID
+        String sessionId = parseSessionId(adminToken);
+
+        // 2. 验证会话有效性
+        Session session = authDomainService.validateSession(sessionId);
+
+        // 3. 查询用户账号
+        Account account = accountRepository.findById(session.getUserId())
+                .orElseThrow(() -> new AccountNotFoundException("账号不存在"));
+
+        // 4. 验证角色是否为 ADMIN
+        if (account.getRole() != AccountRole.ROLE_ADMIN) {
+            log.warn("[应用层] 非管理员尝试访问管理功能, accountId={}, username={}, role={}",
+                    account.getId(), account.getUsername(), account.getRole());
+            throw new AuthenticationException("权限不足，仅管理员可以执行此操作");
+        }
+
+        log.debug("[应用层] 管理员权限验证通过, accountId={}, username={}",
+                account.getId(), account.getUsername());
     }
 
     /**
