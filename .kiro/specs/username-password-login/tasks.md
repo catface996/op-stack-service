@@ -145,7 +145,7 @@
   - _依赖: 任务1_
   - _工时: 2小时_
 
-- [ ] 9. 配置密码加密器
+- [x] 9. 配置密码加密器
   - 配置 BCryptPasswordEncoder（Work Factor = 10）
   - 注册为 Spring Bean
   - **验证方法**:
