@@ -19,7 +19,6 @@
     <description>Security Infrastructure - Aggregation Module</description>
 
     <modules>
-        <module>security-api</module>
         <module>jwt-impl</module>
     </modules>
 

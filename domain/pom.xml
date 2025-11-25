@@ -21,6 +21,9 @@
     <modules>
         <module>domain-api</module>
         <module>repository-api</module>
+        <module>cache-api</module>
+        <module>mq-api</module>
+        <module>security-api</module>
         <module>domain-impl</module>
     </modules>
 

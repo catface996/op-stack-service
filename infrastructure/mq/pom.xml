@@ -19,7 +19,6 @@
     <description>Message Queue Layer - Aggregation Module</description>
 
     <modules>
-        <module>mq-api</module>
         <module>sqs-impl</module>
     </modules>
 

@@ -19,7 +19,6 @@
     <description>Cache Layer - Aggregation Module</description>
 
     <modules>
-        <module>cache-api</module>
         <module>redis-impl</module>
     </modules>
 
