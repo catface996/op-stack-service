@@ -283,7 +283,7 @@
   - _依赖: 任务3_
   - _工时: 1.5小时_
 
-- [ ] 18. 配置 Spring Security 和 JWT 认证
+- [x] 18. 配置 Spring Security 和 JWT 认证
   - 实现 JWT 认证过滤器（提取 Token、验证、设置 SecurityContext）
   - 配置 Spring Security（STATELESS、URL 规则、权限要求）
   - 配置公开接口和受保护接口
@@ -298,7 +298,7 @@
   - _依赖: 任务8, 任务15_
   - _工时: 3小时_
 
-- [ ] 19. 实现认证相关 HTTP 接口
+- [x] 19. 实现认证相关 HTTP 接口
   - 实现用户注册接口（POST /api/v1/auth/register）
   - 实现用户登录接口（POST /api/v1/auth/login）
   - 实现用户登出接口（POST /api/v1/auth/logout）
@@ -313,7 +313,7 @@
   - _依赖: 任务14, 任务15, 任务17, 任务18_
   - _工时: 3.5小时_
 
-- [ ] 20. 实现会话管理 HTTP 接口
+- [x] 20. 实现会话管理 HTTP 接口
   - 实现会话验证接口（GET /api/v1/session/validate）
   - 实现强制登出其他设备接口（POST /api/v1/session/force-logout-others）
   - 添加接口文档注解
@@ -326,7 +326,7 @@
   - _依赖: 任务15, 任务17, 任务18_
   - _工时: 2小时_
 
-- [ ] 21. 实现管理员功能 HTTP 接口
+- [x] 21. 实现管理员功能 HTTP 接口
   - 实现管理员解锁账号接口（POST /api/v1/admin/accounts/{id}/unlock）
   - 添加权限验证注解（@PreAuthorize）
   - 添加接口文档注解
