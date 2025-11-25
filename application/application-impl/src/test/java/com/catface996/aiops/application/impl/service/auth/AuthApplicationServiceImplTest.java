@@ -14,8 +14,6 @@ import com.catface996.aiops.domain.api.model.auth.AccountStatus;
 import com.catface996.aiops.domain.api.model.auth.DeviceInfo;
 import com.catface996.aiops.domain.api.model.auth.PasswordStrengthResult;
 import com.catface996.aiops.domain.api.model.auth.Session;
-import com.catface996.aiops.repository.auth.AccountRepository;
-import com.catface996.aiops.repository.auth.SessionRepository;
 import com.catface996.aiops.domain.api.service.auth.AuthDomainService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -65,12 +63,6 @@ class AuthApplicationServiceImplTest {
     @Mock
     private AuthDomainService authDomainService;
 
-    @Mock
-    private AccountRepository accountRepository;
-
-    @Mock
-    private SessionRepository sessionRepository;
-
     @InjectMocks
     private AuthApplicationServiceImpl authApplicationService;
 
@@ -114,12 +106,12 @@ class AuthApplicationServiceImplTest {
     @DisplayName("注册成功 - 所有验证通过")
     void testRegisterSuccess() {
         // Given
-        when(accountRepository.existsByUsername(anyString())).thenReturn(false);
-        when(accountRepository.existsByEmail(anyString())).thenReturn(false);
+        when(authDomainService.existsByUsername(anyString())).thenReturn(false);
+        when(authDomainService.existsByEmail(anyString())).thenReturn(false);
         when(authDomainService.validatePasswordStrength(anyString(), anyString(), anyString()))
                 .thenReturn(new PasswordStrengthResult(true, Collections.emptyList()));
         when(authDomainService.encryptPassword(anyString())).thenReturn("$2a$10$encrypted_password");
-        when(accountRepository.save(any(Account.class))).thenReturn(testAccount);
+        when(authDomainService.saveAccount(any(Account.class))).thenReturn(testAccount);
 
         // When
         RegisterResult result = authApplicationService.register(registerRequest);
@@ -133,18 +125,18 @@ class AuthApplicationServiceImplTest {
         assertThat(result.getMessage()).contains("注册成功");
 
         // 验证方法调用
-        verify(accountRepository).existsByUsername("john_doe");
-        verify(accountRepository).existsByEmail("john@example.com");
+        verify(authDomainService).existsByUsername("john_doe");
+        verify(authDomainService).existsByEmail("john@example.com");
         verify(authDomainService).validatePasswordStrength("SecureP@ss123", "john_doe", "john@example.com");
         verify(authDomainService).encryptPassword("SecureP@ss123");
-        verify(accountRepository).save(any(Account.class));
+        verify(authDomainService).saveAccount(any(Account.class));
     }
 
     @Test
     @DisplayName("注册失败 - 用户名已存在")
     void testRegisterFailure_DuplicateUsername() {
         // Given
-        when(accountRepository.existsByUsername(anyString())).thenReturn(true);
+        when(authDomainService.existsByUsername(anyString())).thenReturn(true);
 
         // When & Then
         assertThatThrownBy(() -> authApplicationService.register(registerRequest))
@@ -152,17 +144,17 @@ class AuthApplicationServiceImplTest {
                 .hasMessageContaining("用户名已存在");
 
         // 验证方法调用
-        verify(accountRepository).existsByUsername("john_doe");
-        verify(accountRepository, never()).existsByEmail(anyString());
-        verify(accountRepository, never()).save(any(Account.class));
+        verify(authDomainService).existsByUsername("john_doe");
+        verify(authDomainService, never()).existsByEmail(anyString());
+        verify(authDomainService, never()).saveAccount(any(Account.class));
     }
 
     @Test
     @DisplayName("注册失败 - 邮箱已存在")
     void testRegisterFailure_DuplicateEmail() {
         // Given
-        when(accountRepository.existsByUsername(anyString())).thenReturn(false);
-        when(accountRepository.existsByEmail(anyString())).thenReturn(true);
+        when(authDomainService.existsByUsername(anyString())).thenReturn(false);
+        when(authDomainService.existsByEmail(anyString())).thenReturn(true);
 
         // When & Then
         assertThatThrownBy(() -> authApplicationService.register(registerRequest))
@@ -170,17 +162,17 @@ class AuthApplicationServiceImplTest {
                 .hasMessageContaining("邮箱已存在");
 
         // 验证方法调用
-        verify(accountRepository).existsByUsername("john_doe");
-        verify(accountRepository).existsByEmail("john@example.com");
-        verify(accountRepository, never()).save(any(Account.class));
+        verify(authDomainService).existsByUsername("john_doe");
+        verify(authDomainService).existsByEmail("john@example.com");
+        verify(authDomainService, never()).saveAccount(any(Account.class));
     }
 
     @Test
     @DisplayName("注册失败 - 密码强度不符合要求")
     void testRegisterFailure_WeakPassword() {
         // Given
-        when(accountRepository.existsByUsername(anyString())).thenReturn(false);
-        when(accountRepository.existsByEmail(anyString())).thenReturn(false);
+        when(authDomainService.existsByUsername(anyString())).thenReturn(false);
+        when(authDomainService.existsByEmail(anyString())).thenReturn(false);
         when(authDomainService.validatePasswordStrength(anyString(), anyString(), anyString()))
                 .thenReturn(new PasswordStrengthResult(false,
                         Collections.singletonList("密码长度至少为8个字符")));
@@ -193,7 +185,7 @@ class AuthApplicationServiceImplTest {
         // 验证方法调用
         verify(authDomainService).validatePasswordStrength("SecureP@ss123", "john_doe", "john@example.com");
         verify(authDomainService, never()).encryptPassword(anyString());
-        verify(accountRepository, never()).save(any(Account.class));
+        verify(authDomainService, never()).saveAccount(any(Account.class));
     }
 
     // ==================== 用户登录测试 ====================
@@ -203,11 +195,11 @@ class AuthApplicationServiceImplTest {
     void testLoginSuccess_ReturnsJwtToken() {
         // Given
         when(authDomainService.checkAccountLock(anyString())).thenReturn(Optional.empty());
-        when(accountRepository.findByUsername(anyString())).thenReturn(Optional.of(testAccount));
+        when(authDomainService.findAccountByUsername(anyString())).thenReturn(Optional.of(testAccount));
         when(authDomainService.verifyPassword(anyString(), anyString())).thenReturn(true);
         when(authDomainService.createSession(any(Account.class), anyBoolean(), any(DeviceInfo.class)))
                 .thenReturn(testSession);
-        when(sessionRepository.save(any(Session.class))).thenReturn(testSession);
+        when(authDomainService.saveSession(any(Session.class))).thenReturn(testSession);
 
         // When
         LoginResult result = authApplicationService.login(loginRequest);
@@ -224,11 +216,11 @@ class AuthApplicationServiceImplTest {
 
         // 验证方法调用
         verify(authDomainService).checkAccountLock("john_doe");
-        verify(accountRepository).findByUsername("john_doe");
+        verify(authDomainService).findAccountByUsername("john_doe");
         verify(authDomainService).verifyPassword("SecureP@ss123", "$2a$10$encrypted_password");
         verify(authDomainService).createSession(eq(testAccount), eq(false), any(DeviceInfo.class));
         verify(authDomainService).handleSessionMutex(eq(testAccount), eq(testSession));
-        verify(sessionRepository).save(testSession);
+        verify(authDomainService).saveSession(testSession);
         verify(authDomainService).resetLoginFailureCount("john_doe");
     }
 
@@ -251,7 +243,7 @@ class AuthApplicationServiceImplTest {
 
         // 验证方法调用
         verify(authDomainService).checkAccountLock("john_doe");
-        verify(accountRepository, never()).findByUsername(anyString());
+        verify(authDomainService, never()).findAccountByUsername(anyString());
         verify(authDomainService, never()).verifyPassword(anyString(), anyString());
     }
 
@@ -260,7 +252,7 @@ class AuthApplicationServiceImplTest {
     void testLoginFailure_WrongPassword() {
         // Given
         when(authDomainService.checkAccountLock(anyString())).thenReturn(Optional.empty());
-        when(accountRepository.findByUsername(anyString())).thenReturn(Optional.of(testAccount));
+        when(authDomainService.findAccountByUsername(anyString())).thenReturn(Optional.of(testAccount));
         when(authDomainService.verifyPassword(anyString(), anyString())).thenReturn(false);
         when(authDomainService.recordLoginFailure(anyString())).thenReturn(1);
 
@@ -271,7 +263,7 @@ class AuthApplicationServiceImplTest {
 
         // 验证方法调用
         verify(authDomainService).checkAccountLock("john_doe");
-        verify(accountRepository).findByUsername("john_doe");
+        verify(authDomainService).findAccountByUsername("john_doe");
         verify(authDomainService).verifyPassword("SecureP@ss123", "$2a$10$encrypted_password");
         verify(authDomainService).recordLoginFailure("john_doe");
         verify(authDomainService, never()).createSession(any(), anyBoolean(), any());
@@ -282,7 +274,7 @@ class AuthApplicationServiceImplTest {
     void testLoginFailure_LockedAfter5Failures() {
         // Given
         when(authDomainService.checkAccountLock(anyString())).thenReturn(Optional.empty());
-        when(accountRepository.findByUsername(anyString())).thenReturn(Optional.of(testAccount));
+        when(authDomainService.findAccountByUsername(anyString())).thenReturn(Optional.of(testAccount));
         when(authDomainService.verifyPassword(anyString(), anyString())).thenReturn(false);
         when(authDomainService.recordLoginFailure(anyString())).thenReturn(5);
 
@@ -301,11 +293,11 @@ class AuthApplicationServiceImplTest {
     void testLoginSuccess_FailureCountReset() {
         // Given
         when(authDomainService.checkAccountLock(anyString())).thenReturn(Optional.empty());
-        when(accountRepository.findByUsername(anyString())).thenReturn(Optional.of(testAccount));
+        when(authDomainService.findAccountByUsername(anyString())).thenReturn(Optional.of(testAccount));
         when(authDomainService.verifyPassword(anyString(), anyString())).thenReturn(true);
         when(authDomainService.createSession(any(Account.class), anyBoolean(), any(DeviceInfo.class)))
                 .thenReturn(testSession);
-        when(sessionRepository.save(any(Session.class))).thenReturn(testSession);
+        when(authDomainService.saveSession(any(Session.class))).thenReturn(testSession);
 
         // When
         LoginResult result = authApplicationService.login(loginRequest);
@@ -323,12 +315,12 @@ class AuthApplicationServiceImplTest {
         // Given
         LoginRequest emailLoginRequest = LoginRequest.of("john@example.com", "SecureP@ss123", false);
         when(authDomainService.checkAccountLock(anyString())).thenReturn(Optional.empty());
-        when(accountRepository.findByUsername(anyString())).thenReturn(Optional.empty());
-        when(accountRepository.findByEmail(anyString())).thenReturn(Optional.of(testAccount));
+        when(authDomainService.findAccountByUsername(anyString())).thenReturn(Optional.empty());
+        when(authDomainService.findAccountByEmail(anyString())).thenReturn(Optional.of(testAccount));
         when(authDomainService.verifyPassword(anyString(), anyString())).thenReturn(true);
         when(authDomainService.createSession(any(Account.class), anyBoolean(), any(DeviceInfo.class)))
                 .thenReturn(testSession);
-        when(sessionRepository.save(any(Session.class))).thenReturn(testSession);
+        when(authDomainService.saveSession(any(Session.class))).thenReturn(testSession);
 
         // When
         LoginResult result = authApplicationService.login(emailLoginRequest);
@@ -338,8 +330,8 @@ class AuthApplicationServiceImplTest {
         assertThat(result.getToken()).isNotNull();
 
         // 验证方法调用
-        verify(accountRepository).findByUsername("john@example.com");
-        verify(accountRepository).findByEmail("john@example.com");
+        verify(authDomainService).findAccountByUsername("john@example.com");
+        verify(authDomainService).findAccountByEmail("john@example.com");
     }
 
     @Test
@@ -348,11 +340,11 @@ class AuthApplicationServiceImplTest {
         // Given
         LoginRequest rememberMeRequest = LoginRequest.of("john_doe", "SecureP@ss123", true);
         when(authDomainService.checkAccountLock(anyString())).thenReturn(Optional.empty());
-        when(accountRepository.findByUsername(anyString())).thenReturn(Optional.of(testAccount));
+        when(authDomainService.findAccountByUsername(anyString())).thenReturn(Optional.of(testAccount));
         when(authDomainService.verifyPassword(anyString(), anyString())).thenReturn(true);
         when(authDomainService.createSession(any(Account.class), anyBoolean(), any(DeviceInfo.class)))
                 .thenReturn(testSession);
-        when(sessionRepository.save(any(Session.class))).thenReturn(testSession);
+        when(authDomainService.saveSession(any(Session.class))).thenReturn(testSession);
 
         // When
         LoginResult result = authApplicationService.login(rememberMeRequest);
@@ -388,7 +380,7 @@ class AuthApplicationServiceImplTest {
         // Given
         String token = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test.token";
         when(authDomainService.validateSession(anyString())).thenReturn(testSession);
-        when(accountRepository.findById(any(Long.class))).thenReturn(Optional.of(testAccount));
+        when(authDomainService.findAccountById(any(Long.class))).thenReturn(Optional.of(testAccount));
 
         // When
         SessionValidationResult result = authApplicationService.validateSession(token);
@@ -429,7 +421,7 @@ class AuthApplicationServiceImplTest {
 
         // Mock parseTokenAndGetAccount 流程
         when(authDomainService.validateSession(anyString())).thenReturn(testSession);
-        when(accountRepository.findById(1L)).thenReturn(Optional.of(testAccount));
+        when(authDomainService.findAccountById(1L)).thenReturn(Optional.of(testAccount));
 
         // Mock 密码验证
         when(authDomainService.verifyPassword(eq(password), eq(testAccount.getPassword())))
@@ -445,7 +437,7 @@ class AuthApplicationServiceImplTest {
 
         when(authDomainService.createSession(eq(testAccount), eq(false), any(DeviceInfo.class)))
                 .thenReturn(newSession);
-        when(sessionRepository.save(any(Session.class))).thenReturn(newSession);
+        when(authDomainService.saveSession(any(Session.class))).thenReturn(newSession);
 
         // When
         com.catface996.aiops.application.api.dto.auth.request.ForceLogoutRequest request =
@@ -464,7 +456,7 @@ class AuthApplicationServiceImplTest {
         verify(authDomainService).verifyPassword(eq(password), eq(testAccount.getPassword()));
         verify(authDomainService).createSession(eq(testAccount), eq(false), any(DeviceInfo.class));
         verify(authDomainService).handleSessionMutex(eq(testAccount), eq(newSession));
-        verify(sessionRepository).save(eq(newSession));
+        verify(authDomainService).saveSession(eq(newSession));
     }
 
     @Test
@@ -476,7 +468,7 @@ class AuthApplicationServiceImplTest {
 
         // Mock parseTokenAndGetAccount 流程
         when(authDomainService.validateSession(anyString())).thenReturn(testSession);
-        when(accountRepository.findById(1L)).thenReturn(Optional.of(testAccount));
+        when(authDomainService.findAccountById(1L)).thenReturn(Optional.of(testAccount));
 
         // Mock 密码验证失败
         when(authDomainService.verifyPassword(eq(wrongPassword), eq(testAccount.getPassword())))
@@ -493,7 +485,7 @@ class AuthApplicationServiceImplTest {
         // 验证不会创建新会话
         verify(authDomainService, never()).createSession(any(), anyBoolean(), any());
         verify(authDomainService, never()).handleSessionMutex(any(), any());
-        verify(sessionRepository, never()).save(any());
+        verify(authDomainService, never()).saveSession(any());
     }
 
     // ==================== 管理员解锁账号测试 ====================
@@ -513,7 +505,7 @@ class AuthApplicationServiceImplTest {
 
         // Mock validateAdminPermission 流程
         when(authDomainService.validateSession(anyString())).thenReturn(testSession);
-        when(accountRepository.findById(testSession.getUserId())).thenReturn(Optional.of(adminAccount));
+        when(authDomainService.findAccountById(testSession.getUserId())).thenReturn(Optional.of(adminAccount));
 
         // When
         authApplicationService.unlockAccount(adminToken, accountId);
@@ -539,7 +531,7 @@ class AuthApplicationServiceImplTest {
 
         // Mock validateAdminPermission 流程
         when(authDomainService.validateSession(anyString())).thenReturn(testSession);
-        when(accountRepository.findById(testSession.getUserId())).thenReturn(Optional.of(normalUser));
+        when(authDomainService.findAccountById(testSession.getUserId())).thenReturn(Optional.of(normalUser));
 
         // When & Then
         assertThatThrownBy(() -> authApplicationService.unlockAccount(userToken, accountId))
@@ -585,7 +577,7 @@ class AuthApplicationServiceImplTest {
 
         // Mock validateAdminPermission 流程
         when(authDomainService.validateSession(anyString())).thenReturn(testSession);
-        when(accountRepository.findById(testSession.getUserId())).thenReturn(Optional.of(adminAccount));
+        when(authDomainService.findAccountById(testSession.getUserId())).thenReturn(Optional.of(adminAccount));
 
         // Mock Domain 层抛出账号不存在异常（使用 doThrow 语法用于 void 方法）
         doThrow(new BusinessException("NOT_FOUND_001", "账号不存在"))

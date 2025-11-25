@@ -1,7 +1,7 @@
 package com.catface996.aiops.bootstrap.repository;
 
-import com.catface996.aiops.repository.NodeEntity;
-import com.catface996.aiops.repository.NodeRepository;
+import com.catface996.aiops.domain.api.model.topology.Node;
+import com.catface996.aiops.repository.topology.NodeRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -43,14 +43,14 @@ NodeRepositoryImplTest {
     @org.springframework.test.annotation.Rollback(false)
     public void testSave() {
         // 准备测试数据（使用时间戳确保名称唯一）
-        NodeEntity entity = new NodeEntity();
+        Node entity = new Node();
         entity.setName("MySQL数据库节点-" + System.currentTimeMillis());
         entity.setType("DATABASE");
         entity.setDescription("生产环境MySQL数据库");
         entity.setProperties("{\"host\":\"192.168.1.100\",\"port\":3306}");
 
         // 执行保存
-        NodeEntity savedEntity = nodeRepository.save(entity, "test-user");
+        Node savedEntity = nodeRepository.save(entity, "test-user");
 
         // 验证结果
         assertNotNull(savedEntity.getId(), "ID 应该自动生成");
@@ -74,16 +74,16 @@ NodeRepositoryImplTest {
     @Test
     public void testFindById() {
         // 先保存一个节点
-        NodeEntity entity = new NodeEntity();
+        Node entity = new Node();
         entity.setName("用户服务节点");
         entity.setType("APPLICATION");
         entity.setDescription("用户管理服务");
 
-        NodeEntity savedEntity = nodeRepository.save(entity, "test-user");
+        Node savedEntity = nodeRepository.save(entity, "test-user");
         Long savedId = savedEntity.getId();
 
         // 根据 ID 查询
-        NodeEntity foundEntity = nodeRepository.findById(savedId);
+        Node foundEntity = nodeRepository.findById(savedId);
 
         // 验证结果
         assertNotNull(foundEntity, "应该查询到节点");
@@ -93,7 +93,7 @@ NodeRepositoryImplTest {
         assertEquals("用户管理服务", foundEntity.getDescription());
 
         // 查询不存在的 ID
-        NodeEntity notFound = nodeRepository.findById(999999L);
+        Node notFound = nodeRepository.findById(999999L);
         assertNull(notFound, "查询不存在的 ID 应该返回 null");
     }
 
@@ -107,28 +107,28 @@ NodeRepositoryImplTest {
     @Test
     public void testFindByName() {
         // 先保存几个节点
-        NodeEntity entity1 = new NodeEntity();
+        Node entity1 = new Node();
         entity1.setName("订单服务-生产环境");
         entity1.setType("APPLICATION");
         nodeRepository.save(entity1, "test-user");
 
-        NodeEntity entity2 = new NodeEntity();
+        Node entity2 = new Node();
         entity2.setName("支付服务-生产环境");
         entity2.setType("APPLICATION");
         nodeRepository.save(entity2, "test-user");
 
         // 模糊查询 - 查询包含"订单"的节点
-        NodeEntity found1 = nodeRepository.findByName("订单");
+        Node found1 = nodeRepository.findByName("订单");
         assertNotNull(found1, "应该查询到包含'订单'的节点");
         assertTrue(found1.getName().contains("订单"), "查询结果应该包含'订单'");
 
         // 模糊查询 - 查询包含"生产环境"的节点
-        NodeEntity found2 = nodeRepository.findByName("生产环境");
+        Node found2 = nodeRepository.findByName("生产环境");
         assertNotNull(found2, "应该查询到包含'生产环境'的节点");
         assertTrue(found2.getName().contains("生产环境"), "查询结果应该包含'生产环境'");
 
         // 查询不存在的名称
-        NodeEntity notFound = nodeRepository.findByName("不存在的节点");
+        Node notFound = nodeRepository.findByName("不存在的节点");
         assertNull(notFound, "查询不存在的名称应该返回 null");
     }
 
@@ -141,23 +141,23 @@ NodeRepositoryImplTest {
     @Test
     public void testDeleteById() {
         // 先保存一个节点
-        NodeEntity entity = new NodeEntity();
+        Node entity = new Node();
         entity.setName("临时测试节点");
         entity.setType("OTHER");
         entity.setDescription("用于测试删除功能");
 
-        NodeEntity savedEntity = nodeRepository.save(entity, "test-user");
+        Node savedEntity = nodeRepository.save(entity, "test-user");
         Long savedId = savedEntity.getId();
 
         // 验证保存成功
-        NodeEntity beforeDelete = nodeRepository.findById(savedId);
+        Node beforeDelete = nodeRepository.findById(savedId);
         assertNotNull(beforeDelete, "删除前应该能查询到节点");
 
         // 执行逻辑删除
         nodeRepository.deleteById(savedId, "test-user");
 
         // 验证删除后查询不到
-        NodeEntity afterDelete = nodeRepository.findById(savedId);
+        Node afterDelete = nodeRepository.findById(savedId);
         assertNull(afterDelete, "逻辑删除后查询应该返回 null");
     }
 
@@ -178,14 +178,14 @@ NodeRepositoryImplTest {
 
         // 节点名称为空
         assertThrows(IllegalArgumentException.class, () -> {
-            NodeEntity entity = new NodeEntity();
+            Node entity = new Node();
             entity.setType("DATABASE");
             nodeRepository.save(entity, "test-user");
         }, "节点名称为空应该抛出异常");
 
         // 操作人为空
         assertThrows(IllegalArgumentException.class, () -> {
-            NodeEntity entity = new NodeEntity();
+            Node entity = new Node();
             entity.setName("测试节点");
             entity.setType("DATABASE");
             nodeRepository.save(entity, null);
@@ -193,7 +193,7 @@ NodeRepositoryImplTest {
 
         // 节点类型无效
         assertThrows(IllegalArgumentException.class, () -> {
-            NodeEntity entity = new NodeEntity();
+            Node entity = new Node();
             entity.setName("测试节点");
             entity.setType("INVALID_TYPE");
             nodeRepository.save(entity, "test-user");
@@ -209,7 +209,7 @@ NodeRepositoryImplTest {
     @Test
     public void testJsonValidation() {
         // 有效的 JSON 格式
-        NodeEntity entity1 = new NodeEntity();
+        Node entity1 = new Node();
         entity1.setName("测试节点-JSON有效");
         entity1.setType("DATABASE");
         entity1.setProperties("{\"host\":\"localhost\",\"port\":3306}");
@@ -219,7 +219,7 @@ NodeRepositoryImplTest {
         }, "有效的 JSON 格式应该可以保存");
 
         // 无效的 JSON 格式
-        NodeEntity entity2 = new NodeEntity();
+        Node entity2 = new Node();
         entity2.setName("测试节点-JSON无效");
         entity2.setType("DATABASE");
         entity2.setProperties("{invalid json}");
