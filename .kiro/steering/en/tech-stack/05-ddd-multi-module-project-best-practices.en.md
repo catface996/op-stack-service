@@ -63,9 +63,38 @@ Domain layer should be independent of any technical framework, maintaining pure 
 
 | Module | Responsibilities | Technology Examples |
 |------|------|-------------|
-| **repository** | Data persistence | MySQL, PostgreSQL, MongoDB |
-| **cache** | Cache service | Redis, Memcached |
-| **mq** | Message queue | RocketMQ, Kafka, RabbitMQ |
+| **repository/mysql-impl** | Data persistence implementation | MySQL, PostgreSQL, MongoDB |
+| **cache/redis-impl** | Cache service implementation | Redis, Memcached |
+| **mq/sqs-impl** | Message queue implementation | SQS, RocketMQ, Kafka, RabbitMQ |
+
+### Domain Layer Submodules (Important)
+
+**Key Principle**: Repository-API, Cache-API, MQ-API interface definitions belong to domain layer concepts and should be managed as submodules of Domain
+
+| Module | Responsibilities | Description |
+|------|------|------|
+| **domain-api** | Domain models and domain service interfaces | Aggregates, entities, value objects, domain service interfaces |
+| **repository-api** | Repository interface definitions (Ports) | Define data persistence contracts, follow dependency inversion principle |
+| **cache-api** | Cache interface definitions (Ports) | Define cache service contracts |
+| **mq-api** | Message queue interface definitions (Ports) | Define message send/receive contracts |
+| **domain-impl** | Domain service implementations | Implement complex business logic, call Repository/Cache/MQ |
+
+**Module Structure Example**:
+```
+domain/
+├── domain-api/              (domain models and service interfaces)
+│   ├── model/              (aggregates, entities, value objects)
+│   └── service/            (domain service interfaces)
+├── repository-api/          (repository interfaces - independent submodule)
+│   └── repository/         (Repository interface definitions)
+├── cache-api/              (cache interfaces - independent submodule)
+│   └── cache/              (Cache interface definitions)
+├── mq-api/                 (MQ interfaces - independent submodule)
+│   └── mq/                 (MQ interface definitions)
+├── domain-impl/            (domain service implementations)
+│   └── service/            (domain service implementations)
+└── pom.xml                 (domain parent module)
+```
 
 ## Module Dependency Relationships
 
@@ -77,23 +106,31 @@ Domain layer should be independent of any technical framework, maintaining pure 
 | **Implementation dependency** | compile | For implementing interfaces, needed at compile time | Application Impl depends on Application API |
 | **Runtime dependency** | runtime | For packaging startup, needed at runtime | Bootstrap depends on all Impl modules |
 
-### Dependency Rules by Layer
+### Dependency Rules by Layer (Strictly Follow)
 
 **Interface Layer**:
-- Only depends on Application API (call application services)
-- Cannot directly depend on Domain or Infrastructure
+- ✅ Only depends on Application API (call application services)
+- ❌ Cannot directly depend on Domain or Infrastructure
 
-**Application Layer**:
-- Depends on Domain API and all Infrastructure APIs (call domain services and infrastructure)
-- Cannot depend on Interface layer
+**Application Layer (Key Rules)**:
+- ✅ **Only depends on Domain API** (call domain services)
+- ❌ **Forbidden to depend on repository-api, cache-api, mq-api**
+- ❌ Cannot depend on Interface layer
+- **Reason**: Application Service is use case orchestration layer, all data access must go through Domain Service
 
 **Domain Layer**:
-- Only depends on Domain API (implement domain services)
-- Cannot depend on any other layer
+- **domain-api**: No dependencies on other modules (pure domain models and interfaces)
+- **repository-api**: No dependencies on other modules (pure interface definitions)
+- **cache-api**: No dependencies on other modules (pure interface definitions)
+- **mq-api**: No dependencies on other modules (pure interface definitions)
+- **domain-impl**: Depends on domain-api + repository-api + cache-api + mq-api
 
 **Infrastructure Layer**:
-- Only depends on corresponding API modules (implement interfaces)
-- Cannot depend on Application or Interface layers
+- ✅ Only depends on corresponding API modules (implement interfaces)
+- Example: mysql-impl depends on repository-api
+- Example: redis-impl depends on cache-api
+- Example: sqs-impl depends on mq-api
+- ❌ Cannot depend on Application or Interface layers
 
 **Bootstrap Layer**:
 - Runtime depends on all implementation modules (packaging startup)
@@ -102,6 +139,260 @@ Domain layer should be independent of any technical framework, maintaining pure 
 **Common Layer**:
 - All modules can depend on common
 - common doesn't depend on any other modules
+
+**Dependency Diagram**:
+```
+┌─────────────────────────────────────────────┐
+│         Interface Layer (HTTP/MQ/Job)       │
+└────────────────┬────────────────────────────┘
+                 │ depends on
+                 ▼
+┌─────────────────────────────────────────────┐
+│         Application Layer                   │
+│         (application-impl)                  │
+│  ✅ Only depends on domain-api               │
+│  ❌ Forbidden: repository-api/cache-api/mq-api│
+└────────────────┬────────────────────────────┘
+                 │ depends on
+                 ▼
+┌─────────────────────────────────────────────┐
+│         Domain API Layer                    │
+│         (domain-api)                        │
+└─────────────────────────────────────────────┘
+                 ▲
+                 │ depends on
+┌────────────────┴────────────────────────────┐
+│         Domain Impl Layer                   │
+│         (domain-impl)                       │
+│  ✅ Depends on repository-api + cache-api + mq-api │
+└────┬────────────────────────┬───────────────┘
+     │ depends on              │ depends on
+     ▼                        ▼
+┌────────────────┐      ┌──────────────────────┐
+│ Repository API │      │ Cache API / MQ API   │
+│ (Port Interface)│      │ (Port Interface)     │
+└────────┬───────┘      └──────────┬───────────┘
+         │ implements              │ implements
+         ▼                         ▼
+┌────────────────┐      ┌──────────────────────┐
+│ mysql-impl     │      │ redis-impl/sqs-impl  │
+│ (Adapter Impl) │      │ (Adapter Impl)       │
+└────────────────┘      └──────────────────────┘
+```
+
+## Application Service vs Domain Service Responsibilities (Key)
+
+### Core Principles
+
+**Application Service is use case orchestration layer, Domain Service is business logic layer**
+
+- Application Service **can only** call Domain Service
+- Application Service **forbidden** to directly call Repository/Cache/MQ
+- Domain Service is the **only entry point** for data access
+
+### Application Service Responsibilities
+
+**Positioning**: Use case orchestration layer, organize business flows
+
+**Allowed responsibilities**:
+1. ✅ **Transaction boundary control** (@Transactional)
+2. ✅ **Orchestrate Domain Services** (call multiple Domain Services to complete use case)
+3. ✅ **DTO conversion** (Request/Response → Domain Entity)
+4. ✅ **Permission validation** (can be done at this layer)
+5. ✅ **Audit logging**
+6. ✅ **Exception handling and conversion**
+
+**Forbidden responsibilities**:
+- ❌ Direct call to Repository (must go through Domain Service)
+- ❌ Direct call to Cache (must go through Domain Service)
+- ❌ Direct call to MQ (must go through Domain Service)
+- ❌ Contains complex business logic (should be in Domain Service)
+- ❌ Domain object creation logic (should be in Domain Service)
+- ❌ Password encryption/verification logic (should be in Domain Service)
+
+**Dependency List**:
+```java
+@Service
+public class AuthApplicationServiceImpl implements AuthApplicationService {
+    // ✅ Allowed: depend on Domain Service
+    private final AuthDomainService authDomainService;
+
+    // ❌ Forbidden: cannot depend on Repository
+    // private final AccountRepository accountRepository;
+
+    // ❌ Forbidden: cannot depend on Cache
+    // private final CacheService cacheService;
+
+    // ❌ Forbidden: cannot depend on MQ
+    // private final MqService mqService;
+}
+```
+
+**Correct Example**:
+```java
+@Override
+@Transactional
+public RegisterResult register(RegisterRequest request) {
+    // 1. DTO conversion (Application layer responsibility)
+    String username = request.getUsername();
+    String email = request.getEmail();
+    String password = request.getPassword();
+
+    // 2. Call Domain Service to create account (✅ Correct)
+    Account account = authDomainService.createAccount(username, email, password);
+
+    // 3. Call Domain Service to save account (✅ Correct)
+    Account savedAccount = authDomainService.saveAccount(account);
+
+    // 4. Record audit log (Application layer responsibility)
+    auditLogger.log("USER_REGISTERED", savedAccount.getId());
+
+    // 5. DTO conversion (Application layer responsibility)
+    return RegisterResult.from(savedAccount);
+}
+```
+
+**Wrong Example**:
+```java
+@Override
+@Transactional
+public RegisterResult register(RegisterRequest request) {
+    // ❌ Wrong: Application Service directly calls Repository
+    Account account = accountRepository.findByUsername(request.getUsername());
+
+    // ❌ Wrong: Application Service directly creates domain object
+    Account newAccount = Account.create(
+        request.getUsername(),
+        request.getEmail(),
+        passwordEncoder.encode(request.getPassword())
+    );
+
+    // ❌ Wrong: Application Service directly saves data
+    Account savedAccount = accountRepository.save(newAccount);
+
+    return RegisterResult.from(savedAccount);
+}
+```
+
+### Domain Service Responsibilities
+
+**Positioning**: Business logic layer, handle complex business rules
+
+**Allowed responsibilities**:
+1. ✅ **Complex business rules** (logic across multiple aggregates)
+2. ✅ **Domain object creation** (factory methods)
+3. ✅ **Password encryption/verification**
+4. ✅ **Session management logic**
+5. ✅ **Account locking logic**
+6. ✅ **Call Repository for data access**
+7. ✅ **Call Cache for cache operations**
+8. ✅ **Call MQ to send messages**
+
+**Forbidden responsibilities**:
+- ❌ Transaction control (controlled by Application Service)
+- ❌ DTO conversion (handled by Application Service)
+- ❌ Audit logging (handled by Application Service)
+
+**Dependency List**:
+```java
+@Service
+public class AuthDomainServiceImpl implements AuthDomainService {
+    // ✅ Allowed: depend on Repository
+    private final AccountRepository accountRepository;
+    private final SessionRepository sessionRepository;
+
+    // ✅ Allowed: depend on Cache
+    private final LoginFailureCacheService loginFailureCacheService;
+
+    // ✅ Allowed: depend on MQ
+    private final AuthEventMqService authEventMqService;
+
+    // ✅ Allowed: depend on password encoder
+    private final PasswordEncoder passwordEncoder;
+}
+```
+
+**Correct Example**:
+```java
+@Override
+public Account createAccount(String username, String email, String rawPassword) {
+    // 1. Check if username exists (✅ Call Repository)
+    if (accountRepository.existsByUsername(username)) {
+        throw new BusinessException(AuthErrorCode.USERNAME_ALREADY_EXISTS);
+    }
+
+    // 2. Password strength check (✅ Business rule)
+    PasswordStrengthResult strengthResult = checkPasswordStrength(rawPassword);
+    if (!strengthResult.isStrong()) {
+        throw new BusinessException(AuthErrorCode.PASSWORD_TOO_WEAK);
+    }
+
+    // 3. Encrypt password (✅ Domain logic)
+    String encodedPassword = passwordEncoder.encode(rawPassword);
+
+    // 4. Create domain object (✅ Factory method)
+    return Account.create(username, email, encodedPassword);
+}
+
+@Override
+public Account saveAccount(Account account) {
+    // Save account (✅ Call Repository)
+    Account savedAccount = accountRepository.save(account);
+
+    // Send account created event (✅ Call MQ)
+    authEventMqService.sendAccountCreatedEvent(savedAccount.getId());
+
+    return savedAccount;
+}
+```
+
+### Why Strict Separation?
+
+**1. Clear responsibility boundaries**:
+- Application Service: Orchestrate use case flows
+- Domain Service: Implement business logic
+
+**2. Comply with Hexagonal Architecture**:
+- Domain is core, defines Ports (Repository/Cache/MQ interfaces)
+- Infrastructure is outer layer, implements Adapters
+- Application should not know about outer layer
+
+**3. Easy to test**:
+- Test Application Service: Mock Domain Service only
+- Test Domain Service: Mock Repository/Cache/MQ only
+
+**4. Easy to replace implementation**:
+- Switch database: Only modify Infrastructure layer
+- Application and Domain need no changes
+
+**5. Avoid logic leakage**:
+- If Application directly calls Repository, business logic easily leaks to Application layer
+- Through Domain Service encapsulation, ensure business logic is centrally managed
+
+### How to Handle Simple CRUD?
+
+**Even for simple queries, must go through Domain Service**:
+
+```java
+// ✅ Correct: Application Service calls Domain Service
+@Override
+public AccountInfo getAccountById(Long accountId) {
+    Account account = authDomainService.findAccountById(accountId);
+    return AccountInfo.from(account);
+}
+
+// Implemented in Domain Service
+@Override
+public Account findAccountById(Long accountId) {
+    return accountRepository.findById(accountId)
+        .orElseThrow(() -> new BusinessException(AuthErrorCode.ACCOUNT_NOT_FOUND));
+}
+```
+
+**Reasons**:
+- Unified data access entry point, easy to add cache, audit and other cross-cutting concerns
+- Even if currently simple query, may need to add business rules in future
+- Maintain architecture consistency, avoid confusion
 
 ## Package Structure and Naming Standards
 
@@ -250,6 +541,10 @@ Database → PO → Repository Entity → Domain Entity → DTO → VO → Front
 
 | Error Type | Wrong Approach | Correct Approach | Checking Method |
 |---------|---------|---------|---------|
+| **Application directly calls Repository** | Application Service depends on Repository | Application Service only depends on Domain Service | Check if application-impl's pom.xml depends on repository-api |
+| **Repository-API location** | repository-api in infrastructure | repository-api as submodule of domain | Check if domain/pom.xml contains repository-api |
+| **Cache-API location** | cache-api in infrastructure | cache-api as submodule of domain | Check if domain/pom.xml contains cache-api |
+| **MQ-API location** | mq-api in infrastructure | mq-api as submodule of domain | Check if domain/pom.xml contains mq-api |
 | **Package path** | Using `sql` | Using `mysql` | Check if package name uses specific technology name |
 | **Entity/PO location** | Entity and PO both in mysql-impl | Entity in repository-api, PO in mysql-impl | Check if Entity is in api module |
 | **Configuration class location** | MybatisPlusConfig in bootstrap | MybatisPlusConfig in mysql-impl | Check if configuration class is cohesive with implementation |
@@ -260,6 +555,13 @@ Database → PO → Repository Entity → Domain Entity → DTO → VO → Front
 ## Your Checklist
 
 When creating or modifying code, you should check:
+
+### Architecture Layering Check (Most Important)
+- [ ] repository-api, cache-api, mq-api as submodules of domain (not in infrastructure)
+- [ ] application-impl's pom.xml only depends on domain-api, not repository-api/cache-api/mq-api
+- [ ] domain-impl's pom.xml depends on domain-api + repository-api + cache-api + mq-api
+- [ ] Application Service only calls Domain Service, not directly call Repository/Cache/MQ
+- [ ] Domain Service is the only entry point for data access
 
 ### Module and Package Check
 - [ ] Module directory structure follows DDD layered architecture
@@ -277,6 +579,7 @@ When creating or modifying code, you should check:
 
 ### Dependency Check
 - [ ] Dependency direction follows: Interface → Application → Domain ← Infrastructure
+- [ ] Application layer doesn't depend on repository-api, cache-api, mq-api (Key)
 - [ ] No circular dependencies
 - [ ] API modules don't depend on implementation modules
 - [ ] Domain layer doesn't depend on Infrastructure layer
