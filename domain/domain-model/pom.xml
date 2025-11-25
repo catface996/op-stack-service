@@ -12,18 +12,24 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>domain-api</artifactId>
+    <artifactId>domain-model</artifactId>
     <packaging>jar</packaging>
 
-    <name>Domain API</name>
-    <description>Domain models, repository interfaces, and service interfaces</description>
+    <name>Domain Model</name>
+    <description>Pure domain models (Entities, Value Objects, Domain Events) - No business logic</description>
 
     <dependencies>
-        <!-- Domain Model - for domain entities in method parameters/return values -->
+        <!-- Common - for exceptions and constants -->
         <dependency>
             <groupId>com.catface996.aiops</groupId>
-            <artifactId>domain-model</artifactId>
+            <artifactId>common</artifactId>
             <version>${project.version}</version>
+        </dependency>
+
+        <!-- Jackson for JSON annotations on domain models -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
         </dependency>
 
         <!-- Lombok -->
@@ -31,6 +37,13 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <scope>provided</scope>
+        </dependency>
+
+        <!-- Test Dependencies -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

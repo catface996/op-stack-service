@@ -1,6 +1,6 @@
 package com.catface996.aiops.repository.auth;
 
-import com.catface996.aiops.domain.api.model.auth.Session;
+import com.catface996.aiops.domain.model.auth.Session;
 
 import java.util.Optional;
 

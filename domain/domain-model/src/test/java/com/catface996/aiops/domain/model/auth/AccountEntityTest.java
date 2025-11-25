@@ -1,4 +1,4 @@
-package com.catface996.aiops.domain.api.model.auth;
+package com.catface996.aiops.domain.model.auth;
 
 import org.junit.jupiter.api.Test;
 import java.time.LocalDateTime;

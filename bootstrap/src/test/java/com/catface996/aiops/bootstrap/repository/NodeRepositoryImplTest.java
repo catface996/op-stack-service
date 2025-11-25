@@ -1,6 +1,6 @@
 package com.catface996.aiops.bootstrap.repository;
 
-import com.catface996.aiops.domain.api.model.topology.Node;
+import com.catface996.aiops.domain.model.topology.Node;
 import com.catface996.aiops.repository.topology.NodeRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

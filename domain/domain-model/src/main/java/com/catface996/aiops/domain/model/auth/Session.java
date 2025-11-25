@@ -1,4 +1,4 @@
-package com.catface996.aiops.domain.api.model.auth;
+package com.catface996.aiops.domain.model.auth;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonIgnore;

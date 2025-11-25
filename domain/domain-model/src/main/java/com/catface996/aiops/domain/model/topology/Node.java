@@ -1,4 +1,4 @@
-package com.catface996.aiops.domain.api.model.topology;
+package com.catface996.aiops.domain.model.topology;
 
 import lombok.Data;
 import java.io.Serializable;

@@ -1,9 +1,9 @@
 package com.catface996.aiops.repository.mysql.impl.auth;
 
 import com.catface996.aiops.common.exception.BusinessException;
-import com.catface996.aiops.domain.api.model.auth.Account;
-import com.catface996.aiops.domain.api.model.auth.AccountRole;
-import com.catface996.aiops.domain.api.model.auth.AccountStatus;
+import com.catface996.aiops.domain.model.auth.Account;
+import com.catface996.aiops.domain.model.auth.AccountRole;
+import com.catface996.aiops.domain.model.auth.AccountStatus;
 import com.catface996.aiops.repository.mysql.mapper.auth.AccountMapper;
 import com.catface996.aiops.repository.mysql.po.auth.AccountPO;
 import org.junit.jupiter.api.BeforeEach;

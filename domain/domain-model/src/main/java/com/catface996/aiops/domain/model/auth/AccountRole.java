@@ -1,4 +1,4 @@
-package com.catface996.aiops.domain.api.model.auth;
+package com.catface996.aiops.domain.model.auth;
 
 /**
  * 账号角色枚举

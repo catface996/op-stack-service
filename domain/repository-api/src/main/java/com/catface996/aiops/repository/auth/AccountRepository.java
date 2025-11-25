@@ -1,7 +1,7 @@
 package com.catface996.aiops.repository.auth;
 
-import com.catface996.aiops.domain.api.model.auth.Account;
-import com.catface996.aiops.domain.api.model.auth.AccountStatus;
+import com.catface996.aiops.domain.model.auth.Account;
+import com.catface996.aiops.domain.model.auth.AccountStatus;
 
 import java.util.Optional;
 

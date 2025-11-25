@@ -1,6 +1,6 @@
 package com.catface996.aiops.repository.topology;
 
-import com.catface996.aiops.domain.api.model.topology.Node;
+import com.catface996.aiops.domain.model.topology.Node;
 
 /**
  * 节点仓储接口

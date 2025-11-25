@@ -1,6 +1,6 @@
 package com.catface996.aiops.repository.mysql.impl;
 
-import com.catface996.aiops.domain.api.model.topology.Node;
+import com.catface996.aiops.domain.model.topology.Node;
 import com.catface996.aiops.repository.topology.NodeRepository;
 import com.catface996.aiops.repository.mysql.mapper.NodeMapper;
 import com.catface996.aiops.repository.mysql.po.NodePO;

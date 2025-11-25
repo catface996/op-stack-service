@@ -19,6 +19,7 @@
     <description>Domain Layer - Aggregation Module</description>
 
     <modules>
+        <module>domain-model</module>
         <module>domain-api</module>
         <module>repository-api</module>
         <module>cache-api</module>

@@ -1,10 +1,10 @@
 package com.catface996.aiops.domain.api.service.auth;
 
-import com.catface996.aiops.domain.api.model.auth.Account;
-import com.catface996.aiops.domain.api.model.auth.AccountLockInfo;
-import com.catface996.aiops.domain.api.model.auth.DeviceInfo;
-import com.catface996.aiops.domain.api.model.auth.PasswordStrengthResult;
-import com.catface996.aiops.domain.api.model.auth.Session;
+import com.catface996.aiops.domain.model.auth.Account;
+import com.catface996.aiops.domain.model.auth.AccountLockInfo;
+import com.catface996.aiops.domain.model.auth.DeviceInfo;
+import com.catface996.aiops.domain.model.auth.PasswordStrengthResult;
+import com.catface996.aiops.domain.model.auth.Session;
 
 import java.util.Optional;
 
