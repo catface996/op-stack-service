@@ -1,18 +1,26 @@
-package com.catface996.aiops.repository;
+package com.catface996.aiops.domain.api.model.topology;
 
 import lombok.Data;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * 节点实体（领域实体）
+ * 节点（领域模型）
  *
- * 用途: 表示系统中的节点，可以是数据库服务器、业务应用、API 接口、报表系统等
+ * <p>表示系统拓扑中的节点，可以是数据库服务器、业务应用、API 接口、报表系统等。</p>
  *
- * 特性: 纯 POJO，无框架注解，实现 Serializable 接口
+ * <p>DDD 规范：</p>
+ * <ul>
+ *   <li>纯业务概念，不使用技术后缀（如 Entity）</li>
+ *   <li>纯 POJO，无框架注解</li>
+ *   <li>实现 Serializable 接口</li>
+ * </ul>
+ *
+ * @author AI Assistant
+ * @since 2025-11-25
  */
 @Data
-public class NodeEntity implements Serializable {
+public class Node implements Serializable {
 
     private static final long serialVersionUID = 1L;
 

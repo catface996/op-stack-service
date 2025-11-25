@@ -1,6 +1,6 @@
 package com.catface996.aiops.repository.mysql.impl;
 
-import com.catface996.aiops.repository.NodeEntity;
+import com.catface996.aiops.domain.api.model.topology.Node;
 import com.catface996.aiops.repository.NodeRepository;
 import com.catface996.aiops.repository.mysql.mapper.NodeMapper;
 import com.catface996.aiops.repository.mysql.po.NodePO;
@@ -23,7 +23,7 @@ public class NodeRepositoryImpl implements NodeRepository {
     }
 
     @Override
-    public NodeEntity save(NodeEntity entity, String operator) {
+    public Node save(Node entity, String operator) {
         validateNode(entity, operator);
 
         NodePO po = toPO(entity);
@@ -43,7 +43,7 @@ public class NodeRepositoryImpl implements NodeRepository {
     }
 
     @Override
-    public NodeEntity findById(Long id) {
+    public Node findById(Long id) {
         if (id == null) {
             throw new IllegalArgumentException("节点 ID 不能为空");
         }
@@ -51,7 +51,7 @@ public class NodeRepositoryImpl implements NodeRepository {
     }
 
     @Override
-    public NodeEntity findByName(String name) {
+    public Node findByName(String name) {
         if (name == null || name.trim().isEmpty()) {
             throw new IllegalArgumentException("节点名称不能为空");
         }
@@ -77,7 +77,7 @@ public class NodeRepositoryImpl implements NodeRepository {
     /**
      * 输入参数验证（FR-005, FR-019）
      */
-    private void validateNode(NodeEntity entity, String operator) {
+    private void validateNode(Node entity, String operator) {
         if (entity == null) {
             throw new IllegalArgumentException("节点实体不能为空");
         }
@@ -105,7 +105,7 @@ public class NodeRepositoryImpl implements NodeRepository {
         }
     }
 
-    private NodePO toPO(NodeEntity entity) {
+    private NodePO toPO(Node entity) {
         if (entity == null) return null;
         
         NodePO po = new NodePO();
@@ -123,10 +123,10 @@ public class NodeRepositoryImpl implements NodeRepository {
         return po;
     }
 
-    private NodeEntity toEntity(NodePO po) {
+    private Node toEntity(NodePO po) {
         if (po == null) return null;
         
-        NodeEntity entity = new NodeEntity();
+        Node entity = new Node();
         entity.setId(po.getId());
         entity.setName(po.getName());
         entity.setType(po.getType());
