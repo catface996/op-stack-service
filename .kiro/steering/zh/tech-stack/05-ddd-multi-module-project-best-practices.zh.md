@@ -63,9 +63,38 @@ Domain 层使用纯粹的业务语言（Ubiquitous Language），不使用技术
 
 | 模块 | 职责 | 技术选型示例 |
 |------|------|-------------|
-| **repository** | 数据持久化 | MySQL, PostgreSQL, MongoDB |
-| **cache** | 缓存服务 | Redis, Memcached |
-| **mq** | 消息队列 | RocketMQ, Kafka, RabbitMQ |
+| **repository/mysql-impl** | 数据持久化实现 | MySQL, PostgreSQL, MongoDB |
+| **cache/redis-impl** | 缓存服务实现 | Redis, Memcached |
+| **mq/sqs-impl** | 消息队列实现 | SQS, RocketMQ, Kafka, RabbitMQ |
+
+### Domain 层子模块说明（重要）
+
+**关键原则**: Repository-API、Cache-API、MQ-API 接口定义属于领域层概念，应作为 Domain 的子模块管理
+
+| 模块 | 职责 | 说明 |
+|------|------|------|
+| **domain-api** | 领域模型和领域服务接口 | 聚合根、实体、值对象、领域服务接口 |
+| **repository-api** | 仓储接口定义（Port） | 定义数据持久化契约，遵循依赖倒置原则 |
+| **cache-api** | 缓存接口定义（Port） | 定义缓存服务契约 |
+| **mq-api** | 消息队列接口定义（Port） | 定义消息发送/接收契约 |
+| **domain-impl** | 领域服务实现 | 实现复杂业务逻辑，调用 Repository/Cache/MQ |
+
+**模块结构示例**:
+```
+domain/
+├── domain-api/              (领域模型和领域服务接口)
+│   ├── model/              (聚合根、实体、值对象)
+│   └── service/            (领域服务接口)
+├── repository-api/          (仓储接口 - 独立子模块)
+│   └── repository/         (Repository 接口定义)
+├── cache-api/              (缓存接口 - 独立子模块)
+│   └── cache/              (Cache 接口定义)
+├── mq-api/                 (消息队列接口 - 独立子模块)
+│   └── mq/                 (MQ 接口定义)
+├── domain-impl/            (领域服务实现)
+│   └── service/            (领域服务实现)
+└── pom.xml                 (domain 父模块)
+```
 
 ## 模块依赖关系
 
@@ -77,23 +106,31 @@ Domain 层使用纯粹的业务语言（Ubiquitous Language），不使用技术
 | **实现依赖** | compile | 为了实现接口，编译时需要 | Application Impl 依赖 Application API |
 | **运行时依赖** | runtime | 为了打包启动，运行时需要 | Bootstrap 依赖所有 Impl 模块 |
 
-### 各层依赖规则
+### 各层依赖规则（严格遵守）
 
 **Interface 层**：
-- 只依赖 Application API（调用应用服务）
-- 不能直接依赖 Domain 或 Infrastructure
+- ✅ 只依赖 Application API（调用应用服务）
+- ❌ 不能直接依赖 Domain 或 Infrastructure
 
-**Application 层**：
-- 依赖 Domain API 和所有 Infrastructure API（调用领域服务和基础设施）
-- 不能依赖 Interface 层
+**Application 层（关键规则）**：
+- ✅ **只依赖 Domain API**（调用领域服务）
+- ❌ **禁止依赖 repository-api、cache-api、mq-api**
+- ❌ 不能依赖 Interface 层
+- **原因**: Application Service 是用例编排层，所有数据访问必须通过 Domain Service
 
 **Domain 层**：
-- 只依赖 Domain API（实现领域服务）
-- 不能依赖任何其他层
+- **domain-api**: 不依赖任何其他模块（纯领域模型和接口）
+- **repository-api**: 不依赖任何其他模块（纯接口定义）
+- **cache-api**: 不依赖任何其他模块（纯接口定义）
+- **mq-api**: 不依赖任何其他模块（纯接口定义）
+- **domain-impl**: 依赖 domain-api + repository-api + cache-api + mq-api
 
 **Infrastructure 层**：
-- 只依赖对应的 API 模块（实现接口）
-- 不能依赖 Application 或 Interface 层
+- ✅ 只依赖对应的 API 模块（实现接口）
+- 例如: mysql-impl 依赖 repository-api
+- 例如: redis-impl 依赖 cache-api
+- 例如: sqs-impl 依赖 mq-api
+- ❌ 不能依赖 Application 或 Interface 层
 
 **Bootstrap 层**：
 - 运行时依赖所有实现模块（打包启动）
@@ -102,6 +139,260 @@ Domain 层使用纯粹的业务语言（Ubiquitous Language），不使用技术
 **Common 层**：
 - 所有模块都可以依赖 common
 - common 不依赖任何其他模块
+
+**依赖关系图**:
+```
+┌─────────────────────────────────────────────┐
+│         Interface Layer (HTTP/MQ/Job)       │
+└────────────────┬────────────────────────────┘
+                 │ 依赖
+                 ▼
+┌─────────────────────────────────────────────┐
+│         Application Layer                   │
+│         (application-impl)                  │
+│  ✅ 只依赖 domain-api                        │
+│  ❌ 禁止依赖 repository-api/cache-api/mq-api│
+└────────────────┬────────────────────────────┘
+                 │ 依赖
+                 ▼
+┌─────────────────────────────────────────────┐
+│         Domain API Layer                    │
+│         (domain-api)                        │
+└─────────────────────────────────────────────┘
+                 ▲
+                 │ 依赖
+┌────────────────┴────────────────────────────┐
+│         Domain Impl Layer                   │
+│         (domain-impl)                       │
+│  ✅ 依赖 repository-api + cache-api + mq-api │
+└────┬────────────────────────┬───────────────┘
+     │ 依赖                    │ 依赖
+     ▼                        ▼
+┌────────────────┐      ┌──────────────────────┐
+│ Repository API │      │ Cache API / MQ API   │
+│ (Port 接口)     │      │ (Port 接口)           │
+└────────┬───────┘      └──────────┬───────────┘
+         │ 实现                     │ 实现
+         ▼                         ▼
+┌────────────────┐      ┌──────────────────────┐
+│ mysql-impl     │      │ redis-impl/sqs-impl  │
+│ (Adapter 实现)  │      │ (Adapter 实现)        │
+└────────────────┘      └──────────────────────┘
+```
+
+## Application Service 与 Domain Service 职责边界（关键）
+
+### 核心原则
+
+**Application Service 是用例编排层，Domain Service 是业务逻辑层**
+
+- Application Service **只能**调用 Domain Service
+- Application Service **禁止**直接调用 Repository/Cache/MQ
+- Domain Service 是数据访问的**唯一入口**
+
+### Application Service 职责
+
+**定位**: 用例编排层，组织业务流程
+
+**允许的职责**:
+1. ✅ **事务边界控制** (@Transactional)
+2. ✅ **编排 Domain Service**（调用多个 Domain Service 完成用例）
+3. ✅ **DTO 转换**（Request/Response → Domain Entity）
+4. ✅ **权限验证**（可以在此层进行）
+5. ✅ **审计日志记录**
+6. ✅ **异常处理和转换**
+
+**禁止的职责**:
+- ❌ 直接调用 Repository（必须通过 Domain Service）
+- ❌ 直接调用 Cache（必须通过 Domain Service）
+- ❌ 直接调用 MQ（必须通过 Domain Service）
+- ❌ 包含复杂业务逻辑（应该在 Domain Service 中）
+- ❌ 领域对象的创建逻辑（应该在 Domain Service 中）
+- ❌ 密码加密/验证逻辑（应该在 Domain Service 中）
+
+**依赖清单**:
+```java
+@Service
+public class AuthApplicationServiceImpl implements AuthApplicationService {
+    // ✅ 允许：依赖 Domain Service
+    private final AuthDomainService authDomainService;
+
+    // ❌ 禁止：不能依赖 Repository
+    // private final AccountRepository accountRepository;
+
+    // ❌ 禁止：不能依赖 Cache
+    // private final CacheService cacheService;
+
+    // ❌ 禁止：不能依赖 MQ
+    // private final MqService mqService;
+}
+```
+
+**正确示例**:
+```java
+@Override
+@Transactional
+public RegisterResult register(RegisterRequest request) {
+    // 1. DTO 转换（Application 层职责）
+    String username = request.getUsername();
+    String email = request.getEmail();
+    String password = request.getPassword();
+
+    // 2. 调用 Domain Service 创建账号（✅ 正确）
+    Account account = authDomainService.createAccount(username, email, password);
+
+    // 3. 调用 Domain Service 保存账号（✅ 正确）
+    Account savedAccount = authDomainService.saveAccount(account);
+
+    // 4. 记录审计日志（Application 层职责）
+    auditLogger.log("USER_REGISTERED", savedAccount.getId());
+
+    // 5. DTO 转换（Application 层职责）
+    return RegisterResult.from(savedAccount);
+}
+```
+
+**错误示例**:
+```java
+@Override
+@Transactional
+public RegisterResult register(RegisterRequest request) {
+    // ❌ 错误：Application Service 直接调用 Repository
+    Account account = accountRepository.findByUsername(request.getUsername());
+
+    // ❌ 错误：Application Service 直接创建领域对象
+    Account newAccount = Account.create(
+        request.getUsername(),
+        request.getEmail(),
+        passwordEncoder.encode(request.getPassword())
+    );
+
+    // ❌ 错误：Application Service 直接保存数据
+    Account savedAccount = accountRepository.save(newAccount);
+
+    return RegisterResult.from(savedAccount);
+}
+```
+
+### Domain Service 职责
+
+**定位**: 业务逻辑层，处理复杂业务规则
+
+**允许的职责**:
+1. ✅ **复杂业务规则**（跨多个聚合的逻辑）
+2. ✅ **领域对象创建**（工厂方法）
+3. ✅ **密码加密/验证**
+4. ✅ **会话管理逻辑**
+5. ✅ **账号锁定逻辑**
+6. ✅ **调用 Repository 进行数据访问**
+7. ✅ **调用 Cache 进行缓存操作**
+8. ✅ **调用 MQ 发送消息**
+
+**禁止的职责**:
+- ❌ 事务控制（由 Application Service 控制）
+- ❌ DTO 转换（由 Application Service 处理）
+- ❌ 审计日志记录（由 Application Service 处理）
+
+**依赖清单**:
+```java
+@Service
+public class AuthDomainServiceImpl implements AuthDomainService {
+    // ✅ 允许：依赖 Repository
+    private final AccountRepository accountRepository;
+    private final SessionRepository sessionRepository;
+
+    // ✅ 允许：依赖 Cache
+    private final LoginFailureCacheService loginFailureCacheService;
+
+    // ✅ 允许：依赖 MQ
+    private final AuthEventMqService authEventMqService;
+
+    // ✅ 允许：依赖密码编码器
+    private final PasswordEncoder passwordEncoder;
+}
+```
+
+**正确示例**:
+```java
+@Override
+public Account createAccount(String username, String email, String rawPassword) {
+    // 1. 检查用户名是否已存在（✅ 调用 Repository）
+    if (accountRepository.existsByUsername(username)) {
+        throw new BusinessException(AuthErrorCode.USERNAME_ALREADY_EXISTS);
+    }
+
+    // 2. 密码强度检查（✅ 业务规则）
+    PasswordStrengthResult strengthResult = checkPasswordStrength(rawPassword);
+    if (!strengthResult.isStrong()) {
+        throw new BusinessException(AuthErrorCode.PASSWORD_TOO_WEAK);
+    }
+
+    // 3. 加密密码（✅ 领域逻辑）
+    String encodedPassword = passwordEncoder.encode(rawPassword);
+
+    // 4. 创建领域对象（✅ 工厂方法）
+    return Account.create(username, email, encodedPassword);
+}
+
+@Override
+public Account saveAccount(Account account) {
+    // 保存账号（✅ 调用 Repository）
+    Account savedAccount = accountRepository.save(account);
+
+    // 发送账号创建事件（✅ 调用 MQ）
+    authEventMqService.sendAccountCreatedEvent(savedAccount.getId());
+
+    return savedAccount;
+}
+```
+
+### 为什么要严格分离？
+
+**1. 清晰的职责边界**:
+- Application Service: 编排用例流程
+- Domain Service: 实现业务逻辑
+
+**2. 符合六边形架构（Hexagonal Architecture）**:
+- Domain 是核心，定义 Port（Repository/Cache/MQ 接口）
+- Infrastructure 是外层，实现 Adapter
+- Application 不应该知道外层的存在
+
+**3. 易于测试**:
+- 测试 Application Service: Mock Domain Service 即可
+- 测试 Domain Service: Mock Repository/Cache/MQ 即可
+
+**4. 易于替换实现**:
+- 切换数据库：只需修改 Infrastructure 层
+- Application 和 Domain 无需改动
+
+**5. 避免逻辑泄漏**:
+- 如果 Application 直接调用 Repository，业务逻辑容易泄漏到 Application 层
+- 通过 Domain Service 封装，确保业务逻辑集中管理
+
+### 简单 CRUD 如何处理？
+
+**即使是简单查询，也必须通过 Domain Service**:
+
+```java
+// ✅ 正确：Application Service 调用 Domain Service
+@Override
+public AccountInfo getAccountById(Long accountId) {
+    Account account = authDomainService.findAccountById(accountId);
+    return AccountInfo.from(account);
+}
+
+// Domain Service 中实现
+@Override
+public Account findAccountById(Long accountId) {
+    return accountRepository.findById(accountId)
+        .orElseThrow(() -> new BusinessException(AuthErrorCode.ACCOUNT_NOT_FOUND));
+}
+```
+
+**原因**:
+- 统一数据访问入口，便于添加缓存、审计等横切关注点
+- 即使当前是简单查询，未来可能需要添加业务规则
+- 保持架构一致性，避免混乱
 
 ## Package 结构和命名规范
 
@@ -250,6 +541,10 @@ Domain 层使用纯粹的业务语言（Ubiquitous Language），不使用技术
 
 | 错误类型 | 错误做法 | 正确做法 | 检查方法 |
 |---------|---------|---------|---------|
+| **Application 直接调用 Repository** | Application Service 依赖 Repository | Application Service 只依赖 Domain Service | 检查 application-impl 的 pom.xml 是否依赖 repository-api |
+| **Repository-API 位置** | repository-api 在 infrastructure | repository-api 作为 domain 的子模块 | 检查 domain/pom.xml 是否包含 repository-api |
+| **Cache-API 位置** | cache-api 在 infrastructure | cache-api 作为 domain 的子模块 | 检查 domain/pom.xml 是否包含 cache-api |
+| **MQ-API 位置** | mq-api 在 infrastructure | mq-api 作为 domain 的子模块 | 检查 domain/pom.xml 是否包含 mq-api |
 | **Package 路径** | 使用 `sql` | 使用 `mysql` | 检查 package 名称是否使用具体技术名称 |
 | **Entity/PO 位置** | Entity 和 PO 都在 mysql-impl | Entity 在 repository-api，PO 在 mysql-impl | 检查 Entity 是否在 api 模块 |
 | **配置类位置** | MybatisPlusConfig 在 bootstrap | MybatisPlusConfig 在 mysql-impl | 检查配置类是否与实现内聚 |
@@ -260,6 +555,13 @@ Domain 层使用纯粹的业务语言（Ubiquitous Language），不使用技术
 ## 你的检查清单
 
 在创建或修改代码时，你应该检查：
+
+### 架构分层检查（最重要）
+- [ ] repository-api, cache-api, mq-api 作为 domain 的子模块（不在 infrastructure）
+- [ ] application-impl 的 pom.xml 只依赖 domain-api，不依赖 repository-api/cache-api/mq-api
+- [ ] domain-impl 的 pom.xml 依赖 domain-api + repository-api + cache-api + mq-api
+- [ ] Application Service 只调用 Domain Service，不直接调用 Repository/Cache/MQ
+- [ ] Domain Service 是数据访问的唯一入口
 
 ### 模块和 Package 检查
 - [ ] 模块目录结构符合 DDD 分层架构
@@ -277,6 +579,7 @@ Domain 层使用纯粹的业务语言（Ubiquitous Language），不使用技术
 
 ### 依赖检查
 - [ ] 依赖方向符合：Interface → Application → Domain ← Infrastructure
+- [ ] Application 层不依赖 repository-api, cache-api, mq-api（关键）
 - [ ] 无循环依赖
 - [ ] API 模块不依赖实现模块
 - [ ] Domain 层不依赖 Infrastructure 层
