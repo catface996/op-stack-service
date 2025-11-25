@@ -1,8 +1,8 @@
 package com.catface996.aiops.domain.impl.service.auth;
 
 import com.catface996.aiops.domain.api.model.auth.PasswordStrengthResult;
-import com.catface996.aiops.domain.api.repository.auth.AccountRepository;
-import com.catface996.aiops.domain.api.repository.auth.SessionRepository;
+import com.catface996.aiops.repository.auth.AccountRepository;
+import com.catface996.aiops.repository.auth.SessionRepository;
 import com.catface996.aiops.infrastructure.cache.api.service.LoginAttemptCache;
 import com.catface996.aiops.infrastructure.cache.api.service.SessionCache;
 import com.catface996.aiops.infrastructure.security.api.service.JwtTokenProvider;

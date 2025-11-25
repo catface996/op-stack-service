@@ -19,7 +19,6 @@
     <description>Repository Layer - Aggregation Module</description>
 
     <modules>
-        <module>repository-api</module>
         <module>mysql-impl</module>
     </modules>
 

@@ -20,6 +20,7 @@
 
     <modules>
         <module>domain-api</module>
+        <module>repository-api</module>
         <module>domain-impl</module>
     </modules>
 

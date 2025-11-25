@@ -7,7 +7,7 @@
 
     <parent>
         <groupId>com.catface996.aiops</groupId>
-        <artifactId>repository</artifactId>
+        <artifactId>domain</artifactId>
         <version>1.0.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
@@ -16,9 +16,17 @@
     <packaging>jar</packaging>
 
     <name>Repository API</name>
-    <description>Repository interfaces and entities</description>
+    <description>Repository Interface Definitions (Port in Hexagonal Architecture)</description>
 
     <dependencies>
+        <!-- Domain API - for domain models -->
+        <dependency>
+            <groupId>com.catface996.aiops</groupId>
+            <artifactId>domain-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Common -->
         <dependency>
             <groupId>com.catface996.aiops</groupId>
             <artifactId>common</artifactId>

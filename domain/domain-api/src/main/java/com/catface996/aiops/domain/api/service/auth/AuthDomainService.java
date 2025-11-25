@@ -232,16 +232,109 @@ public interface AuthDomainService {
     
     /**
      * 重置登录失败计数
-     * 
+     *
      * <p>重置指定用户的登录失败计数为0。</p>
      * <p>此方法在用户登录成功后调用。</p>
-     * 
+     *
      * <p>需求追溯：</p>
      * <ul>
      *   <li>REQ-FR-005: 防暴力破解</li>
      * </ul>
-     * 
+     *
      * @param identifier 用户标识符（用户名或邮箱）
      */
     void resetLoginFailureCount(String identifier);
+
+    // ==================== 数据访问方法（Account） ====================
+
+    /**
+     * 保存账号
+     *
+     * <p>保存账号实体到数据库。</p>
+     * <p>如果账号ID为null，则执行插入操作；否则执行更新操作。</p>
+     *
+     * @param account 账号实体
+     * @return 保存后的账号实体（包含生成的ID）
+     * @throws IllegalArgumentException 如果account为null
+     */
+    Account saveAccount(Account account);
+
+    /**
+     * 根据ID查询账号
+     *
+     * <p>根据账号ID查询账号实体。</p>
+     *
+     * @param accountId 账号ID
+     * @return 账号实体（如果存在）
+     * @throws IllegalArgumentException 如果accountId为null
+     */
+    Optional<Account> findAccountById(Long accountId);
+
+    /**
+     * 根据用户名查询账号
+     *
+     * <p>根据用户名查询账号实体。</p>
+     *
+     * @param username 用户名
+     * @return 账号实体（如果存在）
+     * @throws IllegalArgumentException 如果username为空或null
+     */
+    Optional<Account> findAccountByUsername(String username);
+
+    /**
+     * 根据邮箱查询账号
+     *
+     * <p>根据邮箱查询账号实体。</p>
+     *
+     * @param email 邮箱
+     * @return 账号实体（如果存在）
+     * @throws IllegalArgumentException 如果email为空或null
+     */
+    Optional<Account> findAccountByEmail(String email);
+
+    /**
+     * 根据用户名或邮箱查询账号
+     *
+     * <p>尝试先用用户名查询，如果不存在则用邮箱查询。</p>
+     *
+     * @param identifier 用户标识符（用户名或邮箱）
+     * @return 账号实体（如果存在）
+     * @throws IllegalArgumentException 如果identifier为空或null
+     */
+    Optional<Account> findAccountByUsernameOrEmail(String identifier);
+
+    /**
+     * 检查用户名是否存在
+     *
+     * <p>检查指定的用户名是否已被使用。</p>
+     *
+     * @param username 用户名
+     * @return true if username exists, false otherwise
+     * @throws IllegalArgumentException 如果username为空或null
+     */
+    boolean existsByUsername(String username);
+
+    /**
+     * 检查邮箱是否存在
+     *
+     * <p>检查指定的邮箱是否已被使用。</p>
+     *
+     * @param email 邮箱
+     * @return true if email exists, false otherwise
+     * @throws IllegalArgumentException 如果email为空或null
+     */
+    boolean existsByEmail(String email);
+
+    // ==================== 数据访问方法（Session） ====================
+
+    /**
+     * 保存会话
+     *
+     * <p>保存会话实体到存储。</p>
+     *
+     * @param session 会话实体
+     * @return 保存后的会话实体
+     * @throws IllegalArgumentException 如果session为null
+     */
+    Session saveSession(Session session);
 }

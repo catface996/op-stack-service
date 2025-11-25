@@ -8,8 +8,8 @@ import com.catface996.aiops.domain.api.model.auth.AccountStatus;
 import com.catface996.aiops.domain.api.model.auth.DeviceInfo;
 import com.catface996.aiops.domain.api.model.auth.PasswordStrengthResult;
 import com.catface996.aiops.domain.api.model.auth.Session;
-import com.catface996.aiops.domain.api.repository.auth.AccountRepository;
-import com.catface996.aiops.domain.api.repository.auth.SessionRepository;
+import com.catface996.aiops.repository.auth.AccountRepository;
+import com.catface996.aiops.repository.auth.SessionRepository;
 import com.catface996.aiops.domain.api.service.auth.AuthDomainService;
 import com.catface996.aiops.infrastructure.cache.api.service.LoginAttemptCache;
 import com.catface996.aiops.infrastructure.cache.api.service.SessionCache;
@@ -577,5 +577,109 @@ public class AuthDomainServiceImpl implements AuthDomainService {
             sessionCache.delete(sessionId);
         }
         sessionRepository.deleteById(sessionId);
+    }
+
+    // ==================== 数据访问方法（Account） ====================
+
+    @Override
+    public Account saveAccount(Account account) {
+        if (account == null) {
+            throw new IllegalArgumentException("账号不能为空");
+        }
+
+        log.info("保存账号，用户名：{}", account.getUsername());
+        Account savedAccount = accountRepository.save(account);
+        log.info("账号保存成功，账号ID：{}，用户名：{}", savedAccount.getId(), savedAccount.getUsername());
+
+        return savedAccount;
+    }
+
+    @Override
+    public Optional<Account> findAccountById(Long accountId) {
+        if (accountId == null) {
+            throw new IllegalArgumentException("账号ID不能为空");
+        }
+
+        log.debug("根据ID查询账号，账号ID：{}", accountId);
+        return accountRepository.findById(accountId);
+    }
+
+    @Override
+    public Optional<Account> findAccountByUsername(String username) {
+        if (username == null || username.isEmpty()) {
+            throw new IllegalArgumentException("用户名不能为空");
+        }
+
+        log.debug("根据用户名查询账号，用户名：{}", username);
+        return accountRepository.findByUsername(username);
+    }
+
+    @Override
+    public Optional<Account> findAccountByEmail(String email) {
+        if (email == null || email.isEmpty()) {
+            throw new IllegalArgumentException("邮箱不能为空");
+        }
+
+        log.debug("根据邮箱查询账号，邮箱：{}", email);
+        return accountRepository.findByEmail(email);
+    }
+
+    @Override
+    public Optional<Account> findAccountByUsernameOrEmail(String identifier) {
+        if (identifier == null || identifier.isEmpty()) {
+            throw new IllegalArgumentException("标识符不能为空");
+        }
+
+        log.debug("根据用户名或邮箱查询账号，标识符：{}", identifier);
+
+        // 先尝试用户名查询
+        Optional<Account> accountOpt = accountRepository.findByUsername(identifier);
+        if (accountOpt.isPresent()) {
+            return accountOpt;
+        }
+
+        // 如果用户名没找到，尝试邮箱查询
+        return accountRepository.findByEmail(identifier);
+    }
+
+    @Override
+    public boolean existsByUsername(String username) {
+        if (username == null || username.isEmpty()) {
+            throw new IllegalArgumentException("用户名不能为空");
+        }
+
+        log.debug("检查用户名是否存在，用户名：{}", username);
+        return accountRepository.existsByUsername(username);
+    }
+
+    @Override
+    public boolean existsByEmail(String email) {
+        if (email == null || email.isEmpty()) {
+            throw new IllegalArgumentException("邮箱不能为空");
+        }
+
+        log.debug("检查邮箱是否存在，邮箱：{}", email);
+        return accountRepository.existsByEmail(email);
+    }
+
+    // ==================== 数据访问方法（Session） ====================
+
+    @Override
+    public Session saveSession(Session session) {
+        if (session == null) {
+            throw new IllegalArgumentException("会话不能为空");
+        }
+
+        log.info("保存会话，会话ID：{}，用户ID：{}", session.getId(), session.getUserId());
+
+        // 保存到数据库
+        Session savedSession = sessionRepository.save(session);
+
+        // 保存到缓存
+        cacheSession(savedSession);
+
+        log.info("会话保存成功，会话ID：{}", savedSession.getId());
+
+        return savedSession;
     }
 }

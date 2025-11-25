@@ -5,7 +5,7 @@ import com.catface996.aiops.common.exception.BusinessException;
 import com.catface996.aiops.domain.api.model.auth.Account;
 import com.catface996.aiops.domain.api.model.auth.AccountRole;
 import com.catface996.aiops.domain.api.model.auth.AccountStatus;
-import com.catface996.aiops.domain.api.repository.auth.AccountRepository;
+import com.catface996.aiops.repository.auth.AccountRepository;
 import com.catface996.aiops.repository.mysql.mapper.auth.AccountMapper;
 import com.catface996.aiops.repository.mysql.po.auth.AccountPO;
 import org.springframework.dao.DuplicateKeyException;

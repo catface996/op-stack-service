@@ -4,7 +4,7 @@ import com.catface996.aiops.common.enums.AuthErrorCode;
 import com.catface996.aiops.common.exception.BusinessException;
 import com.catface996.aiops.domain.api.model.auth.DeviceInfo;
 import com.catface996.aiops.domain.api.model.auth.Session;
-import com.catface996.aiops.domain.api.repository.auth.SessionRepository;
+import com.catface996.aiops.repository.auth.SessionRepository;
 import com.catface996.aiops.repository.mysql.mapper.auth.SessionMapper;
 import com.catface996.aiops.repository.mysql.po.auth.SessionPO;
 import com.fasterxml.jackson.core.JsonProcessingException;

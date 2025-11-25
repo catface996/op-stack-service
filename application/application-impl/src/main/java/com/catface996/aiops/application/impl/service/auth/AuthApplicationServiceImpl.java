@@ -20,8 +20,6 @@ import com.catface996.aiops.domain.api.model.auth.AccountStatus;
 import com.catface996.aiops.domain.api.model.auth.DeviceInfo;
 import com.catface996.aiops.domain.api.model.auth.PasswordStrengthResult;
 import com.catface996.aiops.domain.api.model.auth.Session;
-import com.catface996.aiops.domain.api.repository.auth.AccountRepository;
-import com.catface996.aiops.domain.api.repository.auth.SessionRepository;
 import com.catface996.aiops.domain.api.service.auth.AuthDomainService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -62,8 +60,6 @@ import java.util.Optional;
 public class AuthApplicationServiceImpl implements AuthApplicationService {
 
     private final AuthDomainService authDomainService;
-    private final AccountRepository accountRepository;
-    private final SessionRepository sessionRepository;
 
     /**
      * 用户注册
@@ -88,7 +84,7 @@ public class AuthApplicationServiceImpl implements AuthApplicationService {
         Account account = createAccountWithEncryptedPassword(request);
 
         // 4. 持久化账号
-        Account savedAccount = accountRepository.save(account);
+        Account savedAccount = authDomainService.saveAccount(account);
 
         // 5. 记录审计日志
         logRegistrationSuccess(savedAccount);
@@ -166,7 +162,7 @@ public class AuthApplicationServiceImpl implements AuthApplicationService {
             Session session = authDomainService.validateSession(sessionId);
 
             // 3. 查询用户信息
-            Account account = accountRepository.findById(session.getUserId())
+            Account account = authDomainService.findAccountById(session.getUserId())
                     .orElseThrow(() -> new BusinessException(ResourceErrorCode.ACCOUNT_NOT_FOUND));
 
             // 4. 返回结果
@@ -253,12 +249,12 @@ public class AuthApplicationServiceImpl implements AuthApplicationService {
      * @throws BusinessException 如果用户名或邮箱已存在
      */
     private void validateAccountUniqueness(RegisterRequest request) {
-        if (accountRepository.existsByUsername(request.getUsername())) {
+        if (authDomainService.existsByUsername(request.getUsername())) {
             log.warn("[应用层] 用户名已存在, username={}", request.getUsername());
             throw new BusinessException(ResourceErrorCode.USERNAME_CONFLICT);
         }
 
-        if (accountRepository.existsByEmail(request.getEmail())) {
+        if (authDomainService.existsByEmail(request.getEmail())) {
             log.warn("[应用层] 邮箱已存在, email={}", request.getEmail());
             throw new BusinessException(ResourceErrorCode.EMAIL_CONFLICT);
         }
@@ -388,8 +384,8 @@ public class AuthApplicationServiceImpl implements AuthApplicationService {
      * @throws BusinessException 如果账号不存在
      */
     private Account findAccountByIdentifier(String identifier) {
-        return accountRepository.findByUsername(identifier)
-                .or(() -> accountRepository.findByEmail(identifier))
+        return authDomainService.findAccountByUsername(identifier)
+                .or(() -> authDomainService.findAccountByEmail(identifier))
                 .orElseThrow(() -> {
                     log.warn("[应用层] 账号不存在, identifier={}", identifier);
                     // 为了安全，返回通用错误消息
@@ -408,7 +404,7 @@ public class AuthApplicationServiceImpl implements AuthApplicationService {
         DeviceInfo deviceInfo = createDeviceInfo();
         Session session = authDomainService.createSession(account, rememberMe, deviceInfo);
         authDomainService.handleSessionMutex(account, session);
-        return sessionRepository.save(session);
+        return authDomainService.saveSession(session);
     }
 
     /**
@@ -555,7 +551,7 @@ public class AuthApplicationServiceImpl implements AuthApplicationService {
         Session session = authDomainService.validateSession(sessionId);
 
         // 3. 查询用户账号
-        Account account = accountRepository.findById(session.getUserId())
+        Account account = authDomainService.findAccountById(session.getUserId())
                 .orElseThrow(() -> new BusinessException(ResourceErrorCode.ACCOUNT_NOT_FOUND));
 
         // 4. 验证角色是否为 ADMIN
@@ -599,7 +595,7 @@ public class AuthApplicationServiceImpl implements AuthApplicationService {
         Session session = authDomainService.validateSession(sessionId);
 
         // 3. 查询用户账号
-        return accountRepository.findById(session.getUserId())
+        return authDomainService.findAccountById(session.getUserId())
                 .orElseThrow(() -> new BusinessException(ResourceErrorCode.ACCOUNT_NOT_FOUND));
     }
 
