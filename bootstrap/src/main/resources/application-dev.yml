@@ -2,13 +2,61 @@
 # 开发环境配置
 
 # 说明:
-# - 日志输出到文件 logs/app.log，JSON 格式
+# - 日志输出到文件 logs/app.log，JSON 格式 + 审计日志 logs/audit.log
 # - 日志级别: 项目包 DEBUG，框架包 WARN
-# - 数据库/Redis/SQS 连接信息需要在此配置
+# - 开发环境数据库/Redis 连接信息
 
 spring:
-  # 禁用数据源自动配置 (可在需要时启用)
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
-      - com.alibaba.druid.spring.boot3.autoconfigure.DruidDataSourceAutoConfigure
+  # Redis 配置
+  data:
+    redis:
+      host: ${REDIS_HOST:dev-redis.example.com}
+      port: ${REDIS_PORT:6379}
+      database: 0
+      password: ${REDIS_PASSWORD:}
+
+  # 数据源配置
+  datasource:
+    url: jdbc:mysql://${DB_HOST:dev-mysql.example.com}:${DB_PORT:3306}/${DB_NAME:aiops_dev}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC&useSSL=false
+    username: ${DB_USERNAME:aiops_dev}
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    type: com.alibaba.druid.pool.DruidDataSource
+
+    # Druid 连接池配置
+    druid:
+      initial-size: 5
+      min-idle: 2
+      max-active: 20
+      max-wait: 60000
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      validation-query: SELECT 1
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+
+      # SQL 监控配置
+      filter:
+        stat:
+          enabled: true
+          log-slow-sql: true
+          slow-sql-millis: 1000
+        wall:
+          enabled: true
+
+# Security 配置
+security:
+  jwt:
+    # JWT 签名密钥 (开发环境使用环境变量)
+    secret: ${JWT_SECRET:dev-secret-key-for-jwt-token-must-be-at-least-256-bits-long-for-hmac-sha256}
+    # JWT Token 过期时间 (单位: 秒，2小时 = 7200秒)
+    expiration: ${JWT_EXPIRATION:7200}
+    # JWT Token 发行者
+    issuer: ${JWT_ISSUER:aiops-service}
+  # 防暴力破解配置
+  login:
+    # 登录失败最大次数
+    max-failed-attempts: ${MAX_FAILED_ATTEMPTS:5}
+    # 账号锁定时长 (单位: 秒，30分钟 = 1800秒)
+    lock-duration: ${LOCK_DURATION:1800}

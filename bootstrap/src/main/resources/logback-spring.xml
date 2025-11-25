@@ -7,6 +7,7 @@
     <property name="LOG_PATH" value="logs"/>
     <property name="LOG_FILE" value="app"/>
     <property name="ERROR_LOG_FILE" value="error"/>
+    <property name="AUDIT_LOG_FILE" value="audit"/>
 
     <!-- ================================ -->
     <!-- Local 环境配置 (本地开发)          -->
@@ -73,11 +74,32 @@
             </rollingPolicy>
         </appender>
 
+        <!-- 审计日志单独输出 (JSON 格式) -->
+        <appender name="AUDIT_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${LOG_PATH}/${AUDIT_LOG_FILE}.log</file>
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <includeContext>true</includeContext>
+                <includeMdc>true</includeMdc>
+                <customFields>{"application":"aiops-service","log_type":"audit"}</customFields>
+            </encoder>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${LOG_PATH}/${AUDIT_LOG_FILE}-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+                <maxFileSize>100MB</maxFileSize>
+                <maxHistory>90</maxHistory>
+                <totalSizeCap>20GB</totalSizeCap>
+            </rollingPolicy>
+        </appender>
+
         <!-- Root Logger -->
         <root level="INFO">
             <appender-ref ref="FILE"/>
             <appender-ref ref="ERROR_FILE"/>
         </root>
+
+        <!-- 审计日志专用 Logger (additivity=false 避免重复输出) -->
+        <logger name="AUDIT_LOGGER" level="INFO" additivity="false">
+            <appender-ref ref="AUDIT_FILE"/>
+        </logger>
 
         <!-- 项目包日志级别 DEBUG -->
         <logger name="com.catface996.aiops" level="DEBUG"/>
@@ -127,6 +149,22 @@
             </rollingPolicy>
         </appender>
 
+        <!-- 审计日志单独输出 (JSON 格式) -->
+        <appender name="AUDIT_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${LOG_PATH}/${AUDIT_LOG_FILE}.log</file>
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <includeContext>true</includeContext>
+                <includeMdc>true</includeMdc>
+                <customFields>{"application":"aiops-service","log_type":"audit"}</customFields>
+            </encoder>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${LOG_PATH}/${AUDIT_LOG_FILE}-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+                <maxFileSize>100MB</maxFileSize>
+                <maxHistory>365</maxHistory>
+                <totalSizeCap>50GB</totalSizeCap>
+            </rollingPolicy>
+        </appender>
+
         <!-- 异步 Appender (提升性能) -->
         <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
             <queueSize>512</queueSize>
@@ -140,11 +178,22 @@
             <appender-ref ref="ERROR_FILE"/>
         </appender>
 
+        <appender name="ASYNC_AUDIT_FILE" class="ch.qos.logback.classic.AsyncAppender">
+            <queueSize>512</queueSize>
+            <discardingThreshold>0</discardingThreshold>
+            <appender-ref ref="AUDIT_FILE"/>
+        </appender>
+
         <!-- Root Logger -->
         <root level="INFO">
             <appender-ref ref="ASYNC_FILE"/>
             <appender-ref ref="ASYNC_ERROR_FILE"/>
         </root>
+
+        <!-- 审计日志专用 Logger (additivity=false 避免重复输出) -->
+        <logger name="AUDIT_LOGGER" level="INFO" additivity="false">
+            <appender-ref ref="ASYNC_AUDIT_FILE"/>
+        </logger>
 
         <!-- 项目包日志级别 INFO -->
         <logger name="com.catface996.aiops" level="INFO"/>

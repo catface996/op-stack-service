@@ -2,15 +2,70 @@
 # 生产环境配置
 
 # 说明:
-# - 日志输出到文件 logs/app.log，JSON 格式
+# - 日志输出到文件 logs/app.log，JSON 格式 + 审计日志 logs/audit.log
 # - 日志级别: 项目包 INFO，框架包 WARN
 # - 使用 AsyncAppender 提升性能
-# - 生产环境配置使用环境变量占位符，避免在代码中硬编码敏感信息
-# - 示例: ${DB_HOST:localhost}, ${DB_PORT:3306}
+# - 生产环境配置必须使用环境变量，避免在代码中硬编码敏感信息
+# - 所有环境变量必须在部署前配置，否则应用启动失败
 
 spring:
-  # 禁用数据源自动配置 (可在需要时启用)
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
-      - com.alibaba.druid.spring.boot3.autoconfigure.DruidDataSourceAutoConfigure
+  # Redis 配置
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      database: ${REDIS_DATABASE:0}
+      password: ${REDIS_PASSWORD}
+      # 生产环境增加连接池配置
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 5
+          max-wait: 5000ms
+
+  # 数据源配置
+  datasource:
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT:3306}/${DB_NAME}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC&useSSL=true&requireSSL=true
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    type: com.alibaba.druid.pool.DruidDataSource
+
+    # Druid 连接池配置 (生产环境)
+    druid:
+      initial-size: 10
+      min-idle: 5
+      max-active: 50
+      max-wait: 60000
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      validation-query: SELECT 1
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+
+      # SQL 监控配置
+      filter:
+        stat:
+          enabled: true
+          log-slow-sql: true
+          slow-sql-millis: 2000
+        wall:
+          enabled: true
+
+# Security 配置
+security:
+  jwt:
+    # JWT 签名密钥 (生产环境必须使用环境变量，禁止硬编码)
+    secret: ${JWT_SECRET}
+    # JWT Token 过期时间 (单位: 秒，默认2小时)
+    expiration: ${JWT_EXPIRATION:7200}
+    # JWT Token 发行者
+    issuer: ${JWT_ISSUER:aiops-service}
+  # 防暴力破解配置
+  login:
+    # 登录失败最大次数
+    max-failed-attempts: ${MAX_FAILED_ATTEMPTS:5}
+    # 账号锁定时长 (单位: 秒，默认30分钟)
+    lock-duration: ${LOCK_DURATION:1800}
