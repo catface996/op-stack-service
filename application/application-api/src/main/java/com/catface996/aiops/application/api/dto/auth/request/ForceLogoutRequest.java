@@ -1,5 +1,6 @@
 package com.catface996.aiops.application.api.dto.auth.request;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -39,6 +40,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(description = "强制登出其他设备请求")
 public class ForceLogoutRequest {
 
     /**
@@ -59,6 +61,7 @@ public class ForceLogoutRequest {
      *   <li>Token 必须对应一个存在的会话</li>
      * </ul>
      */
+    @Schema(description = "JWT Token（包含 Bearer 前缀）", example = "Bearer eyJhbGciOiJIUzUxMiJ9...", hidden = true)
     @NotBlank(message = "Token 不能为空")
     private String token;
 
@@ -81,6 +84,7 @@ public class ForceLogoutRequest {
      *   <li>连续5次密码错误会锁定账号30分钟</li>
      * </ul>
      */
+    @Schema(description = "用户密码（用于安全验证）", example = "SecureP@ss123")
     @NotBlank(message = "密码不能为空")
     private String password;
 

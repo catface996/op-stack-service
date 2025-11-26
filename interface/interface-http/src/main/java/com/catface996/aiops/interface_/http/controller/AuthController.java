@@ -6,6 +6,13 @@ import com.catface996.aiops.application.api.dto.auth.request.LoginRequest;
 import com.catface996.aiops.application.api.dto.auth.request.RegisterRequest;
 import com.catface996.aiops.application.api.service.auth.AuthApplicationService;
 import com.catface996.aiops.interface_.http.response.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,6 +55,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
+@Tag(name = "认证管理", description = "用户认证相关接口：注册、登录、登出")
 public class AuthController {
 
     private final AuthApplicationService authApplicationService;
@@ -95,6 +103,15 @@ public class AuthController {
      * @param request 注册请求，包含用户名、邮箱和密码
      * @return 注册结果，包含账号ID和基本信息
      */
+    @Operation(
+            summary = "用户注册",
+            description = "创建新的用户账号，注册成功后需要使用用户名/邮箱和密码登录"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "注册成功"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "请求参数无效"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "用户名或邮箱已存在")
+    })
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<RegisterResult>> register(@Valid @RequestBody RegisterRequest request) {
         log.info("接收到用户注册请求: username={}, email={}", request.getUsername(), request.getEmail());
@@ -164,6 +181,16 @@ public class AuthController {
      * @param request 登录请求，包含标识符（用户名或邮箱）、密码和是否记住我
      * @return 登录结果，包含 JWT Token、用户信息和会话信息
      */
+    @Operation(
+            summary = "用户登录",
+            description = "验证用户凭据并创建会话，支持使用用户名或邮箱登录。登录成功返回JWT Token，客户端需保存并在后续请求中携带"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "登录成功"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "请求参数无效"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "用户名或密码错误"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "423", description = "账号已被锁定")
+    })
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResult>> login(@Valid @RequestBody LoginRequest request) {
         log.info("接收到用户登录请求: identifier={}, rememberMe={}", request.getIdentifier(), request.getRememberMe());
@@ -214,8 +241,19 @@ public class AuthController {
      * @param authorization JWT Token（Header: Authorization: Bearer {token}）
      * @return 成功响应
      */
+    @Operation(
+            summary = "用户登出",
+            description = "使当前会话失效，登出后需要重新登录才能访问受保护的资源"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "登出成功"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Token无效或已过期")
+    })
+    @SecurityRequirement(name = "Bearer Authentication")
     @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<Void>> logout(@RequestHeader("Authorization") String authorization) {
+    public ResponseEntity<ApiResponse<Void>> logout(
+            @Parameter(description = "JWT Token", required = true, example = "Bearer eyJhbGciOiJIUzUxMiJ9...")
+            @RequestHeader("Authorization") String authorization) {
         log.info("接收到用户登出请求");
 
         authApplicationService.logout(authorization);

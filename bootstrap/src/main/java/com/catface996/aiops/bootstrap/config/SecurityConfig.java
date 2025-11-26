@@ -75,6 +75,9 @@ public class SecurityConfig {
                 // 公开接口：健康检查和监控端点
                 .requestMatchers("/actuator/health", "/actuator/prometheus").permitAll()
 
+                // 公开接口：Swagger/OpenAPI 文档
+                .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/v3/api-docs.yaml").permitAll()
+
                 // 公开接口：认证相关（注册、登录）
                 .requestMatchers("/api/v1/auth/register", "/api/v1/auth/login").permitAll()
 

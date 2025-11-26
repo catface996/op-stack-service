@@ -361,9 +361,91 @@ private static final Pattern KEYBOARD_SEQUENCE_PATTERN =
 
 ---
 
+### BUG-004: /health 端点需要认证但应该公开访问
+
+| 属性 | 值 |
+|-----|-----|
+| **状态** | 🔴 NEW |
+| **优先级** | P2 |
+| **发现日期** | 2025-11-26 |
+| **修复日期** | - |
+| **发现人** | 用户 |
+| **修复人** | - |
+
+**问题描述**:
+
+`/health` 端点（自定义健康检查接口）在访问时需要认证，但根据设计该端点应该是公开访问的，不需要 JWT Token。
+
+**复现步骤**:
+
+```bash
+curl -s http://localhost:8080/health
+```
+
+**期望行为**:
+
+返回健康检查状态，无需认证。
+
+**实际行为**:
+
+返回 401 未授权错误，提示需要认证。
+
+**根本原因**:
+
+`SecurityConfig.java` 中的 `permitAll()` 配置只包含了 `/actuator/health`，但没有包含自定义的 `/health` 端点。
+
+**修复方案**:
+
+在 `SecurityConfig.java` 中添加 `/health` 到公开接口列表：
+
+```java
+.requestMatchers("/actuator/health", "/actuator/prometheus", "/health").permitAll()
+```
+
+**影响文件**:
+
+- `bootstrap/src/main/java/com/catface996/aiops/bootstrap/config/SecurityConfig.java`
+
+---
+
+## Bug 统计
+
+| 状态 | 数量 |
+|-----|------|
+| 🔴 NEW | 1 |
+| 🟡 IN_PROGRESS | 0 |
+| 🟢 FIXED | 0 |
+| ✅ VERIFIED | 3 |
+| **总计** | **4** |
+
+| 优先级 | 数量 |
+|-------|------|
+| P0 (致命) | 1 (已修复) |
+| P1 (严重) | 1 (已修复) |
+| P2 (一般) | 1 (待修复) |
+| P3 (轻微) | 1 (已修复) |
+
+---
+
+## 修复历史
+
+| 日期 | Bug ID | 操作 | 说明 |
+|-----|--------|------|------|
+| 2025-11-26 | BUG-001 | 修复 | 修改 checkAccountNotLocked() 方法的判断逻辑 |
+| 2025-11-26 | BUG-001 | 验证 | 重新构建并测试登录功能，验证通过 |
+| 2025-11-26 | BUG-002 | 新建 | 发现会话验证使用临时sessionId问题 |
+| 2025-11-26 | BUG-003 | 新建 | 发现密码强度验证过于严格问题 |
+| 2025-11-26 | BUG-002 | 修复 | 在JWT Token中添加sessionId claim，通过Domain API暴露解析功能 |
+| 2025-11-26 | BUG-002 | 验证 | 完整验证注册→登录→会话验证→登出→会话失效流程，全部通过 |
+| 2025-11-26 | BUG-003 | 修复 | 调整连续字符检测阈值从4位提高到6位，优化弱密码检测规则 |
+| 2025-11-26 | BUG-003 | 验证 | 测试多种密码场景，4/5位连续数字可通过，6位以上正确拒绝 |
+| 2025-11-26 | BUG-004 | 新建 | /health 端点需要认证但应该公开访问 |
+
+---
+
 ## 下一步行动
 
-所有已知Bug已修复并验证通过。
+- [ ] 修复 BUG-004: 在 SecurityConfig 中添加 /health 到公开接口列表
 
 ---
 

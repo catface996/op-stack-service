@@ -1,5 +1,6 @@
 package com.catface996.aiops.application.api.dto.auth.request;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -34,6 +35,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(description = "用户登录请求")
 public class LoginRequest {
 
     /**
@@ -58,6 +60,7 @@ public class LoginRequest {
      *   <li>"john@example.com" - 邮箱</li>
      * </ul>
      */
+    @Schema(description = "登录标识符（用户名或邮箱）", example = "john_doe")
     @NotBlank(message = "用户名或邮箱不能为空")
     private String identifier;
 
@@ -78,6 +81,7 @@ public class LoginRequest {
      *   <li>BCrypt 验证使用恒定时间比较，防止时序攻击</li>
      * </ul>
      */
+    @Schema(description = "密码", example = "SecureP@ss123")
     @NotBlank(message = "密码不能为空")
     private String password;
 
@@ -102,6 +106,7 @@ public class LoginRequest {
      *   <li>记住我功能不影响会话互斥，新设备登录仍会使旧设备失效</li>
      * </ul>
      */
+    @Schema(description = "是否记住我（false=2小时，true=30天）", example = "false")
     @NotNull(message = "rememberMe 不能为空")
     private Boolean rememberMe;
 

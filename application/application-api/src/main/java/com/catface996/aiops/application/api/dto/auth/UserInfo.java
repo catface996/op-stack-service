@@ -1,5 +1,6 @@
 package com.catface996.aiops.application.api.dto.auth;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -28,6 +29,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(description = "用户信息")
 public class UserInfo {
 
     /**
@@ -35,6 +37,7 @@ public class UserInfo {
      *
      * <p>账号的唯一标识符，用于后续的业务操作。</p>
      */
+    @Schema(description = "账号ID", example = "12345")
     private Long accountId;
 
     /**
@@ -44,6 +47,7 @@ public class UserInfo {
      *
      * <p>示例："john_doe"</p>
      */
+    @Schema(description = "用户名", example = "john_doe")
     private String username;
 
     /**
@@ -53,6 +57,7 @@ public class UserInfo {
      *
      * <p>示例："john@example.com"</p>
      */
+    @Schema(description = "邮箱地址", example = "john@example.com")
     private String email;
 
     /**
@@ -66,6 +71,7 @@ public class UserInfo {
      *   <li>"ROLE_ADMIN" - 系统管理员</li>
      * </ul>
      */
+    @Schema(description = "角色", example = "ROLE_USER", allowableValues = {"ROLE_USER", "ROLE_ADMIN"})
     private String role;
 
     /**
@@ -80,6 +86,7 @@ public class UserInfo {
      *   <li>"DISABLED" - 禁用状态，管理员手动禁用（需要管理员手动启用）</li>
      * </ul>
      */
+    @Schema(description = "账号状态", example = "ACTIVE", allowableValues = {"ACTIVE", "LOCKED", "DISABLED"})
     private String status;
 
     /**
@@ -89,5 +96,6 @@ public class UserInfo {
      *
      * <p>示例："2025-01-24T10:30:00"</p>
      */
+    @Schema(description = "账号创建时间", example = "2025-01-24T10:30:00")
     private LocalDateTime createdAt;
 }

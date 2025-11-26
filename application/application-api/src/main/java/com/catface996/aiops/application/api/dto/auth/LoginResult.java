@@ -1,5 +1,6 @@
 package com.catface996.aiops.application.api.dto.auth;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -39,6 +40,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(description = "用户登录结果")
 public class LoginResult {
 
     /**
@@ -62,6 +64,7 @@ public class LoginResult {
      *   <li>记住我（rememberMe=true）：30 天</li>
      * </ul>
      */
+    @Schema(description = "JWT Token", example = "eyJhbGciOiJIUzUxMiJ9...")
     private String token;
 
     /**
@@ -76,6 +79,7 @@ public class LoginResult {
      *   <li>前端根据状态提示用户</li>
      * </ul>
      */
+    @Schema(description = "用户信息")
     private UserInfo userInfo;
 
     /**
@@ -85,6 +89,7 @@ public class LoginResult {
      *
      * <p>UUID 格式示例："550e8400-e29b-41d4-a716-446655440000"</p>
      */
+    @Schema(description = "会话ID", example = "550e8400-e29b-41d4-a716-446655440000")
     private String sessionId;
 
     /**
@@ -100,6 +105,7 @@ public class LoginResult {
      *
      * <p>示例："2025-01-24T12:30:00"</p>
      */
+    @Schema(description = "会话过期时间", example = "2025-01-24T12:30:00")
     private LocalDateTime expiresAt;
 
     /**
@@ -116,6 +122,7 @@ public class LoginResult {
      *
      * <p>示例："Chrome 120.0 on Windows 11"</p>
      */
+    @Schema(description = "设备信息", example = "Chrome 120.0 on Windows 11")
     private String deviceInfo;
 
     /**
@@ -125,5 +132,6 @@ public class LoginResult {
      *
      * <p>示例："登录成功"</p>
      */
+    @Schema(description = "登录成功消息", example = "登录成功")
     private String message;
 }

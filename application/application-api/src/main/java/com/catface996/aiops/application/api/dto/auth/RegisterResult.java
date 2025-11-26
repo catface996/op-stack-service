@@ -1,5 +1,6 @@
 package com.catface996.aiops.application.api.dto.auth;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -35,6 +36,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(description = "用户注册结果")
 public class RegisterResult {
 
     /**
@@ -42,6 +44,7 @@ public class RegisterResult {
      *
      * <p>新创建账号的唯一标识符，后续可以使用此ID进行账号管理操作。</p>
      */
+    @Schema(description = "账号ID", example = "12345")
     private Long accountId;
 
     /**
@@ -51,6 +54,7 @@ public class RegisterResult {
      *
      * <p>示例："john_doe"</p>
      */
+    @Schema(description = "用户名", example = "john_doe")
     private String username;
 
     /**
@@ -60,6 +64,7 @@ public class RegisterResult {
      *
      * <p>示例："john@example.com"</p>
      */
+    @Schema(description = "邮箱地址", example = "john@example.com")
     private String email;
 
     /**
@@ -69,6 +74,7 @@ public class RegisterResult {
      *
      * <p>默认值："ROLE_USER"（普通用户）</p>
      */
+    @Schema(description = "角色", example = "ROLE_USER")
     private String role;
 
     /**
@@ -78,6 +84,7 @@ public class RegisterResult {
      *
      * <p>示例："2025-01-24T10:30:00"</p>
      */
+    @Schema(description = "账号创建时间", example = "2025-01-24T10:30:00")
     private LocalDateTime createdAt;
 
     /**
@@ -87,5 +94,6 @@ public class RegisterResult {
      *
      * <p>示例："注册成功，请使用用户名或邮箱登录"</p>
      */
+    @Schema(description = "注册成功消息", example = "注册成功，请使用用户名或邮箱登录")
     private String message;
 }

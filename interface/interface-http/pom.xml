@@ -67,6 +67,13 @@
             <artifactId>lombok</artifactId>
             <scope>provided</scope>
         </dependency>
+
+        <!-- SpringDoc OpenAPI (仅注解) -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
+            <version>2.7.0</version>
+        </dependency>
     </dependencies>
 
 </project>

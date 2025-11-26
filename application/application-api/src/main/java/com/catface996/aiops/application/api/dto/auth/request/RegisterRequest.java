@@ -1,5 +1,6 @@
 package com.catface996.aiops.application.api.dto.auth.request;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -26,6 +27,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(description = "用户注册请求")
 public class RegisterRequest {
 
     /**
@@ -41,6 +43,7 @@ public class RegisterRequest {
      *   <li>唯一性：系统中不能存在相同的用户名</li>
      * </ul>
      */
+    @Schema(description = "用户名", example = "john_doe", minLength = 3, maxLength = 20)
     @NotBlank(message = "用户名不能为空")
     @Size(min = 3, max = 20, message = "用户名长度必须在3-20个字符之间")
     @Pattern(regexp = "^[a-zA-Z0-9_]+$", message = "用户名只能包含字母、数字和下划线")
@@ -59,6 +62,7 @@ public class RegisterRequest {
      *   <li>唯一性：系统中不能存在相同的邮箱</li>
      * </ul>
      */
+    @Schema(description = "邮箱地址", example = "john@example.com", maxLength = 100)
     @NotBlank(message = "邮箱不能为空")
     @Email(message = "邮箱格式不正确")
     @Size(max = 100, message = "邮箱长度不能超过100个字符")
@@ -80,6 +84,8 @@ public class RegisterRequest {
      *
      * <p>注意：此字段只进行基本的非空和长度验证，详细的密码强度验证在应用层完成。</p>
      */
+    @Schema(description = "密码（8-64位，需包含大写字母、小写字母、数字、特殊字符中的至少3类）",
+            example = "SecureP@ss123", minLength = 8, maxLength = 64)
     @NotBlank(message = "密码不能为空")
     @Size(min = 8, max = 64, message = "密码长度必须在8-64个字符之间")
     private String password;

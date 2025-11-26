@@ -1,5 +1,6 @@
 package com.catface996.aiops.application.api.dto.auth;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -35,6 +36,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(description = "会话验证结果")
 public class SessionValidationResult {
 
     /**
@@ -51,6 +53,7 @@ public class SessionValidationResult {
      *   <li>JWT Token 格式错误或签名无效</li>
      * </ul>
      */
+    @Schema(description = "会话是否有效", example = "true")
     private boolean valid;
 
     /**
@@ -68,6 +71,7 @@ public class SessionValidationResult {
      *   <li>创建时间</li>
      * </ul>
      */
+    @Schema(description = "用户信息")
     private UserInfo userInfo;
 
     /**
@@ -77,6 +81,7 @@ public class SessionValidationResult {
      *
      * <p>UUID 格式示例："550e8400-e29b-41d4-a716-446655440000"</p>
      */
+    @Schema(description = "会话ID", example = "550e8400-e29b-41d4-a716-446655440000")
     private String sessionId;
 
     /**
@@ -93,6 +98,7 @@ public class SessionValidationResult {
      *   <li>决定是否需要刷新 Token</li>
      * </ul>
      */
+    @Schema(description = "会话过期时间", example = "2025-01-24T12:30:00")
     private LocalDateTime expiresAt;
 
     /**
@@ -109,6 +115,7 @@ public class SessionValidationResult {
      *   <li>提前提示用户会话即将过期</li>
      * </ul>
      */
+    @Schema(description = "剩余有效时间（秒）", example = "7200")
     private long remainingSeconds;
 
     /**
@@ -124,6 +131,7 @@ public class SessionValidationResult {
      *   <li>"您的账号已在其他设备登录"</li>
      * </ul>
      */
+    @Schema(description = "验证消息", example = "会话有效")
     private String message;
 
     /**

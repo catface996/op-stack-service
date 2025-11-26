@@ -5,6 +5,11 @@ import com.catface996.aiops.application.api.dto.auth.SessionValidationResult;
 import com.catface996.aiops.application.api.dto.auth.request.ForceLogoutRequest;
 import com.catface996.aiops.application.api.service.auth.AuthApplicationService;
 import com.catface996.aiops.interface_.http.response.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -54,6 +59,8 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/session")
 @RequiredArgsConstructor
+@Tag(name = "会话管理", description = "会话验证、会话互斥、强制登出等功能")
+@SecurityRequirement(name = "Bearer Authentication")
 public class SessionController {
 
     private final AuthApplicationService authApplicationService;
@@ -129,8 +136,17 @@ public class SessionController {
      * @throws com.catface996.aiops.common.exception.InvalidTokenException 当 Token 格式错误时抛出
      * @throws com.catface996.aiops.common.exception.SessionExpiredException 当会话已过期时抛出
      */
+    @Operation(
+            summary = "验证会话",
+            description = "验证用户会话是否有效，返回会话状态和用户信息"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "验证完成"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Token无效")
+    })
     @GetMapping("/validate")
     public ResponseEntity<ApiResponse<SessionValidationResult>> validateSession(
+            @Parameter(description = "JWT Token", required = true)
             @RequestHeader("Authorization") String authorization) {
         log.info("接收到会话验证请求");
         SessionValidationResult result = authApplicationService.validateSession(authorization);
@@ -226,8 +242,18 @@ public class SessionController {
      * @throws com.catface996.aiops.common.exception.InvalidTokenException 当 Token 格式错误时抛出
      * @throws com.catface996.aiops.common.exception.AccountLockedException 当账号被锁定时抛出
      */
+    @Operation(
+            summary = "强制登出其他设备",
+            description = "使当前用户在其他设备的会话失效，需要验证密码。操作成功后返回新的Token"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "操作成功"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "密码错误"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Token无效")
+    })
     @PostMapping("/force-logout-others")
     public ResponseEntity<ApiResponse<LoginResult>> forceLogoutOthers(
+            @Parameter(description = "JWT Token", required = true)
             @RequestHeader("Authorization") String authorization,
             @Valid @RequestBody ForceLogoutRequest request) {
         log.info("接收到强制登出其他设备请求");
