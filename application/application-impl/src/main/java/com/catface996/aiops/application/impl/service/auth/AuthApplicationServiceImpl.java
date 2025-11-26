@@ -343,7 +343,7 @@ public class AuthApplicationServiceImpl implements AuthApplicationService {
     private void checkAccountNotLocked(String identifier) {
         Optional<AccountLockInfo> lockInfo = authDomainService.checkAccountLock(identifier);
 
-        if (lockInfo.isPresent()) {
+        if (lockInfo.isPresent() && lockInfo.get().isLocked()) {
             AccountLockInfo info = lockInfo.get();
             log.warn("[审计日志] 登录失败-账号已锁定 | identifier={} | remainingMinutes={} | timestamp={}",
                     identifier, info.getRemainingMinutes(), LocalDateTime.now());
@@ -490,13 +490,22 @@ public class AuthApplicationServiceImpl implements AuthApplicationService {
     /**
      * 解析会话ID
      *
-     * @param token JWT Token
+     * @param token JWT Token（可能包含 Bearer 前缀）
      * @return 会话ID
      */
     private String parseSessionId(String token) {
-        // TODO: 从JWT Token中解析sessionId
-        // return jwtTokenProvider.getSessionIdFromToken(token);
-        return "temp-session-id"; // 临时代码
+        // 去除 Bearer 前缀
+        String actualToken = token;
+        if (token != null && token.startsWith("Bearer ")) {
+            actualToken = token.substring(7);
+        }
+
+        // 通过领域服务从 JWT Token 中提取 sessionId
+        String sessionId = authDomainService.getSessionIdFromToken(actualToken);
+        if (sessionId == null) {
+            log.warn("无法从 Token 中提取 sessionId，Token 可能不包含 sessionId claim");
+        }
+        return sessionId;
     }
 
     /**

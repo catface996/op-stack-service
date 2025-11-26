@@ -60,23 +60,45 @@ public class JwtTokenProviderImpl implements JwtTokenProvider {
 
     @Override
     public String generateToken(Long userId, String username, String role, boolean rememberMe) {
+        return generateToken(userId, username, role, null, rememberMe);
+    }
+
+    @Override
+    public String generateToken(Long userId, String username, String role, String sessionId, boolean rememberMe) {
         Date now = new Date();
         long expirationTime = rememberMe ? REMEMBER_ME_EXPIRATION_TIME : DEFAULT_EXPIRATION_TIME;
         Date expirationDate = new Date(now.getTime() + expirationTime);
 
-        String token = Jwts.builder()
+        var tokenBuilder = Jwts.builder()
                 .subject(userId.toString())
                 .claim("username", username)
                 .claim("role", role)
                 .issuedAt(now)
-                .expiration(expirationDate)
-                .signWith(secretKey)
-                .compact();
+                .expiration(expirationDate);
 
-        log.debug("Generated JWT token for user: {}, rememberMe: {}, expiresAt: {}",
-                username, rememberMe, expirationDate);
+        // 如果提供了 sessionId，则添加到 Token 中
+        if (sessionId != null && !sessionId.isEmpty()) {
+            tokenBuilder.claim("sessionId", sessionId);
+        }
+
+        String token = tokenBuilder.signWith(secretKey).compact();
+
+        log.debug("Generated JWT token for user: {}, sessionId: {}, rememberMe: {}, expiresAt: {}",
+                username, sessionId, rememberMe, expirationDate);
 
         return token;
+    }
+
+    @Override
+    public String getSessionIdFromToken(String token) {
+        try {
+            Map<String, Object> claims = validateAndParseToken(token);
+            Object sessionId = claims.get("sessionId");
+            return sessionId != null ? sessionId.toString() : null;
+        } catch (Exception e) {
+            log.warn("Failed to extract sessionId from token: {}", e.getMessage());
+            return null;
+        }
     }
 
     @Override
@@ -97,6 +119,10 @@ public class JwtTokenProviderImpl implements JwtTokenProvider {
             claimsMap.put("role", claims.get("role"));
             claimsMap.put("iat", claims.getIssuedAt());
             claimsMap.put("exp", claims.getExpiration());
+            // 添加 sessionId（如果存在）
+            if (claims.get("sessionId") != null) {
+                claimsMap.put("sessionId", claims.get("sessionId"));
+            }
 
             return claimsMap;
 

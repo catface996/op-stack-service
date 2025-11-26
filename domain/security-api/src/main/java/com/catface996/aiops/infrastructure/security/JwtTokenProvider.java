@@ -27,6 +27,26 @@ public interface JwtTokenProvider {
     String generateToken(Long userId, String username, String role, boolean rememberMe);
 
     /**
+     * 生成 JWT Token（包含 sessionId）
+     *
+     * @param userId     用户ID
+     * @param username   用户名
+     * @param role       用户角色
+     * @param sessionId  会话ID
+     * @param rememberMe 是否记住我
+     * @return JWT Token 字符串
+     */
+    String generateToken(Long userId, String username, String role, String sessionId, boolean rememberMe);
+
+    /**
+     * 从 Token 中提取会话ID
+     *
+     * @param token JWT Token 字符串
+     * @return 会话ID，如果不存在则返回 null
+     */
+    String getSessionIdFromToken(String token);
+
+    /**
      * 验证并解析 JWT Token
      *
      * @param token JWT Token 字符串

@@ -58,10 +58,14 @@ public class AuthDomainServiceImpl implements AuthDomainService {
     private static final Pattern DIGIT_PATTERN = Pattern.compile(".*[0-9].*");
     private static final Pattern SPECIAL_CHAR_PATTERN = Pattern.compile(".*[!@#$%^&*()_+\\-=\\[\\]{}|;:,.<>?].*");
 
-    // 弱密码检测正则表达式（连续字符至少4位才算弱密码）
-    private static final Pattern CONSECUTIVE_CHARS_PATTERN = Pattern.compile(".*(0123|1234|2345|3456|4567|5678|6789|abcd|bcde|cdef|defg|efgh|fghi|ghij|hijk|ijkl|jklm|klmn|lmno|mnop|nopq|opqr|pqrs|qrst|rstu|stuv|tuvw|uvwx|vwxy|wxyz).*");
+    // 弱密码检测正则表达式
+    // 连续字符检测：只有当连续序列达到6位或以上才拒绝（如 "123456", "abcdef"）
+    private static final Pattern CONSECUTIVE_DIGITS_PATTERN = Pattern.compile(".*(012345|123456|234567|345678|456789|567890).*");
+    private static final Pattern CONSECUTIVE_LETTERS_PATTERN = Pattern.compile(".*(abcdef|bcdefg|cdefgh|defghi|efghij|fghijk|ghijkl|hijklm|ijklmn|jklmno|klmnop|lmnopq|mnopqr|nopqrs|opqrst|pqrstu|qrstuv|rstuvw|stuvwx|tuvwxy|uvwxyz).*");
+    // 重复字符检测：同一字符连续重复6次以上才拒绝
     private static final Pattern REPEATED_CHARS_PATTERN = Pattern.compile(".*(.)\\1{5,}.*");
-    private static final Pattern KEYBOARD_SEQUENCE_PATTERN = Pattern.compile(".*(qwerty|asdfgh|zxcvbn).*");
+    // 键盘序列检测：常见的键盘行序列
+    private static final Pattern KEYBOARD_SEQUENCE_PATTERN = Pattern.compile(".*(qwerty|qwertyui|asdfgh|asdfghjk|zxcvbn|zxcvbnm).*");
 
     // 常见弱密码列表
     private static final String[] COMMON_WEAK_PASSWORDS = {
@@ -203,30 +207,49 @@ public class AuthDomainServiceImpl implements AuthDomainService {
     /**
      * 检查是否为弱密码
      *
+     * <p>弱密码规则（满足任一条件即为弱密码）：</p>
+     * <ul>
+     *   <li>包含6位或以上连续数字（如 123456）</li>
+     *   <li>包含6位或以上连续字母（如 abcdef）</li>
+     *   <li>包含6次或以上重复字符（如 aaaaaa）</li>
+     *   <li>包含常见键盘序列（如 qwerty）</li>
+     *   <li>包含常见弱密码词（如 password）</li>
+     * </ul>
+     *
      * @param password 待检查的密码
      * @return true if password is weak, false otherwise
      */
     private boolean isWeakPassword(String password) {
         String lowerPassword = password.toLowerCase();
 
-        // 检查连续字符
-        if (CONSECUTIVE_CHARS_PATTERN.matcher(lowerPassword).matches()) {
+        // 检查连续数字（6位或以上）
+        if (CONSECUTIVE_DIGITS_PATTERN.matcher(lowerPassword).matches()) {
+            log.debug("密码包含6位以上连续数字");
             return true;
         }
 
-        // 检查重复字符
+        // 检查连续字母（6位或以上）
+        if (CONSECUTIVE_LETTERS_PATTERN.matcher(lowerPassword).matches()) {
+            log.debug("密码包含6位以上连续字母");
+            return true;
+        }
+
+        // 检查重复字符（6次或以上）
         if (REPEATED_CHARS_PATTERN.matcher(lowerPassword).matches()) {
+            log.debug("密码包含6次以上重复字符");
             return true;
         }
 
         // 检查键盘序列
         if (KEYBOARD_SEQUENCE_PATTERN.matcher(lowerPassword).matches()) {
+            log.debug("密码包含键盘序列");
             return true;
         }
 
-        // 检查常见弱密码
+        // 检查常见弱密码（只有当密码完全等于弱密码或以弱密码开头时才拒绝）
         for (String weakPassword : COMMON_WEAK_PASSWORDS) {
-            if (lowerPassword.contains(weakPassword)) {
+            if (lowerPassword.equals(weakPassword) || lowerPassword.startsWith(weakPassword)) {
+                log.debug("密码包含常见弱密码词: {}", weakPassword);
                 return true;
             }
         }
@@ -263,11 +286,12 @@ public class AuthDomainServiceImpl implements AuthDomainService {
             expiresAt = LocalDateTime.now().plusHours(DEFAULT_SESSION_HOURS);
         }
 
-        // 生成JWT Token
+        // 生成JWT Token（包含 sessionId）
         String token = jwtTokenProvider.generateToken(
             account.getId(),
             account.getUsername(),
             account.getRole() != null ? account.getRole().name() : "USER",
+            sessionId,
             rememberMe
         );
 
@@ -681,5 +705,26 @@ public class AuthDomainServiceImpl implements AuthDomainService {
         log.info("会话保存成功，会话ID：{}", savedSession.getId());
 
         return savedSession;
+    }
+
+    // ==================== Token 解析方法 ====================
+
+    @Override
+    public String getSessionIdFromToken(String token) {
+        if (token == null || token.isEmpty()) {
+            log.warn("Token 为空，无法提取 sessionId");
+            return null;
+        }
+
+        try {
+            String sessionId = jwtTokenProvider.getSessionIdFromToken(token);
+            if (sessionId == null) {
+                log.warn("Token 中不包含 sessionId claim");
+            }
+            return sessionId;
+        } catch (Exception e) {
+            log.warn("从 Token 中提取 sessionId 失败：{}", e.getMessage());
+            return null;
+        }
     }
 }

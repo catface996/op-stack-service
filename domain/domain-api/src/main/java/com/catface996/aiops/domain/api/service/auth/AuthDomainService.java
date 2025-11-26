@@ -337,4 +337,16 @@ public interface AuthDomainService {
      * @throws IllegalArgumentException 如果session为null
      */
     Session saveSession(Session session);
+
+    // ==================== Token 解析方法 ====================
+
+    /**
+     * 从 JWT Token 中提取会话ID
+     *
+     * <p>解析 JWT Token 并提取其中的 sessionId claim。</p>
+     *
+     * @param token JWT Token 字符串（不含 Bearer 前缀）
+     * @return 会话ID，如果 Token 无效或不包含 sessionId 则返回 null
+     */
+    String getSessionIdFromToken(String token);
 }
