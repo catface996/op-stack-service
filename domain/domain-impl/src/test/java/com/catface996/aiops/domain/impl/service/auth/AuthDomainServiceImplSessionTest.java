@@ -102,8 +102,8 @@ class AuthDomainServiceImplSessionTest {
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
 
-        // Mock JWT Token生成
-        when(jwtTokenProvider.generateToken(anyLong(), anyString(), anyString(), anyBoolean()))
+        // Mock JWT Token生成 (新签名包含 sessionId 参数)
+        when(jwtTokenProvider.generateToken(anyLong(), anyString(), anyString(), anyString(), anyBoolean()))
             .thenReturn("mock-jwt-token");
     }
 
@@ -135,12 +135,13 @@ class AuthDomainServiceImplSessionTest {
             assertTrue(minutesUntilExpiration >= 119 && minutesUntilExpiration <= 121,
                 "过期时间应该约为2小时（119-121分钟），实际: " + minutesUntilExpiration + "分钟");
 
-            // 验证JWT Token生成调用
+            // 验证JWT Token生成调用（新签名包含 sessionId 参数）
             verify(jwtTokenProvider, times(1)).generateToken(
-                testAccount.getId(),
-                testAccount.getUsername(),
-                AccountRole.ROLE_USER.name(),
-                false
+                eq(testAccount.getId()),
+                eq(testAccount.getUsername()),
+                eq(AccountRole.ROLE_USER.name()),
+                anyString(),  // sessionId 是动态生成的 UUID
+                eq(false)
             );
 
             // 验证持久化与缓存保存调用
@@ -170,12 +171,13 @@ class AuthDomainServiceImplSessionTest {
             assertTrue(hoursUntilExpiration >= 719 && hoursUntilExpiration <= 721,
                 "过期时间应该约为30天（719-721小时），实际: " + hoursUntilExpiration + "小时");
 
-            // 验证JWT Token生成时传递了rememberMe=true
+            // 验证JWT Token生成时传递了rememberMe=true（新签名包含 sessionId 参数）
             verify(jwtTokenProvider, times(1)).generateToken(
-                testAccount.getId(),
-                testAccount.getUsername(),
-                AccountRole.ROLE_USER.name(),
-                true
+                eq(testAccount.getId()),
+                eq(testAccount.getUsername()),
+                eq(AccountRole.ROLE_USER.name()),
+                anyString(),  // sessionId 是动态生成的 UUID
+                eq(true)
             );
 
             verify(sessionRepository, times(1)).save(any(Session.class));

@@ -1,0 +1,49 @@
+# 集成测试环境配置
+spring:
+  # 数据源配置（由 TestContainers 动态设置）
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    druid:
+      initial-size: 5
+      min-idle: 5
+      max-active: 20
+
+  # Redis 配置（由 TestContainers 动态设置）
+  data:
+    redis:
+      timeout: 3000
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
+  # Flyway 数据库迁移
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+# Security 配置
+security:
+  jwt:
+    # JWT 签名密钥 (测试环境)
+    secret: test-secret-key-for-integration-testing-must-be-at-least-256-bits-long-for-hmac-sha256
+    # JWT Token 过期时间 (单位: 秒，2小时 = 7200秒)
+    expiration: 7200
+    # JWT Token 发行者
+    issuer: aiops-service-test
+  # 防暴力破解配置
+  login:
+    # 登录失败最大次数 (测试环境设置较高，避免干扰正常测试)
+    max-failed-attempts: 100
+    # 账号锁定时长 (单位: 秒，1分钟 = 60秒，便于测试)
+    lock-duration: 60
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.catface996.aiops: DEBUG
+    org.testcontainers: INFO
+    com.github.dockerjava: WARN

@@ -363,13 +363,18 @@ class AuthApplicationServiceImplTest {
     void testLogoutSuccess() {
         // Given
         String token = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test.token";
+        String sessionId = testSession.getId();
+
+        // Mock getSessionIdFromToken 返回 sessionId
+        when(authDomainService.getSessionIdFromToken(anyString())).thenReturn(sessionId);
 
         // When
         authApplicationService.logout(token);
 
         // Then
         // 验证方法调用
-        verify(authDomainService).invalidateSession(anyString());
+        verify(authDomainService).getSessionIdFromToken(anyString());
+        verify(authDomainService).invalidateSession(sessionId);
     }
 
     // ==================== 会话验证测试 ====================
@@ -379,7 +384,11 @@ class AuthApplicationServiceImplTest {
     void testValidateSessionSuccess() {
         // Given
         String token = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test.token";
-        when(authDomainService.validateSession(anyString())).thenReturn(testSession);
+        String sessionId = testSession.getId();
+
+        // Mock getSessionIdFromToken 返回 sessionId
+        when(authDomainService.getSessionIdFromToken(anyString())).thenReturn(sessionId);
+        when(authDomainService.validateSession(sessionId)).thenReturn(testSession);
         when(authDomainService.findAccountById(any(Long.class))).thenReturn(Optional.of(testAccount));
 
         // When
@@ -398,7 +407,11 @@ class AuthApplicationServiceImplTest {
     void testValidateSessionFailure_SessionNotFound() {
         // Given
         String token = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test.token";
-        when(authDomainService.validateSession(anyString()))
+        String sessionId = "non-existent-session-id";
+
+        // Mock getSessionIdFromToken 返回 sessionId
+        when(authDomainService.getSessionIdFromToken(anyString())).thenReturn(sessionId);
+        when(authDomainService.validateSession(sessionId))
                 .thenThrow(new RuntimeException("Session not found"));
 
         // When
@@ -418,9 +431,13 @@ class AuthApplicationServiceImplTest {
         // Given
         String token = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test.token";
         String password = "SecureP@ss123";
+        String sessionId = testSession.getId();
+
+        // Mock getSessionIdFromToken 返回 sessionId
+        when(authDomainService.getSessionIdFromToken(anyString())).thenReturn(sessionId);
 
         // Mock parseTokenAndGetAccount 流程
-        when(authDomainService.validateSession(anyString())).thenReturn(testSession);
+        when(authDomainService.validateSession(sessionId)).thenReturn(testSession);
         when(authDomainService.findAccountById(1L)).thenReturn(Optional.of(testAccount));
 
         // Mock 密码验证
@@ -465,9 +482,13 @@ class AuthApplicationServiceImplTest {
         // Given
         String token = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test.token";
         String wrongPassword = "WrongPassword123";
+        String sessionId = testSession.getId();
+
+        // Mock getSessionIdFromToken 返回 sessionId
+        when(authDomainService.getSessionIdFromToken(anyString())).thenReturn(sessionId);
 
         // Mock parseTokenAndGetAccount 流程
-        when(authDomainService.validateSession(anyString())).thenReturn(testSession);
+        when(authDomainService.validateSession(sessionId)).thenReturn(testSession);
         when(authDomainService.findAccountById(1L)).thenReturn(Optional.of(testAccount));
 
         // Mock 密码验证失败
@@ -496,6 +517,7 @@ class AuthApplicationServiceImplTest {
         // Given
         String adminToken = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.admin.token";
         Long accountId = 2L;
+        String sessionId = testSession.getId();
 
         // Mock 管理员账号
         Account adminAccount = new Account();
@@ -503,8 +525,11 @@ class AuthApplicationServiceImplTest {
         adminAccount.setUsername("admin");
         adminAccount.setRole(AccountRole.ROLE_ADMIN);
 
+        // Mock getSessionIdFromToken 返回 sessionId
+        when(authDomainService.getSessionIdFromToken(anyString())).thenReturn(sessionId);
+
         // Mock validateAdminPermission 流程
-        when(authDomainService.validateSession(anyString())).thenReturn(testSession);
+        when(authDomainService.validateSession(sessionId)).thenReturn(testSession);
         when(authDomainService.findAccountById(testSession.getUserId())).thenReturn(Optional.of(adminAccount));
 
         // When
@@ -522,6 +547,7 @@ class AuthApplicationServiceImplTest {
         // Given
         String userToken = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.user.token";
         Long accountId = 2L;
+        String sessionId = testSession.getId();
 
         // Mock 普通用户账号
         Account normalUser = new Account();
@@ -529,8 +555,11 @@ class AuthApplicationServiceImplTest {
         normalUser.setUsername("john_doe");
         normalUser.setRole(AccountRole.ROLE_USER);  // 普通用户
 
+        // Mock getSessionIdFromToken 返回 sessionId
+        when(authDomainService.getSessionIdFromToken(anyString())).thenReturn(sessionId);
+
         // Mock validateAdminPermission 流程
-        when(authDomainService.validateSession(anyString())).thenReturn(testSession);
+        when(authDomainService.validateSession(sessionId)).thenReturn(testSession);
         when(authDomainService.findAccountById(testSession.getUserId())).thenReturn(Optional.of(normalUser));
 
         // When & Then
@@ -548,9 +577,13 @@ class AuthApplicationServiceImplTest {
         // Given
         String invalidToken = "Bearer invalid.token";
         Long accountId = 2L;
+        String sessionId = "invalid-session-id";
+
+        // Mock getSessionIdFromToken 返回 sessionId
+        when(authDomainService.getSessionIdFromToken(anyString())).thenReturn(sessionId);
 
         // Mock 会话验证失败
-        when(authDomainService.validateSession(anyString()))
+        when(authDomainService.validateSession(sessionId))
                 .thenThrow(new RuntimeException("Session not found"));
 
         // When & Then
@@ -568,6 +601,7 @@ class AuthApplicationServiceImplTest {
         // Given
         String adminToken = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.admin.token";
         Long nonExistentAccountId = 999L;
+        String sessionId = testSession.getId();
 
         // Mock 管理员账号
         Account adminAccount = new Account();
@@ -575,8 +609,11 @@ class AuthApplicationServiceImplTest {
         adminAccount.setUsername("admin");
         adminAccount.setRole(AccountRole.ROLE_ADMIN);
 
+        // Mock getSessionIdFromToken 返回 sessionId
+        when(authDomainService.getSessionIdFromToken(anyString())).thenReturn(sessionId);
+
         // Mock validateAdminPermission 流程
-        when(authDomainService.validateSession(anyString())).thenReturn(testSession);
+        when(authDomainService.validateSession(sessionId)).thenReturn(testSession);
         when(authDomainService.findAccountById(testSession.getUserId())).thenReturn(Optional.of(adminAccount));
 
         // Mock Domain 层抛出账号不存在异常（使用 doThrow 语法用于 void 方法）
