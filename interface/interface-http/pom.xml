@@ -38,6 +38,12 @@
             <version>${project.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.catface996.aiops</groupId>
+            <artifactId>security-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Spring Web -->
         <dependency>
             <groupId>org.springframework</groupId>

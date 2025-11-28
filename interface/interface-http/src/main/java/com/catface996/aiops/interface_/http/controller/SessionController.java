@@ -3,7 +3,12 @@ package com.catface996.aiops.interface_.http.controller;
 import com.catface996.aiops.application.api.dto.auth.LoginResult;
 import com.catface996.aiops.application.api.dto.auth.SessionValidationResult;
 import com.catface996.aiops.application.api.dto.auth.request.ForceLogoutRequest;
+import com.catface996.aiops.application.api.dto.session.SessionDTO;
 import com.catface996.aiops.application.api.service.auth.AuthApplicationService;
+import com.catface996.aiops.application.api.service.session.SessionApplicationService;
+import com.catface996.aiops.infrastructure.security.api.service.JwtTokenProvider;
+import com.catface996.aiops.interface_.http.dto.session.SessionListResponse;
+import com.catface996.aiops.interface_.http.dto.session.TerminateOthersResponse;
 import com.catface996.aiops.interface_.http.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -15,6 +20,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * 会话管理控制器
@@ -57,13 +64,15 @@ import org.springframework.web.bind.annotation.*;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/session")
+@RequestMapping("/api/v1/sessions")
 @RequiredArgsConstructor
-@Tag(name = "会话管理", description = "会话验证、会话互斥、强制登出等功能")
+@Tag(name = "会话管理", description = "会话验证、会话互斥、多设备会话管理等功能")
 @SecurityRequirement(name = "Bearer Authentication")
 public class SessionController {
 
     private final AuthApplicationService authApplicationService;
+    private final SessionApplicationService sessionApplicationService;
+    private final JwtTokenProvider jwtTokenProvider;
 
     /**
      * 验证会话
@@ -267,5 +276,206 @@ public class SessionController {
                 result.getUserInfo().getUsername(),
                 result.getSessionId());
         return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
+    // ================== 新增会话管理接口 ==================
+
+    /**
+     * 获取当前用户的所有会话
+     *
+     * <p>查询当前用户的所有活跃会话，用于多设备会话管理。</p>
+     *
+     * <p>请求示例：</p>
+     * <pre>
+     * GET /api/v1/sessions
+     * Authorization: Bearer eyJhbGciOiJIUzUxMiJ9...
+     * </pre>
+     *
+     * <p>成功响应示例（200 OK）：</p>
+     * <pre>
+     * {
+     *   "code": 0,
+     *   "message": "操作成功",
+     *   "data": {
+     *     "sessions": [
+     *       {
+     *         "sessionId": "550e8400-e29b-41d4-a716-446655440000",
+     *         "ipAddress": "192.168.1.100",
+     *         "deviceType": "Desktop",
+     *         "operatingSystem": "Windows 10",
+     *         "browser": "Chrome",
+     *         "createdAt": "2025-01-28T10:00:00",
+     *         "lastActivityAt": "2025-01-28T12:30:00",
+     *         "expiresAt": "2025-01-28T18:00:00",
+     *         "currentSession": true
+     *       },
+     *       {
+     *         "sessionId": "660f9511-f3ac-52e5-b827-557766551111",
+     *         "ipAddress": "10.0.0.50",
+     *         "deviceType": "Mobile",
+     *         "operatingSystem": "iOS 17",
+     *         "browser": "Safari",
+     *         "createdAt": "2025-01-28T09:00:00",
+     *         "lastActivityAt": "2025-01-28T11:00:00",
+     *         "expiresAt": "2025-01-28T17:00:00",
+     *         "currentSession": false
+     *       }
+     *     ],
+     *     "total": 2
+     *   }
+     * }
+     * </pre>
+     *
+     * @param authorization JWT Token（Header: Authorization: Bearer {token}）
+     * @return 会话列表响应
+     */
+    @Operation(
+            summary = "获取当前用户的所有会话",
+            description = "查询当前用户的所有活跃会话，用于多设备会话管理"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "查询成功"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Token无效")
+    })
+    @GetMapping
+    public ResponseEntity<ApiResponse<SessionListResponse>> getUserSessions(
+            @Parameter(description = "JWT Token", required = true)
+            @RequestHeader("Authorization") String authorization) {
+        log.info("接收到查询用户会话列表请求");
+
+        // 从Token中提取用户ID
+        String token = extractToken(authorization);
+        Long userId = jwtTokenProvider.getUserIdFromToken(token);
+        String currentSessionId = jwtTokenProvider.getSessionIdFromToken(token);
+
+        List<SessionDTO> sessions = sessionApplicationService.getUserSessions(userId);
+
+        // 标记当前会话
+        sessions.forEach(session ->
+                session.setCurrentSession(session.getSessionId().equals(currentSessionId)));
+
+        log.info("查询用户会话列表成功: userId={}, sessionCount={}", userId, sessions.size());
+        return ResponseEntity.ok(ApiResponse.success(SessionListResponse.of(sessions)));
+    }
+
+    /**
+     * 终止指定会话
+     *
+     * <p>终止指定的会话，只能终止自己的会话。</p>
+     *
+     * <p>请求示例：</p>
+     * <pre>
+     * DELETE /api/v1/sessions/550e8400-e29b-41d4-a716-446655440000
+     * Authorization: Bearer eyJhbGciOiJIUzUxMiJ9...
+     * </pre>
+     *
+     * <p>成功响应示例（200 OK）：</p>
+     * <pre>
+     * {
+     *   "code": 0,
+     *   "message": "会话终止成功",
+     *   "data": null
+     * }
+     * </pre>
+     *
+     * <p>错误响应示例（403 Forbidden）：</p>
+     * <pre>
+     * {
+     *   "code": 403001,
+     *   "message": "无权限终止该会话",
+     *   "data": null
+     * }
+     * </pre>
+     *
+     * @param authorization JWT Token（Header: Authorization: Bearer {token}）
+     * @param sessionId 要终止的会话ID
+     * @return 成功响应
+     */
+    @Operation(
+            summary = "终止指定会话",
+            description = "终止指定的会话，只能终止自己的会话"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "终止成功"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Token无效"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "无权限终止该会话")
+    })
+    @DeleteMapping("/{sessionId}")
+    public ResponseEntity<ApiResponse<Void>> terminateSession(
+            @Parameter(description = "JWT Token", required = true)
+            @RequestHeader("Authorization") String authorization,
+            @Parameter(description = "会话ID", required = true)
+            @PathVariable String sessionId) {
+        log.info("接收到终止会话请求: sessionId={}", sessionId);
+
+        // 从Token中提取用户ID
+        String token = extractToken(authorization);
+        Long userId = jwtTokenProvider.getUserIdFromToken(token);
+
+        sessionApplicationService.terminateSession(sessionId, userId);
+
+        log.info("会话终止成功: sessionId={}", sessionId);
+        return ResponseEntity.ok(ApiResponse.success("会话终止成功", null));
+    }
+
+    /**
+     * 终止其他会话
+     *
+     * <p>终止当前用户除当前会话外的所有会话。</p>
+     *
+     * <p>请求示例：</p>
+     * <pre>
+     * POST /api/v1/sessions/terminate-others
+     * Authorization: Bearer eyJhbGciOiJIUzUxMiJ9...
+     * </pre>
+     *
+     * <p>成功响应示例（200 OK）：</p>
+     * <pre>
+     * {
+     *   "code": 0,
+     *   "message": "操作成功",
+     *   "data": {
+     *     "terminatedCount": 2,
+     *     "message": "已终止2个其他会话"
+     *   }
+     * }
+     * </pre>
+     *
+     * @param authorization JWT Token（Header: Authorization: Bearer {token}）
+     * @return 终止结果响应
+     */
+    @Operation(
+            summary = "终止其他会话",
+            description = "终止当前用户除当前会话外的所有会话"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "操作成功"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Token无效")
+    })
+    @PostMapping("/terminate-others")
+    public ResponseEntity<ApiResponse<TerminateOthersResponse>> terminateOtherSessions(
+            @Parameter(description = "JWT Token", required = true)
+            @RequestHeader("Authorization") String authorization) {
+        log.info("接收到终止其他会话请求");
+
+        // 从Token中提取用户ID和当前会话ID
+        String token = extractToken(authorization);
+        Long userId = jwtTokenProvider.getUserIdFromToken(token);
+        String currentSessionId = jwtTokenProvider.getSessionIdFromToken(token);
+
+        int terminatedCount = sessionApplicationService.terminateOtherSessions(currentSessionId, userId);
+
+        log.info("终止其他会话成功: userId={}, terminatedCount={}", userId, terminatedCount);
+        return ResponseEntity.ok(ApiResponse.success(TerminateOthersResponse.of(terminatedCount)));
+    }
+
+    /**
+     * 从Authorization头中提取Token
+     */
+    private String extractToken(String authorization) {
+        if (authorization != null && authorization.startsWith("Bearer ")) {
+            return authorization.substring(7);
+        }
+        return authorization;
     }
 }

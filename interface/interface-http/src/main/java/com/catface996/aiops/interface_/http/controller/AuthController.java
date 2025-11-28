@@ -5,6 +5,9 @@ import com.catface996.aiops.application.api.dto.auth.RegisterResult;
 import com.catface996.aiops.application.api.dto.auth.request.LoginRequest;
 import com.catface996.aiops.application.api.dto.auth.request.RegisterRequest;
 import com.catface996.aiops.application.api.service.auth.AuthApplicationService;
+import com.catface996.aiops.application.api.service.session.SessionApplicationService;
+import com.catface996.aiops.infrastructure.security.api.service.JwtTokenProvider;
+import com.catface996.aiops.interface_.http.dto.auth.RefreshTokenResponse;
 import com.catface996.aiops.interface_.http.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -19,6 +22,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
 
 /**
  * 认证控制器
@@ -55,10 +60,12 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
-@Tag(name = "认证管理", description = "用户认证相关接口：注册、登录、登出")
+@Tag(name = "认证管理", description = "用户认证相关接口：注册、登录、登出、令牌刷新")
 public class AuthController {
 
     private final AuthApplicationService authApplicationService;
+    private final SessionApplicationService sessionApplicationService;
+    private final JwtTokenProvider jwtTokenProvider;
 
     /**
      * 用户注册
@@ -260,5 +267,87 @@ public class AuthController {
 
         log.info("用户登出成功");
         return ResponseEntity.ok(ApiResponse.success("登出成功", null));
+    }
+
+    /**
+     * 刷新访问令牌
+     *
+     * <p>使用当前有效的会话刷新访问令牌，获取新的JWT Token。</p>
+     *
+     * <p>请求示例：</p>
+     * <pre>
+     * POST /api/v1/auth/refresh
+     * Authorization: Bearer eyJhbGciOiJIUzUxMiJ9...
+     * </pre>
+     *
+     * <p>成功响应（200 OK）：</p>
+     * <pre>
+     * {
+     *   "code": 0,
+     *   "message": "操作成功",
+     *   "data": {
+     *     "token": "eyJhbGciOiJIUzUxMiJ9...",
+     *     "sessionId": "550e8400-e29b-41d4-a716-446655440000",
+     *     "expiresAt": "2025-01-28T14:30:00",
+     *     "message": "令牌刷新成功"
+     *   }
+     * }
+     * </pre>
+     *
+     * <p>错误响应：</p>
+     * <ul>
+     *   <li>401 Unauthorized - 令牌无效或会话已过期</li>
+     * </ul>
+     *
+     * @param authorization JWT Token（Header: Authorization: Bearer {token}）
+     * @return 刷新令牌响应
+     */
+    @Operation(
+            summary = "刷新访问令牌",
+            description = "使用当前有效的会话刷新访问令牌，获取新的JWT Token"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "刷新成功"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "令牌无效或会话已过期")
+    })
+    @SecurityRequirement(name = "Bearer Authentication")
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<RefreshTokenResponse>> refreshToken(
+            @Parameter(description = "JWT Token", required = true)
+            @RequestHeader("Authorization") String authorization) {
+        log.info("接收到刷新令牌请求");
+
+        // 从Token中提取信息
+        String token = extractToken(authorization);
+        Long userId = jwtTokenProvider.getUserIdFromToken(token);
+        String username = jwtTokenProvider.getUsernameFromToken(token);
+        String role = jwtTokenProvider.getRoleFromToken(token);
+        String sessionId = jwtTokenProvider.getSessionIdFromToken(token);
+
+        // 获取令牌剩余时间来判断是否是记住我模式
+        // 如果剩余时间超过2小时，则认为是记住我模式
+        long remainingTtl = jwtTokenProvider.getRemainingTtl(token);
+        boolean rememberMe = remainingTtl > 2 * 60 * 60;
+
+        // 刷新令牌
+        String newToken = sessionApplicationService.refreshAccessToken(
+                sessionId, userId, username, role, rememberMe);
+
+        // 计算过期时间（访问令牌固定15分钟，记住我模式30天）
+        LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(15);
+
+        log.info("令牌刷新成功: userId={}, sessionId={}", userId, sessionId);
+        return ResponseEntity.ok(ApiResponse.success(
+                RefreshTokenResponse.of(newToken, sessionId, expiresAt)));
+    }
+
+    /**
+     * 从Authorization头中提取Token
+     */
+    private String extractToken(String authorization) {
+        if (authorization != null && authorization.startsWith("Bearer ")) {
+            return authorization.substring(7);
+        }
+        return authorization;
     }
 }
