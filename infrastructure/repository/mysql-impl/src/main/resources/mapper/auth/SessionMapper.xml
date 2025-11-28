@@ -2,13 +2,29 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.catface996.aiops.repository.mysql.mapper.auth.SessionMapper">
 
-    <!-- 根据用户ID查询会话 -->
+    <!-- 基础列定义 -->
+    <sql id="Base_Column_List">
+        id, user_id, token, expires_at, device_info, created_at,
+        last_activity_at, absolute_timeout, idle_timeout, remember_me
+    </sql>
+
+    <!-- 根据用户ID查询单个会话（最近的一个） -->
     <select id="selectByUserId" resultType="com.catface996.aiops.repository.mysql.po.auth.SessionPO">
-        SELECT id, user_id, token, expires_at, device_info, created_at
+        SELECT <include refid="Base_Column_List"/>
         FROM t_session
         WHERE user_id = #{userId}
+        AND expires_at &gt; NOW()
         ORDER BY created_at DESC
         LIMIT 1
+    </select>
+
+    <!-- 根据用户ID查询所有会话 -->
+    <select id="selectAllByUserId" resultType="com.catface996.aiops.repository.mysql.po.auth.SessionPO">
+        SELECT <include refid="Base_Column_List"/>
+        FROM t_session
+        WHERE user_id = #{userId}
+        AND expires_at &gt; NOW()
+        ORDER BY created_at DESC
     </select>
 
     <!-- 根据用户ID删除会话 -->
@@ -17,10 +33,27 @@
         WHERE user_id = #{userId}
     </delete>
 
+    <!-- 批量删除会话 -->
+    <delete id="batchDeleteByIds">
+        DELETE FROM t_session
+        WHERE id IN
+        <foreach collection="sessionIds" item="sessionId" open="(" separator="," close=")">
+            #{sessionId}
+        </foreach>
+    </delete>
+
     <!-- 删除所有过期会话 -->
     <delete id="deleteExpiredSessions">
         DELETE FROM t_session
         WHERE expires_at &lt; NOW()
     </delete>
+
+    <!-- 统计用户的会话数量 -->
+    <select id="countByUserId" resultType="int">
+        SELECT COUNT(*)
+        FROM t_session
+        WHERE user_id = #{userId}
+        AND expires_at &gt; NOW()
+    </select>
 
 </mapper>
