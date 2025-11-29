@@ -79,6 +79,17 @@ Files you should create:
 Activation rule:
 - Use `spring.profiles.active` to specify active profile
 
+**Best practice for running the application**:
+- ✅ **Recommended**: Run the jar file directly
+  ```bash
+  java -jar bootstrap/target/bootstrap-1.0.0-SNAPSHOT.jar --spring.profiles.active=local
+  ```
+- ⚠️ **Note**: `mvn spring-boot:run` may have classpath caching issues that prevent code changes from taking effect
+  ```bash
+  # If code changes don't take effect, use the jar file approach instead
+  mvn spring-boot:run -pl bootstrap -Dspring-boot.run.profiles=local
+  ```
+
 **3. Configuration property binding**
 - Use @ConfigurationProperties for binding configuration groups
 - Define configuration classes with proper validation
@@ -438,6 +449,22 @@ Before committing code, verify:
 | Logging sensitive info | `"Password: {}"` | Don't log passwords | Security violation |
 | Loop logging | Log in every iteration | Aggregate and log once | Performance impact, log spam |
 | Wrong level | INFO for debug details | DEBUG for debug details | Clutters production logs |
+
+**8. Exception Log Level Selection Principles**
+
+**Core Principle**: Client/user-caused errors = WARN, system internal errors = ERROR
+
+**Use WARN for** (expected business errors):
+- Token expired, invalid, malformed, signature verification failed
+- Parameter validation failed
+- Authentication failed (wrong username/password)
+- Resource not found, insufficient permissions
+- Fallback-capable dependency failures (e.g., Redis unavailable but can fallback to database)
+
+**Use ERROR for** (system-level errors, need ops attention):
+- Database connection failure
+- Required external service unavailable
+- Uncaught unknown exceptions
 
 ## Parameter Validation Standards
 

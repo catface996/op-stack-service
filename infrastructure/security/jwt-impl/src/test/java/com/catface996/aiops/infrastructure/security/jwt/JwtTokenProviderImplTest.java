@@ -1,13 +1,12 @@
 package com.catface996.aiops.infrastructure.security.jwt;
 
+import com.catface996.aiops.common.enums.SessionErrorCode;
+import com.catface996.aiops.common.exception.BusinessException;
 import com.catface996.aiops.domain.model.auth.TokenClaims;
 import com.catface996.aiops.domain.model.auth.TokenType;
 import com.catface996.aiops.infrastructure.security.api.service.JwtTokenProvider;
-import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.security.Keys;
-import io.jsonwebtoken.security.SignatureException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -192,23 +191,30 @@ class JwtTokenProviderImplTest {
 
         // When & Then
         assertThatThrownBy(() -> jwtTokenProvider.validateAndParseToken(expiredToken))
-                .isInstanceOf(ExpiredJwtException.class)
-                .hasMessageContaining("JWT expired");
+                .isInstanceOf(BusinessException.class)
+                .satisfies(e -> {
+                    BusinessException be = (BusinessException) e;
+                    assertThat(be.getErrorCode()).isEqualTo(SessionErrorCode.TOKEN_EXPIRED.getCode());
+                });
     }
 
     @Test
-    @DisplayName("验证格式错误的 Token - 抛出 MalformedJwtException")
+    @DisplayName("验证格式错误的 Token - 抛出 BusinessException(TOKEN_INVALID)")
     void testValidateAndParseToken_MalformedToken() {
         // Given
         String malformedToken = "invalid.token.format";
 
         // When & Then
         assertThatThrownBy(() -> jwtTokenProvider.validateAndParseToken(malformedToken))
-                .isInstanceOf(MalformedJwtException.class);
+                .isInstanceOf(BusinessException.class)
+                .satisfies(e -> {
+                    BusinessException be = (BusinessException) e;
+                    assertThat(be.getErrorCode()).isEqualTo(SessionErrorCode.TOKEN_INVALID.getCode());
+                });
     }
 
     @Test
-    @DisplayName("验证签名错误的 Token - 抛出 SignatureException")
+    @DisplayName("验证签名错误的 Token - 抛出 BusinessException(TOKEN_INVALID)")
     void testValidateAndParseToken_InvalidSignature() {
         // Given - 使用不同的密钥生成 Token
         String differentSecret = "different-secret-key-for-jwt-token-provider-must-be-at-least-256-bits-long";
@@ -225,15 +231,23 @@ class JwtTokenProviderImplTest {
 
         // When & Then
         assertThatThrownBy(() -> jwtTokenProvider.validateAndParseToken(tokenWithDifferentSignature))
-                .isInstanceOf(SignatureException.class);
+                .isInstanceOf(BusinessException.class)
+                .satisfies(e -> {
+                    BusinessException be = (BusinessException) e;
+                    assertThat(be.getErrorCode()).isEqualTo(SessionErrorCode.TOKEN_INVALID.getCode());
+                });
     }
 
     @Test
-    @DisplayName("验证空 Token - 抛出 IllegalArgumentException")
+    @DisplayName("验证空 Token - 抛出 BusinessException(TOKEN_INVALID)")
     void testValidateAndParseToken_NullToken() {
         // When & Then
         assertThatThrownBy(() -> jwtTokenProvider.validateAndParseToken(null))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(BusinessException.class)
+                .satisfies(e -> {
+                    BusinessException be = (BusinessException) e;
+                    assertThat(be.getErrorCode()).isEqualTo(SessionErrorCode.TOKEN_INVALID.getCode());
+                });
     }
 
     @Test

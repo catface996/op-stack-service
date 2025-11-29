@@ -1,15 +1,15 @@
 package com.catface996.aiops.infrastructure.security.jwt;
 
+import com.catface996.aiops.common.enums.SessionErrorCode;
+import com.catface996.aiops.common.exception.BusinessException;
 import com.catface996.aiops.domain.model.auth.TokenClaims;
 import com.catface996.aiops.domain.model.auth.TokenType;
 import com.catface996.aiops.infrastructure.security.api.service.JwtTokenProvider;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.Keys;
-import io.jsonwebtoken.security.SignatureException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -161,38 +161,42 @@ public class JwtTokenProviderImpl implements JwtTokenProvider {
 
             log.debug("Successfully validated JWT token for user: {}", claims.get("username"));
 
-            Map<String, Object> claimsMap = new HashMap<>();
-            claimsMap.put("sub", claims.getSubject());
-            claimsMap.put("username", claims.get("username"));
-            claimsMap.put("role", claims.get("role"));
-            claimsMap.put("iat", claims.getIssuedAt());
-            claimsMap.put("exp", claims.getExpiration());
-
-            if (claims.getId() != null) {
-                claimsMap.put("jti", claims.getId());
-            }
-            if (claims.get("sessionId") != null) {
-                claimsMap.put("sessionId", claims.get("sessionId"));
-            }
-
-            return claimsMap;
+            return buildClaimsMap(claims);
 
         } catch (ExpiredJwtException e) {
-            log.warn("JWT token is expired: {}", e.getMessage());
-            throw e;
-        } catch (UnsupportedJwtException e) {
-            log.error("JWT token is unsupported: {}", e.getMessage());
-            throw e;
-        } catch (MalformedJwtException e) {
-            log.error("JWT token is malformed: {}", e.getMessage());
-            throw e;
-        } catch (SignatureException e) {
-            log.error("JWT signature validation failed: {}", e.getMessage());
-            throw e;
+            log.warn("JWT token expired, message: {}", e.getMessage(), e);
+            throw new BusinessException(SessionErrorCode.TOKEN_EXPIRED, e);
+        } catch (JwtException e) {
+            log.warn("JWT token invalid, message: {}", e.getMessage(), e);
+            throw new BusinessException(SessionErrorCode.TOKEN_INVALID, e);
         } catch (IllegalArgumentException e) {
-            log.error("JWT token is invalid: {}", e.getMessage());
-            throw e;
+            log.warn("JWT token invalid argument, message: {}", e.getMessage(), e);
+            throw new BusinessException(SessionErrorCode.TOKEN_INVALID, e);
         }
+    }
+
+    /**
+     * 从 Claims 构建 claims map
+     *
+     * @param claims JWT claims
+     * @return claims map
+     */
+    private Map<String, Object> buildClaimsMap(Claims claims) {
+        Map<String, Object> claimsMap = new HashMap<>();
+        claimsMap.put("sub", claims.getSubject());
+        claimsMap.put("username", claims.get("username"));
+        claimsMap.put("role", claims.get("role"));
+        claimsMap.put("iat", claims.getIssuedAt());
+        claimsMap.put("exp", claims.getExpiration());
+
+        if (claims.getId() != null) {
+            claimsMap.put("jti", claims.getId());
+        }
+        if (claims.get("sessionId") != null) {
+            claimsMap.put("sessionId", claims.get("sessionId"));
+        }
+
+        return claimsMap;
     }
 
     @Override
@@ -238,8 +242,9 @@ public class JwtTokenProviderImpl implements JwtTokenProvider {
             Map<String, Object> claims = validateAndParseToken(token);
             Date expiration = (Date) claims.get("exp");
             return expiration.before(new Date());
-        } catch (ExpiredJwtException e) {
-            return true;
+        } catch (BusinessException e) {
+            // TOKEN_EXPIRED 表示令牌已过期
+            return SessionErrorCode.TOKEN_EXPIRED.getCode().equals(e.getErrorCode());
         }
     }
 
@@ -255,10 +260,8 @@ public class JwtTokenProviderImpl implements JwtTokenProvider {
             Date expiration = getExpirationDateFromToken(token);
             long remainingMs = expiration.getTime() - System.currentTimeMillis();
             return remainingMs > 0 ? remainingMs / 1000 : 0;
-        } catch (ExpiredJwtException e) {
-            return 0;
-        } catch (Exception e) {
-            log.warn("Failed to get remaining TTL from token: {}", e.getMessage());
+        } catch (BusinessException e) {
+            // TOKEN_EXPIRED 或 TOKEN_INVALID 都返回 0
             return 0;
         }
     }

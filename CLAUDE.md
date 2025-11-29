@@ -15,7 +15,28 @@ tests/
 
 ## Commands
 
-# Add commands for Java 21 (LTS)
+### Build
+```bash
+mvn clean package -DskipTests
+```
+
+### Run Application (Recommended)
+```bash
+# 推荐: 直接运行 jar 包，避免 mvn spring-boot:run 的类路径缓存问题
+java -jar bootstrap/target/bootstrap-1.0.0-SNAPSHOT.jar --spring.profiles.active=local
+```
+
+### Run Application (Alternative)
+```bash
+# 注意: mvn spring-boot:run 可能因类路径缓存导致代码修改不生效
+# 如遇此问题，请使用上述 jar 包方式运行
+mvn spring-boot:run -pl bootstrap -Dspring-boot.run.profiles=local
+```
+
+### Test
+```bash
+mvn test
+```
 
 ## Code Style
 

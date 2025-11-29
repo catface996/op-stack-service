@@ -403,9 +403,9 @@ public class SessionController {
     @DeleteMapping("/{sessionId}")
     public ResponseEntity<ApiResponse<Void>> terminateSession(
             @Parameter(description = "JWT Token", required = true)
-            @RequestHeader("Authorization") String authorization,
+            @RequestHeader(value = "Authorization") String authorization,
             @Parameter(description = "会话ID", required = true)
-            @PathVariable String sessionId) {
+            @PathVariable(value = "sessionId") String sessionId) {
         log.info("接收到终止会话请求: sessionId={}", sessionId);
 
         // 从Token中提取用户ID

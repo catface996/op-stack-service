@@ -302,6 +302,13 @@ BaseException (Top-level base class)
 - ✅ Add business context information
 - Example: DuplicateKeyException → BusinessException(ResourceErrorCode.USERNAME_CONFLICT)
 
+**In Infrastructure Layer (JWT, Redis, HTTP Client, etc.)**:
+- ✅ MUST catch third-party library exceptions and convert to business exceptions
+- ✅ Use parent class to catch similar exceptions uniformly (e.g., JwtException)
+- ✅ Preserve original exception as cause
+- ✅ Distinguish expected exceptions (WARN) from system exceptions (ERROR)
+- ❌ DO NOT directly throw third-party library exceptions (e.g., ExpiredJwtException, RedisConnectionFailureException)
+
 ### Exception Handling Rules
 
 **Scenarios that NEED catch**:
@@ -457,3 +464,68 @@ BaseException (Top-level base class)
 - Backward compatible
 
 Following these principles ensures consistency, maintainability, and user experience in exception handling.
+
+## Infrastructure Layer Exception Handling Rules
+
+### General Rules
+
+**You MUST follow**:
+- ✅ Catch third-party library exceptions and convert to BusinessException or SystemException
+- ✅ Use parent class to catch similar exceptions uniformly (e.g., JwtException catches all JWT-related exceptions)
+- ✅ Preserve original exception as cause: `throw new BusinessException(ErrorCode.XXX, e)`
+- ✅ Place exceptions needing separate handling before parent class catch
+- ❌ DO NOT directly rethrow third-party library exceptions
+
+### JWT Token Exception Handling
+
+**Exception Conversion Rules**:
+| Third-party Exception | Convert To | ErrorCode |
+|----------------------|------------|-----------|
+| ExpiredJwtException | BusinessException | TOKEN_EXPIRED |
+| JwtException (parent, catches others) | BusinessException | TOKEN_INVALID |
+| IllegalArgumentException | BusinessException | TOKEN_INVALID |
+
+**Handling Order**: Catch ExpiredJwtException first (needs separate handling), then use JwtException parent to catch the rest.
+
+### Redis Cache Exception Handling
+
+**Fallback Mode Rules**:
+- Redis exceptions should NOT block the main flow
+- After catching, log WARN and fallback to database query
+- Common exceptions: RedisConnectionFailureException, RedisCommandTimeoutException
+
+### HTTP Client Exception Handling
+
+**Exception Classification Rules**:
+| Third-party Exception | Convert To | Description |
+|----------------------|------------|-------------|
+| HttpClientErrorException (4xx) | BusinessException | Client/request error |
+| HttpServerErrorException (5xx) | SystemException | Server error |
+| ResourceAccessException | SystemException | Network connection failure |
+
+### Database Exception Handling
+
+**Exception Conversion Rules**:
+| Third-party Exception | Convert To | ErrorCode |
+|----------------------|------------|-----------|
+| DuplicateKeyException | BusinessException | USERNAME_CONFLICT / EMAIL_CONFLICT |
+| DataAccessException (parent) | SystemException | DATABASE_ERROR |
+
+**Unique Constraint Conflict Handling**: Determine which field caused the conflict based on exception message, convert to corresponding business error code.
+
+## Infrastructure Layer Exception Handling Checklist
+
+**Code Review Verification**:
+
+**Exception Handling**:
+- [ ] Third-party library exceptions converted to BusinessException or SystemException
+- [ ] Using ErrorCode enums, not string constants
+- [ ] Original exception preserved as cause (passed to exception constructor)
+- [ ] Using parent class to catch similar exceptions uniformly (e.g., JwtException, DataAccessException)
+- [ ] Fallback operations (like caching) don't block main flow
+
+**Logging Standards** (see `06-spring-boot-best-practices.en.md` Logging Standards section):
+- [ ] Log levels correct: business errors use WARN, system errors use ERROR
+- [ ] Exception logs include full stack trace (exception object as last parameter)
+- [ ] Logs include key context information (userId, sessionId, etc.)
+- [ ] No sensitive information logged (passwords, full tokens, etc.)

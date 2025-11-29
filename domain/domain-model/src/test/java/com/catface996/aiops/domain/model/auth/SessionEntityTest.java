@@ -48,7 +48,8 @@ class SessionEntityTest {
         // Given
         Session session = new Session();
         session.setExpiresAt(LocalDateTime.now().plusHours(1));
-        
+        session.setLastActivityAt(LocalDateTime.now()); // 设置最后活动时间，避免空闲超时
+
         // When & Then
         assertTrue(session.isValid());
     }

@@ -1,3 +1,7 @@
+---
+inclusion: manual
+---
+
 # Testing Best Practices
 
 ## 1. Testing Strategy Layers

@@ -1,10 +1,8 @@
 package com.catface996.aiops.bootstrap.security;
 
-import com.catface996.aiops.common.enums.AuthErrorCode;
+import com.catface996.aiops.common.enums.SessionErrorCode;
 import com.catface996.aiops.common.exception.BusinessException;
 import com.catface996.aiops.infrastructure.security.api.service.JwtTokenProvider;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -76,19 +74,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 authenticateToken(token, request);
             }
 
-        } catch (ExpiredJwtException e) {
-            log.warn("JWT Token 已过期: {}", e.getMessage());
-            // Token 过期异常会被后续的 AuthenticationEntryPoint 处理
-            request.setAttribute("exception", new BusinessException(AuthErrorCode.SESSION_EXPIRED));
-
-        } catch (JwtException e) {
-            log.warn("JWT Token 无效: {}", e.getMessage());
-            // Token 无效异常会被后续的 AuthenticationEntryPoint 处理
-            request.setAttribute("exception", new BusinessException(AuthErrorCode.TOKEN_INVALID));
+        } catch (BusinessException e) {
+            // JwtTokenProviderImpl 将 jjwt 异常转换为 BusinessException
+            if (SessionErrorCode.TOKEN_EXPIRED.getCode().equals(e.getErrorCode())) {
+                log.warn("JWT Token 已过期: {}", e.getMessage());
+            } else {
+                log.warn("JWT Token 无效: {}", e.getMessage());
+            }
+            // 异常会被后续的 AuthenticationEntryPoint 处理
+            request.setAttribute("exception", e);
 
         } catch (Exception e) {
             log.error("JWT 认证过程发生异常", e);
-            request.setAttribute("exception", new BusinessException(AuthErrorCode.TOKEN_INVALID));
+            request.setAttribute("exception", new BusinessException(SessionErrorCode.TOKEN_INVALID));
         }
 
         // 3. 继续执行过滤器链

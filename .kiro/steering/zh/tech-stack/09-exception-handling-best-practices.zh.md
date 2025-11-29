@@ -302,6 +302,13 @@ BaseException（顶层异常基类）
 - ✅ 添加业务上下文信息
 - 示例：DuplicateKeyException → BusinessException(ResourceErrorCode.USERNAME_CONFLICT)
 
+**在 Infrastructure 层（JWT、Redis、HTTP Client 等）**：
+- ✅ 必须捕获第三方库异常并转换为业务异常
+- ✅ 使用父类统一捕获同类异常（如 JwtException）
+- ✅ 保留原始异常作为 cause
+- ✅ 区分可预期异常（WARN）和系统异常（ERROR）
+- ❌ 不要直接抛出第三方库异常（如 ExpiredJwtException、RedisConnectionFailureException）
+
 ### 异常处理规则
 
 **需要 catch 的场景**：
@@ -457,3 +464,68 @@ BaseException（顶层异常基类）
 - 向后兼容
 
 遵循这些原则，确保异常处理的一致性、可维护性和用户体验。
+
+## Infrastructure 层异常处理规则
+
+### 通用规则
+
+**你必须遵守**：
+- ✅ 捕获第三方库异常后，转换为 BusinessException 或 SystemException
+- ✅ 使用父类统一捕获同类异常（如 JwtException 捕获所有 JWT 相关异常）
+- ✅ 保留原始异常作为 cause：`throw new BusinessException(ErrorCode.XXX, e)`
+- ✅ 需要单独处理的异常放在父类 catch 之前
+- ❌ 不要直接 rethrow 第三方库异常
+
+### JWT 令牌异常处理
+
+**异常转换规则**：
+| 第三方异常 | 转换为 | ErrorCode |
+|-----------|-------|-----------|
+| ExpiredJwtException | BusinessException | TOKEN_EXPIRED |
+| JwtException（父类，统一捕获其他） | BusinessException | TOKEN_INVALID |
+| IllegalArgumentException | BusinessException | TOKEN_INVALID |
+
+**处理顺序**：先捕获 ExpiredJwtException（需单独处理），再用 JwtException 父类捕获其余。
+
+### Redis 缓存异常处理
+
+**降级模式规则**：
+- Redis 异常不应阻塞主流程
+- 捕获异常后记录 WARN 日志，降级到数据库查询
+- 常见异常：RedisConnectionFailureException、RedisCommandTimeoutException
+
+### HTTP Client 异常处理
+
+**异常分类规则**：
+| 第三方异常 | 转换为 | 说明 |
+|-----------|-------|------|
+| HttpClientErrorException (4xx) | BusinessException | 客户端/请求错误 |
+| HttpServerErrorException (5xx) | SystemException | 服务端错误 |
+| ResourceAccessException | SystemException | 网络连接失败 |
+
+### 数据库异常处理
+
+**异常转换规则**：
+| 第三方异常 | 转换为 | ErrorCode |
+|-----------|-------|-----------|
+| DuplicateKeyException | BusinessException | USERNAME_CONFLICT / EMAIL_CONFLICT |
+| DataAccessException（父类） | SystemException | DATABASE_ERROR |
+
+**唯一约束冲突处理**：根据异常消息判断具体是哪个字段冲突，转换为对应的业务错误码。
+
+## Infrastructure 层异常处理检查清单
+
+**代码审查时验证**：
+
+**异常处理**：
+- [ ] 第三方库异常已转换为 BusinessException 或 SystemException
+- [ ] 使用 ErrorCode 枚举，不使用字符串常量
+- [ ] 保留原始异常作为 cause（传递给异常构造函数）
+- [ ] 使用父类统一捕获同类异常（如 JwtException、DataAccessException）
+- [ ] 可降级的操作（如缓存）不阻塞主流程
+
+**日志规范**（详见 `06-spring-boot-best-practices.zh.md` 日志规范章节）：
+- [ ] 日志级别正确：业务错误用 WARN，系统错误用 ERROR
+- [ ] 异常日志包含完整堆栈（异常对象作为最后一个参数）
+- [ ] 日志包含关键上下文信息（userId、sessionId 等）
+- [ ] 不记录敏感信息（密码、完整 token 等）

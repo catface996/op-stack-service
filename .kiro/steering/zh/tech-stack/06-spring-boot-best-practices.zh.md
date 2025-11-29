@@ -79,6 +79,17 @@ inclusion: manual
 激活规则：
 - 使用 `spring.profiles.active` 指定激活的 profile
 
+**运行应用的最佳实践**：
+- ✅ **推荐**：直接运行 jar 包
+  ```bash
+  java -jar bootstrap/target/bootstrap-1.0.0-SNAPSHOT.jar --spring.profiles.active=local
+  ```
+- ⚠️ **注意**：`mvn spring-boot:run` 可能因类路径缓存问题导致代码修改不生效
+  ```bash
+  # 如遇代码修改不生效问题，请使用 jar 包方式运行
+  mvn spring-boot:run -pl bootstrap -Dspring-boot.run.profiles=local
+  ```
+
 **3. 配置属性绑定**
 - 使用 @ConfigurationProperties 绑定配置组
 - 定义配置类并添加适当的验证
@@ -438,6 +449,22 @@ Repository 不应该做的：
 | 记录敏感信息 | `"密码：{}"` | 不记录密码 | 安全违规 |
 | 循环日志 | 每次迭代都记录 | 汇总后记录一次 | 性能影响，日志泛滥 |
 | 级别错误 | INFO 记录调试细节 | DEBUG 记录调试细节 | 污染生产日志 |
+
+**8. 异常日志级别选择原则**
+
+**核心原则**：客户端/用户导致的错误 = WARN，系统内部错误 = ERROR
+
+**使用 WARN 的场景**（可预期的业务错误）：
+- 令牌过期、无效、格式错误、签名验证失败
+- 参数验证失败
+- 认证失败（用户名密码错误）
+- 资源不存在、权限不足
+- 可降级的依赖失败（如 Redis 不可用但可降级到数据库）
+
+**使用 ERROR 的场景**（系统级错误，需要运维关注）：
+- 数据库连接失败
+- 必要的外部服务不可用
+- 未捕获的未知异常
 
 ## 参数校验规范
 
