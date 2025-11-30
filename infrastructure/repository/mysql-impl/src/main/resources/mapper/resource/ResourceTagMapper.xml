@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.catface996.aiops.repository.mysql.mapper.resource.ResourceTagMapper">
+
+    <!-- 根据资源ID查询所有标签 -->
+    <select id="selectByResourceId" resultType="com.catface996.aiops.repository.mysql.po.resource.ResourceTagPO">
+        SELECT id, resource_id, tag_name, tag_value, created_at
+        FROM resource_tag
+        WHERE resource_id = #{resourceId}
+        ORDER BY created_at ASC
+    </select>
+
+    <!-- 根据标签名称查询资源ID列表 -->
+    <select id="selectResourceIdsByTagName" resultType="java.lang.Long">
+        SELECT DISTINCT resource_id
+        FROM resource_tag
+        WHERE tag_name = #{tagName}
+    </select>
+
+    <!-- 删除资源的所有标签 -->
+    <delete id="deleteByResourceId">
+        DELETE FROM resource_tag
+        WHERE resource_id = #{resourceId}
+    </delete>
+
+    <!-- 删除资源的指定标签 -->
+    <delete id="deleteByResourceIdAndTagName">
+        DELETE FROM resource_tag
+        WHERE resource_id = #{resourceId} AND tag_name = #{tagName}
+    </delete>
+
+    <!-- 检查资源是否已有指定标签 -->
+    <select id="existsByResourceIdAndTagName" resultType="int">
+        SELECT COUNT(*)
+        FROM resource_tag
+        WHERE resource_id = #{resourceId} AND tag_name = #{tagName}
+        LIMIT 1
+    </select>
+
+    <!-- 获取热门标签（按使用次数排序） -->
+    <select id="selectPopularTags" resultType="java.lang.String">
+        SELECT tag_name
+        FROM resource_tag
+        GROUP BY tag_name
+        ORDER BY COUNT(*) DESC
+        LIMIT #{limit}
+    </select>
+
+</mapper>

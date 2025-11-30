@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.catface996.aiops.repository.mysql.mapper.resource.ResourceMapper">
+
+    <!-- 根据名称和类型ID查询资源 -->
+    <select id="selectByNameAndTypeId" resultType="com.catface996.aiops.repository.mysql.po.resource.ResourcePO">
+        SELECT id, name, resource_type_id, description, status, config_data, created_by, created_at, updated_at, version
+        FROM resource
+        WHERE name = #{name} AND resource_type_id = #{resourceTypeId}
+        LIMIT 1
+    </select>
+
+    <!-- 分页查询资源列表（带条件过滤） -->
+    <select id="selectByCondition" resultType="com.catface996.aiops.repository.mysql.po.resource.ResourcePO">
+        SELECT id, name, resource_type_id, description, status, config_data, created_by, created_at, updated_at, version
+        FROM resource
+        <where>
+            <if test="resourceTypeId != null">
+                AND resource_type_id = #{resourceTypeId}
+            </if>
+            <if test="status != null and status != ''">
+                AND status = #{status}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (name LIKE CONCAT('%', #{keyword}, '%') OR description LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 按条件统计资源数量 -->
+    <select id="countByCondition" resultType="long">
+        SELECT COUNT(*)
+        FROM resource
+        <where>
+            <if test="resourceTypeId != null">
+                AND resource_type_id = #{resourceTypeId}
+            </if>
+            <if test="status != null and status != ''">
+                AND status = #{status}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (name LIKE CONCAT('%', #{keyword}, '%') OR description LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+    </select>
+
+    <!-- 根据创建者ID查询资源 -->
+    <select id="selectByCreatedBy" resultType="com.catface996.aiops.repository.mysql.po.resource.ResourcePO">
+        SELECT id, name, resource_type_id, description, status, config_data, created_by, created_at, updated_at, version
+        FROM resource
+        WHERE created_by = #{createdBy}
+        ORDER BY created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 更新资源状态（带乐观锁） -->
+    <update id="updateStatus">
+        UPDATE resource
+        SET status = #{status}, version = version + 1, updated_at = NOW()
+        WHERE id = #{id} AND version = #{version}
+    </update>
+
+</mapper>
