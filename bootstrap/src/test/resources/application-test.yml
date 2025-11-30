@@ -40,6 +40,13 @@ security:
     # 账号锁定时长 (单位: 秒，1分钟 = 60秒，便于测试)
     lock-duration: 60
 
+# AIOps 配置
+aiops:
+  security:
+    encryption:
+      # AES-256 加密密钥 (32字节，测试环境)
+      key: testEncryptionKey1234567890abcde
+
 # 日志配置
 logging:
   level:

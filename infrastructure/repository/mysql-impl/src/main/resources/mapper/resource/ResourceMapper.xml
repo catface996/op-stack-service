@@ -4,7 +4,7 @@
 
     <!-- 根据名称和类型ID查询资源 -->
     <select id="selectByNameAndTypeId" resultType="com.catface996.aiops.repository.mysql.po.resource.ResourcePO">
-        SELECT id, name, resource_type_id, description, status, config_data, created_by, created_at, updated_at, version
+        SELECT id, name, resource_type_id, description, status, attributes, created_by, created_at, updated_at, version
         FROM resource
         WHERE name = #{name} AND resource_type_id = #{resourceTypeId}
         LIMIT 1
@@ -12,7 +12,7 @@
 
     <!-- 分页查询资源列表（带条件过滤） -->
     <select id="selectByCondition" resultType="com.catface996.aiops.repository.mysql.po.resource.ResourcePO">
-        SELECT id, name, resource_type_id, description, status, config_data, created_by, created_at, updated_at, version
+        SELECT id, name, resource_type_id, description, status, attributes, created_by, created_at, updated_at, version
         FROM resource
         <where>
             <if test="resourceTypeId != null">
@@ -48,7 +48,7 @@
 
     <!-- 根据创建者ID查询资源 -->
     <select id="selectByCreatedBy" resultType="com.catface996.aiops.repository.mysql.po.resource.ResourcePO">
-        SELECT id, name, resource_type_id, description, status, config_data, created_by, created_at, updated_at, version
+        SELECT id, name, resource_type_id, description, status, attributes, created_by, created_at, updated_at, version
         FROM resource
         WHERE created_by = #{createdBy}
         ORDER BY created_at DESC

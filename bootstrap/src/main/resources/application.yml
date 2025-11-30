@@ -23,6 +23,8 @@ spring:
     locations: classpath:db/migration
     encoding: UTF-8
     validate-on-migrate: true
+    # 忽略找不到的迁移脚本（本地开发环境数据库可能包含已删除的迁移）
+    ignore-migration-patterns: "*:missing,*:future"
 
 server:
   port: 8080

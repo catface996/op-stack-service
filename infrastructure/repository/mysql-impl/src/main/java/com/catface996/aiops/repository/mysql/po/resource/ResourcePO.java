@@ -51,10 +51,10 @@ public class ResourcePO implements Serializable {
     private String status;
 
     /**
-     * 敏感配置信息（AES-256加密存储）
+     * 扩展属性（JSON格式，AES-256加密存储）
      */
-    @TableField("config_data")
-    private String configData;
+    @TableField("attributes")
+    private String attributes;
 
     /**
      * 创建者ID

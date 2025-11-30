@@ -167,7 +167,7 @@ public class ResourceRepositoryImpl implements ResourceRepository {
         po.setResourceTypeId(entity.getResourceTypeId());
         po.setDescription(entity.getDescription());
         po.setStatus(entity.getStatus() != null ? entity.getStatus().name() : null);
-        po.setConfigData(entity.getAttributes()); // 映射 attributes -> config_data
+        po.setAttributes(entity.getAttributes());
         po.setCreatedBy(entity.getCreatedBy());
         po.setCreatedAt(entity.getCreatedAt());
         po.setUpdatedAt(entity.getUpdatedAt());
@@ -188,7 +188,7 @@ public class ResourceRepositoryImpl implements ResourceRepository {
         entity.setResourceTypeId(po.getResourceTypeId());
         entity.setDescription(po.getDescription());
         entity.setStatus(po.getStatus() != null ? ResourceStatus.valueOf(po.getStatus()) : null);
-        entity.setAttributes(po.getConfigData()); // 映射 config_data -> attributes
+        entity.setAttributes(po.getAttributes());
         entity.setCreatedBy(po.getCreatedBy());
         entity.setCreatedAt(po.getCreatedAt());
         entity.setUpdatedAt(po.getUpdatedAt());

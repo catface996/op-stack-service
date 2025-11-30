@@ -234,9 +234,8 @@ public class ResourceDomainServiceImpl implements ResourceDomainService {
         // 5. 加密敏感配置
         String encryptedAttributes = encryptAttributes(attributes);
 
-        // 6. 更新资源
+        // 6. 更新资源（MyBatis-Plus @Version 会自动处理版本号递增）
         resource.update(name, description, encryptedAttributes);
-        resource.incrementVersion();
 
         boolean updated = resourceRepository.update(resource);
         if (!updated) {
@@ -374,40 +373,100 @@ public class ResourceDomainServiceImpl implements ResourceDomainService {
     // ===== 私有辅助方法 =====
 
     /**
-     * 加密资源属性中的敏感信息
+     * 需要加密的敏感字段名称（不区分大小写）
      */
+    private static final java.util.Set<String> SENSITIVE_FIELDS = java.util.Set.of(
+            "password", "secret", "key", "token", "credential", "apikey", "api_key",
+            "private_key", "privatekey", "access_token", "accesstoken", "secret_key"
+    );
+
+    /**
+     * 加密资源属性中的敏感字段
+     * <p>只对 JSON 中的敏感字段进行加密，保持整体 JSON 结构不变</p>
+     */
+    @SuppressWarnings("unchecked")
     private String encryptAttributes(String attributes) {
         if (attributes == null || attributes.isEmpty()) {
             return attributes;
         }
 
-        // 如果已加密，直接返回
-        if (encryptionService.isEncrypted(attributes)) {
+        try {
+            // 解析 JSON
+            java.util.Map<String, Object> map = objectMapper.readValue(attributes, java.util.Map.class);
+
+            // 遍历并加密敏感字段
+            for (java.util.Map.Entry<String, Object> entry : map.entrySet()) {
+                String key = entry.getKey();
+                Object value = entry.getValue();
+
+                // 只加密字符串类型的敏感字段
+                if (value instanceof String && isSensitiveField(key)) {
+                    String strValue = (String) value;
+                    // 如果未加密，则加密
+                    if (!encryptionService.isEncrypted(strValue)) {
+                        entry.setValue(encryptionService.encrypt(strValue));
+                    }
+                }
+            }
+
+            // 转回 JSON 字符串
+            return objectMapper.writeValueAsString(map);
+        } catch (Exception e) {
+            logger.warn("加密属性失败，保留原值", e);
             return attributes;
         }
-
-        // 加密整个属性JSON
-        return encryptionService.encrypt(attributes);
     }
 
     /**
-     * 解密资源属性中的敏感信息
+     * 解密资源属性中的敏感字段
      */
+    @SuppressWarnings("unchecked")
     private void decryptResourceAttributes(Resource resource) {
         if (resource == null || resource.getAttributes() == null) {
             return;
         }
 
         String attributes = resource.getAttributes();
-        if (encryptionService.isEncrypted(attributes)) {
-            try {
-                String decrypted = encryptionService.decrypt(attributes);
-                resource.setAttributes(decrypted);
-            } catch (Exception e) {
-                logger.warn("解密资源属性失败，resourceId: {}", resource.getId(), e);
-                // 解密失败保留原值
+        try {
+            // 解析 JSON
+            java.util.Map<String, Object> map = objectMapper.readValue(attributes, java.util.Map.class);
+
+            // 遍历并解密敏感字段
+            for (java.util.Map.Entry<String, Object> entry : map.entrySet()) {
+                String key = entry.getKey();
+                Object value = entry.getValue();
+
+                // 只解密字符串类型的敏感字段
+                if (value instanceof String && isSensitiveField(key)) {
+                    String strValue = (String) value;
+                    // 如果已加密，则解密
+                    if (encryptionService.isEncrypted(strValue)) {
+                        try {
+                            entry.setValue(encryptionService.decrypt(strValue));
+                        } catch (Exception e) {
+                            logger.warn("解密字段 {} 失败，resourceId: {}", key, resource.getId(), e);
+                        }
+                    }
+                }
             }
+
+            // 转回 JSON 字符串
+            resource.setAttributes(objectMapper.writeValueAsString(map));
+        } catch (Exception e) {
+            logger.warn("解密资源属性失败，resourceId: {}", resource.getId(), e);
+            // 解密失败保留原值
         }
+    }
+
+    /**
+     * 判断字段是否为敏感字段
+     */
+    private boolean isSensitiveField(String fieldName) {
+        if (fieldName == null) {
+            return false;
+        }
+        String lowerName = fieldName.toLowerCase();
+        return SENSITIVE_FIELDS.stream().anyMatch(lowerName::contains);
     }
 
     /**
