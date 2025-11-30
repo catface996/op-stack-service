@@ -15,11 +15,13 @@ inclusion: manual
 | 1 | Understand Requirements | User confirms understanding | 15-30 min |
 | 2 | High-Level Design (Static→Dynamic→Auxiliary) | User approves solution | 1-2 hours |
 | 3 | Detailed Design (Static→Dynamic→Auxiliary) | Complete design | 2-4 hours |
-| 4 | Output Design Document | Write to plan.md | 30 min |
-| 5 | Design Verification (Self-check) | Report to user | 30 min |
-| 6 | User Confirmation & Iteration | Final approval | Variable |
+| 4 | Output Design Document | Write to design.md | 30 min |
+| 5 | Complexity Analysis (MANDATORY) | Report complexity metrics | 30-60 min |
+| 6 | Requirements Traceability (MANDATORY) | Complete traceability matrix | 30-60 min |
+| 7 | Design Verification (MANDATORY) | Report to user | 30 min |
+| 8 | User Confirmation (MANDATORY) | Final approval | Variable |
 
-**TOTAL ESTIMATED TIME**: 4-8 hours
+**TOTAL ESTIMATED TIME**: 5-10 hours
 
 ---
 
@@ -55,7 +57,7 @@ As a **professional architect**, my core responsibilities during the design phas
 
 ## ⚠️ Mandatory Workflow
 
-**I must strictly follow these 6 phases in order, without skipping or reordering:**
+**I must strictly follow these 8 phases in order, without skipping or reordering:**
 
 ```
 Step 1: Understand and Analyze Requirements
@@ -66,9 +68,13 @@ Step 3: Detailed Design (Static→Dynamic→Auxiliary)
    ↓ (Complete detailed design)
 Step 4: Organize and Output Design Document
    ↓ (Document outputted)
-Step 5: Design Verification (Self-check)
+Step 5: Complexity Analysis (MANDATORY)
+   ↓ (Complexity metrics reported)
+Step 6: Requirements Traceability (MANDATORY)
+   ↓ (Traceability matrix completed)
+Step 7: Design Verification (MANDATORY)
    ↓ (Self-check completed, report to user)
-Step 6: User Confirmation and Iteration
+Step 8: User Confirmation (MANDATORY)
    ↓ (User explicitly approves)
    ✅ Can proceed to task breakdown phase
 ```
@@ -79,14 +85,20 @@ Step 6: User Confirmation and Iteration
 - ❌ Cannot proceed to the next key phase without user confirmation
 - ❌ Cannot write code implementation during the design phase
 - ❌ Cannot start task breakdown without completing the design
+- ❌ Cannot skip complexity analysis - this is a MANDATORY phase
+- ❌ Cannot skip requirements traceability - this is a MANDATORY phase
+- ❌ Cannot skip design verification - this is a MANDATORY phase
+- ❌ Cannot skip user confirmation - this is a MANDATORY phase
 
 **Completion Criteria for Each Phase**:
 1. **Step 1 Completion**: User has confirmed my understanding of the requirements
 2. **Step 2 Completion**: User has confirmed the high-level design solution
 3. **Step 3 Completion**: Detailed design content is complete
-4. **Step 4 Completion**: Design document has been written to plan.md
-5. **Step 5 Completion**: Self-check completed and results reported to user
-6. **Step 6 Completion**: User has explicitly approved the final design solution
+4. **Step 4 Completion**: Design document has been written to design.md
+5. **Step 5 Completion**: Complexity analysis completed with metrics documented
+6. **Step 6 Completion**: Requirements traceability matrix completed and verified
+7. **Step 7 Completion**: Self-check completed and results reported to user
+8. **Step 8 Completion**: User has explicitly approved the final design solution
 
 **I should proactively inform the user of the current phase**, for example:
 > "We are now entering Step 2: High-Level Design. I will design the system architecture in the order of static→dynamic→auxiliary..."
@@ -995,7 +1007,7 @@ Next I will organize the design document."
 
 **Transition to Step 4**:
 I should automatically enter Step 4, no user confirmation needed:
-> "Detailed design is complete. Now I will enter Step 4: Organize and output design document to plan.md."
+> "Detailed design is complete. Now I will enter Step 4: Organize and output design document to design.md."
 
 ---
 
@@ -1004,7 +1016,7 @@ I should automatically enter Step 4, no user confirmation needed:
 **🎯 Phase Goal**: Organize high-level design and detailed design into structured document, output to specified location
 
 **What I Should Do**:
-Organize high-level design and detailed design into structured design document, write to `.kiro/features/{feature-id}/plan.md`
+Organize high-level design and detailed design into structured design document, write to `.kiro/features/{feature-id}/design.md`
 
 **Design Document Structure**:
 
@@ -1106,28 +1118,348 @@ The design document should be organized in the order of the design process, clea
    - Can be converted to different implementation solutions
 
 **✅ Step 4 Completion Indicators**:
-- Design document has been written to `.kiro/features/{feature-id}/plan.md`
+- Design document has been written to `.kiro/features/{feature-id}/design.md`
 - Document structure is complete (overview, high-level design, detailed design, ADR, risk mitigation)
 - All diagrams and formats comply with standards
 
 **Transition to Step 5**:
 I should automatically enter Step 5, no user confirmation needed:
-> "Design document has been outputted to plan.md. Now I will enter Step 5: Design Verification (Self-check)."
+> "Design document has been outputted to design.md. Now I will enter Step 5: Complexity Analysis."
 
 ---
 
-### Step 5: Design Verification (Self-check)
+### Step 5: Complexity Analysis (MANDATORY)
+
+**🎯 Phase Goal**: Analyze and evaluate the complexity of the design to ensure it is manageable, maintainable, and implementable within project constraints.
+
+**⚠️ Important**: This step is **MANDATORY** and cannot be skipped! Complexity analysis is critical for identifying potential implementation risks and ensuring design quality.
+
+**My Responsibility**:
+As a professional architect, I must conduct thorough complexity analysis before proceeding to requirements traceability and final verification. This helps identify designs that are overly complex and may lead to implementation difficulties.
+
+#### 5.1 Architecture Complexity Analysis
+
+**What I Must Analyze**:
+
+**① Component Coupling Analysis**
+- [ ] Count the number of dependencies between modules/components
+- [ ] Identify circular dependencies (these must be eliminated)
+- [ ] Calculate coupling metrics:
+  - **Afferent Coupling (Ca)**: Number of components that depend on this component
+  - **Efferent Coupling (Ce)**: Number of components this component depends on
+  - **Instability (I)**: I = Ce / (Ca + Ce), range [0,1], higher means less stable
+
+**② Layering Complexity**
+- [ ] Count the number of architectural layers
+- [ ] Verify layer dependencies are unidirectional (top-down only)
+- [ ] Identify any layer-skipping calls (e.g., presentation directly accessing database)
+
+**③ Integration Complexity**
+- [ ] Count external system integrations
+- [ ] Evaluate complexity of each integration (sync/async, protocol, error handling)
+- [ ] Assess impact of external system failures
+
+**Output**: Architecture Complexity Report Table
+
+| Metric | Value | Threshold | Status | Notes |
+|--------|-------|-----------|--------|-------|
+| Total Modules | N | ≤10 for small, ≤30 for medium | ✅/⚠️/❌ | |
+| Average Dependencies per Module | X | ≤5 | ✅/⚠️/❌ | |
+| Circular Dependencies | 0/N | 0 | ✅/❌ | Must be 0 |
+| Architectural Layers | N | 3-5 | ✅/⚠️/❌ | |
+| External Integrations | N | Based on requirements | ✅/⚠️/❌ | |
+| Max Component Instability | X | ≤0.8 | ✅/⚠️/❌ | |
+
+#### 5.2 Cyclomatic Complexity Analysis (Design Level)
+
+**What I Must Analyze**:
+
+Although actual cyclomatic complexity is measured at code level, at design level I must estimate complexity of key business logic:
+
+**① Process Complexity**
+For each key business process, count:
+- **Decision Points**: Number of if/else, switch conditions
+- **Loop Structures**: Number of iterations
+- **Exception Paths**: Number of error handling branches
+
+**Estimated Cyclomatic Complexity Formula**:
+```
+CC = E - N + 2P
+Where:
+- E = Number of edges (transitions) in the flow
+- N = Number of nodes (steps) in the flow
+- P = Number of connected components (usually 1)
+
+Simplified estimation:
+CC ≈ Number of decision points + 1
+```
+
+**② Method Complexity Estimation**
+For core methods defined in detailed design:
+- Simple method: CC 1-4 (Low risk)
+- Moderate method: CC 5-7 (Medium risk, consider refactoring)
+- Complex method: CC 8-10 (High risk, should refactor)
+- Very complex method: CC > 10 (Unacceptable, must refactor)
+
+**Output**: Process Complexity Report Table
+
+| Process/Method | Decision Points | Loops | Exception Paths | Estimated CC | Risk Level |
+|----------------|-----------------|-------|-----------------|--------------|------------|
+| [Process 1] | N | N | N | X | Low/Medium/High |
+| [Process 2] | N | N | N | X | Low/Medium/High |
+| [Method 1] | N | N | N | X | Low/Medium/High |
+
+#### 5.3 Data Complexity Analysis
+
+**What I Must Analyze**:
+
+**① Entity Relationship Complexity**
+- [ ] Count total number of entities
+- [ ] Count relationships between entities
+- [ ] Calculate average relationships per entity
+- [ ] Identify entities with excessive relationships (> 5 relationships)
+
+**② Data Flow Complexity**
+- [ ] Map data transformation points
+- [ ] Identify data format conversions
+- [ ] Assess data consistency requirements
+
+**Output**: Data Complexity Metrics
+
+| Metric | Value | Threshold | Status |
+|--------|-------|-----------|--------|
+| Total Entities | N | Based on domain | ✅/⚠️ |
+| Total Relationships | N | ≤ 2×Entities | ✅/⚠️/❌ |
+| Avg Relationships per Entity | X | ≤3 | ✅/⚠️/❌ |
+| Entities with > 5 relationships | N | 0-1 | ✅/⚠️/❌ |
+
+#### 5.4 Overall Complexity Assessment
+
+**Complexity Score Calculation**:
+
+| Dimension | Weight | Score (1-5) | Weighted Score |
+|-----------|--------|-------------|----------------|
+| Architecture Complexity | 30% | X | X × 0.3 |
+| Process/Method Complexity | 35% | X | X × 0.35 |
+| Data Complexity | 20% | X | X × 0.2 |
+| Integration Complexity | 15% | X | X × 0.15 |
+| **Total** | 100% | - | **X.XX** |
+
+**Complexity Level Interpretation**:
+- **1.0 - 2.0**: Low complexity - Design is simple and straightforward
+- **2.1 - 3.0**: Moderate complexity - Design is manageable
+- **3.1 - 4.0**: High complexity - Consider simplification
+- **4.1 - 5.0**: Very high complexity - Must simplify before proceeding
+
+**Mandatory Actions Based on Complexity**:
+- If Total Score > 3.5: Must identify simplification opportunities and discuss with user
+- If any single dimension Score > 4.0: Must address that specific area
+- If Circular Dependencies > 0: Must resolve before proceeding
+
+**Complexity Analysis Report Template**:
+```markdown
+"Complexity analysis completed. Summary:
+
+**Architecture Complexity**: [Score]/5
+- Modules: [N], Dependencies: [N], Circular deps: [0/N]
+- Risk areas: [List if any]
+
+**Process Complexity**: [Score]/5
+- High complexity processes: [List if any]
+- Methods needing refactoring: [List if any]
+
+**Data Complexity**: [Score]/5
+- Entities: [N], Relationships: [N]
+- Highly connected entities: [List if any]
+
+**Overall Complexity Score**: [X.XX]/5 - [Low/Moderate/High/Very High]
+
+**Recommendations**:
+1. [Recommendation 1]
+2. [Recommendation 2]
+
+Should we proceed or address these complexity concerns first?"
+```
+
+**✅ Step 5 Completion Indicators**:
+- Architecture complexity analyzed with metrics documented
+- Cyclomatic complexity estimated for key processes/methods
+- Data complexity analyzed
+- Overall complexity score calculated
+- Recommendations provided for high-complexity areas
+- User informed of complexity findings
+
+**Transition to Step 6**:
+I should automatically enter Step 6:
+> "Complexity analysis completed. Now entering Step 6: Requirements Traceability Analysis."
+
+---
+
+### Step 6: Requirements Traceability (MANDATORY)
+
+**🎯 Phase Goal**: Ensure complete bidirectional traceability between requirements and design, verifying that every requirement is addressed and every design element has a requirement basis.
+
+**⚠️ Important**: This step is **MANDATORY** and cannot be skipped! Requirements traceability is essential for ensuring design completeness and preventing scope creep.
+
+**My Responsibility**:
+As a professional architect, I must create and verify a complete requirements traceability matrix (RTM) to ensure:
+1. Every requirement has corresponding design elements (Forward Traceability)
+2. Every design element traces back to a requirement (Backward Traceability)
+3. No requirements are missed or misunderstood
+4. No unauthorized features are added (over-design)
+
+#### 6.1 Forward Traceability (Requirements → Design)
+
+**What I Must Verify**:
+
+For **each functional requirement** in spec.md:
+- [ ] Identify which design elements address this requirement
+- [ ] Verify the design adequately covers the requirement
+- [ ] Document the mapping
+
+For **each non-functional requirement** in spec.md:
+- [ ] Identify which design decisions address this requirement
+- [ ] Verify specific metrics/strategies are defined
+- [ ] Document the mapping
+
+**Forward Traceability Matrix Template**:
+
+| Req ID | Requirement Description | Design Element(s) | Coverage | Notes |
+|--------|------------------------|-------------------|----------|-------|
+| FR-001 | [Functional Req 1] | Module A, API-1, API-2 | Full/Partial | |
+| FR-002 | [Functional Req 2] | Module B, Process P1 | Full/Partial | |
+| NFR-001 | [Performance Req] | Caching strategy, Async processing | Full/Partial | |
+| NFR-002 | [Security Req] | Auth flow, Encryption | Full/Partial | |
+
+**Coverage Assessment**:
+- **Full**: Requirement completely addressed by design
+- **Partial**: Requirement partially addressed, gaps identified
+- **None**: Requirement not addressed (CRITICAL - must resolve)
+
+#### 6.2 Backward Traceability (Design → Requirements)
+
+**What I Must Verify**:
+
+For **each major design element**:
+- [ ] Identify which requirement(s) justify this element
+- [ ] If no requirement found, flag as potential over-design
+- [ ] Document the mapping
+
+**Backward Traceability Matrix Template**:
+
+| Design Element | Type | Traced to Requirement(s) | Justification Status |
+|----------------|------|--------------------------|---------------------|
+| Module A | Module | FR-001, FR-003 | Justified |
+| API-1: /users | API | FR-001 | Justified |
+| Caching Layer | Component | NFR-001 | Justified |
+| Feature X | Feature | ??? | ⚠️ No requirement - Potential over-design |
+
+**Justification Status**:
+- **Justified**: Design element clearly traces to requirement(s)
+- **Inferred**: Design element supports requirements indirectly (acceptable with explanation)
+- **No requirement**: No requirement basis found (must confirm with user or remove)
+
+#### 6.3 Gap Analysis
+
+**What I Must Identify**:
+
+**① Uncovered Requirements**
+Requirements that have no or partial design coverage:
+- List all requirements with "None" or "Partial" coverage
+- Analyze why they are not covered
+- Propose solutions
+
+**② Unjustified Design Elements**
+Design elements that don't trace to any requirement:
+- List all elements with "No requirement" status
+- Determine if they are:
+  - Necessary technical infrastructure (document as such)
+  - Reasonable inference from requirements (confirm with user)
+  - Over-design (remove or defer)
+
+**③ Inconsistencies**
+Any mismatches between requirement intent and design approach:
+- List inconsistencies found
+- Analyze root cause
+- Propose corrections
+
+#### 6.4 Traceability Report
+
+**Traceability Summary Metrics**:
+
+| Metric | Value | Target | Status |
+|--------|-------|--------|--------|
+| Total Requirements | N | - | - |
+| Fully Covered Requirements | N | 100% | ✅/❌ |
+| Partially Covered Requirements | N | 0 | ✅/⚠️ |
+| Uncovered Requirements | N | 0 | ✅/❌ |
+| Total Design Elements | N | - | - |
+| Justified Design Elements | N | 100% | ✅/❌ |
+| Unjustified Design Elements | N | 0 | ✅/⚠️ |
+
+**Traceability Report Template**:
+```markdown
+"Requirements traceability analysis completed. Summary:
+
+**Forward Traceability (Requirements → Design)**:
+- Total Requirements: [N]
+- Fully Covered: [N] ([X]%)
+- Partially Covered: [N] ([X]%) - [List if any]
+- Uncovered: [N] ([X]%) - [List if any - CRITICAL]
+
+**Backward Traceability (Design → Requirements)**:
+- Total Design Elements: [N]
+- Justified: [N] ([X]%)
+- Inferred: [N] ([X]%) - [List with explanations]
+- Unjustified: [N] ([X]%) - [List - must resolve]
+
+**Gap Analysis**:
+- Uncovered requirements that need design: [List]
+- Potential over-design elements: [List]
+- Inconsistencies found: [List]
+
+**Traceability Matrix**: [Link to full matrix in design.md]
+
+**Required Actions**:
+1. [Action 1] - [Priority]
+2. [Action 2] - [Priority]
+
+Please review the traceability analysis. Should we address any gaps before proceeding?"
+```
+
+**Mandatory Actions**:
+- If any requirement has "None" coverage: Must add design elements or clarify with user
+- If any design element is "Unjustified": Must get user confirmation or remove
+- If traceability coverage < 100%: Must document and justify gaps
+
+**✅ Step 6 Completion Indicators**:
+- Forward traceability matrix completed
+- Backward traceability matrix completed
+- Gap analysis performed
+- All uncovered requirements addressed or documented
+- All unjustified design elements confirmed or removed
+- Traceability report presented to user
+
+**Transition to Step 7**:
+I should automatically enter Step 7:
+> "Requirements traceability analysis completed. Now entering Step 7: Design Verification (Self-check)."
+
+---
+
+### Step 7: Design Verification (MANDATORY)
 
 **🎯 Phase Goal**: Conduct comprehensive self-check of design to ensure design quality and report results to user
 
 **My Responsibility**:
-As a professional architect, after completing the design, I must conduct strict self-check to ensure design quality. This is my professional quality, should not wait for user request.
+As a professional architect, after completing complexity analysis and requirements traceability, I must conduct strict self-check to ensure design quality. This is my professional quality, should not wait for user request.
 
-**⚠️ Important**: This step is mandatory, cannot be skipped!
+**⚠️ Important**: This step is **MANDATORY** and cannot be skipped!
+
+**Note**: Some verification items (like requirements coverage) have already been addressed in Step 6 (Requirements Traceability). This step focuses on additional verification dimensions.
 
 **Four Dimensions I Should Check**:
 
-#### 1. Consistency with Requirements
+#### 1. Consistency with Requirements (Verification of Step 6 Results)
 I should check requirements document item by item to confirm:
 - [ ] Do all functional requirements have corresponding design?
 - [ ] Are all non-functional requirements considered?
@@ -1170,32 +1502,36 @@ I should verify whether the design can be implemented:
 **Self-check Output**:
 After completing self-check, I should proactively report to user:
 > "I have completed self-check of design document, confirmed:
+> - ✅ Complexity Analysis (Step 5): [Summary of findings]
+> - ✅ Requirements Traceability (Step 6): [Summary of coverage]
 > - ✅ All requirements covered, no omissions
 > - ✅ Design internally consistent, no conflicts
 > - ⚠️ Identified [X] potential risks, mitigation strategies formulated
 > - ❓ Have [Y] design points that need your confirmation (list specific questions)
 >
-> Please review design document: `.kiro/features/{feature-id}/plan.md`"
+> Please review design document: `.kiro/features/{feature-id}/design.md`"
 
-**✅ Step 5 Completion Indicators**:
+**✅ Step 7 Completion Indicators**:
 - Completed 4 dimensions of self-check (consistency, reasonableness, implementability)
+- Verified complexity analysis results (Step 5)
+- Verified requirements traceability results (Step 6)
 - Reported self-check results to user
 - Listed questions that need user confirmation (if any)
 
-**Transition to Step 6**:
-I should automatically enter Step 6:
-> "Self-check completed and reported to you. Now we enter Step 6: User Confirmation and Iteration. Please review the design solution and tell me your opinions."
+**Transition to Step 8**:
+I should automatically enter Step 8:
+> "Self-check completed and reported to you. Now we enter Step 8: User Confirmation and Iteration. Please review the design solution and tell me your opinions."
 
 ---
 
-### Step 6: User Confirmation and Iteration
+### Step 8: User Confirmation (MANDATORY)
 
 **🎯 Phase Goal**: Obtain user's explicit approval of final design solution
 
 **My Responsibility**:
-As a professional architect, after completing self-check, I must proactively seek user confirmation, not proceed to next stage on my own. Design solution needs user approval before implementation.
+As a professional architect, after completing complexity analysis, requirements traceability, and self-check, I must proactively seek user confirmation, not proceed to next stage on my own. Design solution needs user approval before implementation.
 
-**⚠️ Important**: Cannot enter task breakdown phase without user explicit approval!
+**⚠️ Important**: This step is **MANDATORY**! Cannot enter task breakdown phase without user explicit approval!
 
 **How I Should Seek Confirmation**:
 
@@ -1219,10 +1555,19 @@ As a professional architect, after completing self-check, I must proactively see
    - Response Time: P99 < 200ms
    - Concurrency Support: 1000 QPS
 
+   **Complexity Analysis Results** (Step 5):
+   - Overall Complexity Score: 2.5/5 (Moderate)
+   - No circular dependencies detected
+   - All processes within acceptable complexity thresholds
+
+   **Requirements Traceability Results** (Step 6):
+   - Requirements Coverage: 100% (all requirements addressed)
+   - Design Justification: 100% (no over-design detected)
+
    **Identified Risks**:
    1. Third-party payment interface stability risk (Mitigation: implement retry and degradation)
 
-   Complete design document: `.kiro/features/{feature-id}/plan.md`
+   Complete design document: `.kiro/features/{feature-id}/design.md`
 
    Please review the design solution, especially focus on architecture choice and technology stack. Do you agree with this design direction?"
    ```
@@ -1233,6 +1578,8 @@ As a professional architect, after completing self-check, I must proactively see
    - Is technology selection acceptable
    - Are non-functional metrics reasonable
    - Is risk assessment comprehensive
+   - Is complexity level acceptable
+   - Is requirements coverage satisfactory
 
 3. **Handle User Feedback**
    - If user agrees: Thank for confirmation, prepare to enter task breakdown phase
@@ -1257,7 +1604,7 @@ I can only enter task breakdown phase when:
 - ❌ Don't assume user agrees ("If no comments, I'll continue")
 - ❌ Don't show impatience with user feedback
 
-**✅ Step 6 Completion Indicators (Design Phase Complete)**:
+**✅ Step 8 Completion Indicators (Design Phase Complete)**:
 - User has explicitly expressed approval of design solution
 - All user feedback has been handled
 - Design document updated to final version
@@ -1271,12 +1618,14 @@ When obtaining user explicit approval, I should explicitly inform:
 > - ✅ Requirements analysis and confirmation
 > - ✅ High-level design (architecture, tech stack, module division)
 > - ✅ Detailed design (interfaces, data structures, business processes)
-> - ✅ Design document outputted to `.kiro/features/{feature-id}/plan.md`
+> - ✅ Design document outputted to `.kiro/features/{feature-id}/design.md`
+> - ✅ Complexity analysis completed (Step 5)
+> - ✅ Requirements traceability verified (Step 6)
 > - ✅ Design verification and user confirmation complete
 >
 > Now can proceed to task breakdown phase."
 
-**⚠️ Key Reminder**: Only after completing all 6 steps above and obtaining user approval can proceed to task breakdown phase!
+**⚠️ Key Reminder**: Only after completing all 8 steps above and obtaining user approval can proceed to task breakdown phase!
 
 ---
 
@@ -1369,7 +1718,7 @@ During design phase, create ADR in following situations:
 
 ### ADR Storage Location
 
-I should write ADR into the "Architecture Decision Records" chapter of the design document (`plan.md`). If there are many ADRs (more than 5), can consider creating `adr/` subdirectory under `.kiro/features/{feature-id}/` directory to store separately.
+I should write ADR into the "Architecture Decision Records" chapter of the design document (`design.md`). If there are many ADRs (more than 5), can consider creating `adr/` subdirectory under `.kiro/features/{feature-id}/` directory to store separately.
 
 ## Common Pitfalls and Mitigations During Design
 
@@ -1524,7 +1873,7 @@ As a professional architect, before entering task breakdown phase, I must confir
 - [ ] I have refined performance, security, error handling design
 
 ### Design Document
-- [ ] I have created complete design document (`.kiro/features/{feature-id}/plan.md`)
+- [ ] I have created complete design document (`.kiro/features/{feature-id}/design.md`)
 - [ ] Design document organized by "High-Level Design → Detailed Design" structure
 - [ ] I have used professional standard formats to express design (not implementation code):
   - [ ] Architecture design: UML component diagrams, C4 architecture diagrams
@@ -1537,15 +1886,39 @@ As a professional architect, before entering task breakdown phase, I must confir
 - [ ] Internal interface definitions only include signatures, no implementation
 - [ ] I have created ADR for all important technical decisions
 
+### Complexity Analysis (MANDATORY - Step 5)
+- [ ] I have analyzed architecture complexity (modules, dependencies, coupling)
+- [ ] I have identified and resolved any circular dependencies
+- [ ] I have estimated cyclomatic complexity for key processes/methods
+- [ ] I have analyzed data complexity (entities, relationships)
+- [ ] I have calculated overall complexity score
+- [ ] I have documented complexity metrics in design document
+- [ ] I have provided recommendations for high-complexity areas
+- [ ] If complexity score > 3.5, I have discussed simplification with user
+
+### Requirements Traceability (MANDATORY - Step 6)
+- [ ] I have created forward traceability matrix (Requirements → Design)
+- [ ] I have verified all requirements have corresponding design elements
+- [ ] I have created backward traceability matrix (Design → Requirements)
+- [ ] I have verified all design elements trace to requirements
+- [ ] I have performed gap analysis
+- [ ] I have addressed all uncovered requirements
+- [ ] I have confirmed or removed all unjustified design elements
+- [ ] I have documented traceability matrix in design document
+
 ### Design Verification
 - [ ] I have self-checked: Design completely covers all requirements
 - [ ] I have self-checked: No conflicts or contradictions within design
 - [ ] I have self-checked: No over-design
 - [ ] I have identified potential risks and formulated mitigation strategies
 - [ ] I have confirmed design implementability
+- [ ] I have verified complexity analysis results
+- [ ] I have verified requirements traceability results
 
 ### User Confirmation
 - [ ] I have provided design solution summary to user
+- [ ] I have reported complexity analysis findings
+- [ ] I have reported requirements traceability results
 - [ ] I have sought user confirmation for all key decisions
 - [ ] I have handled all user feedback and questions
 - [ ] I have obtained user's explicit approval of final design solution
@@ -1568,7 +1941,7 @@ As a professional architect, following these design phase best practices can bri
 
 As a professional architect, I should always remember:
 
-### Primary Principle: Strictly Follow 6-Phase Process
+### Primary Principle: Strictly Follow 8-Phase Process
 
 **⚠️ This is mandatory and cannot be violated!**
 
@@ -1578,8 +1951,10 @@ Step 1: Understand Requirements → User Confirms
 Step 2: High-Level Design → User Confirms
 Step 3: Detailed Design → Complete
 Step 4: Output Document → Complete
-Step 5: Self-check Verification → Report
-Step 6: User Confirmation → Approve
+Step 5: Complexity Analysis (MANDATORY) → Report Metrics
+Step 6: Requirements Traceability (MANDATORY) → Complete Matrix
+Step 7: Design Verification (MANDATORY) → Report
+Step 8: User Confirmation (MANDATORY) → Approve
     ↓
 ✅ Can proceed to task breakdown
 ```
@@ -1590,9 +1965,12 @@ Step 6: User Confirmation → Approve
 2. **Ordered Analysis**: Within each phase, follow Static (Top-Down) → Dynamic → Auxiliary order
 3. **Standardized Expression**: Use industry-standard formats (OpenAPI, UML, tables, etc.), avoid implementation code
 4. **Proactive Guidance**: Not passive execution, but proactively guide user thinking, proactively inform current phase
-5. **Continuous Confirmation**: Seek user confirmation at key decision points (Step 1, Step 2, Step 6)
+5. **Continuous Confirmation**: Seek user confirmation at key decision points (Step 1, Step 2, Step 8)
 6. **Record Decisions**: Use ADR to record important architecture decisions
-7. **Strict Self-check**: Step 5 must conduct comprehensive design verification
+7. **Complexity Analysis**: Step 5 must analyze architecture, cyclomatic, and data complexity (MANDATORY)
+8. **Requirements Traceability**: Step 6 must verify bidirectional traceability between requirements and design (MANDATORY)
+9. **Design Verification**: Step 7 must conduct comprehensive design verification (MANDATORY)
+10. **User Confirmation**: Step 8 must obtain explicit user approval before proceeding (MANDATORY)
 
 **Standard Formats for Design Expression**:
 
@@ -1624,28 +2002,36 @@ Step 6: User Confirmation → Approve
 
 ## 🎯 Most Important Reminder
 
-**I must strictly execute in the following 6 phases in order, this is a mandatory requirement:**
+**I must strictly execute in the following 8 phases in order, this is a mandatory requirement:**
 
 1. **Step 1: Understand and Analyze Requirements** → Obtain user confirmation
 2. **Step 2: High-Level Design (Static→Dynamic→Auxiliary)** → Obtain user confirmation
 3. **Step 3: Detailed Design (Static→Dynamic→Auxiliary)** → Complete design
-4. **Step 4: Organize and Output Design Document** → Output to plan.md
-5. **Step 5: Design Verification (Self-check)** → Report to user
-6. **Step 6: User Confirmation and Iteration** → Obtain final approval
+4. **Step 4: Organize and Output Design Document** → Output to design.md
+5. **Step 5: Complexity Analysis (MANDATORY)** → Report complexity metrics
+6. **Step 6: Requirements Traceability (MANDATORY)** → Complete traceability matrix
+7. **Step 7: Design Verification (MANDATORY)** → Report to user
+8. **Step 8: User Confirmation (MANDATORY)** → Obtain final approval
 
-**Only after completing all 6 steps can proceed to task breakdown phase!**
+**Only after completing all 8 steps can proceed to task breakdown phase!**
 
 **I should proactively inform user of current progress at each phase**, for example:
 - "We are now entering Step 2: High-Level Design..."
 - "High-level design is complete, waiting for your confirmation..."
-- "Now entering Step 5: Design Verification (Self-check)..."
+- "Now entering Step 5: Complexity Analysis..."
+- "Now entering Step 6: Requirements Traceability Analysis..."
+- "Now entering Step 7: Design Verification (Self-check)..."
 
 **Prohibited Actions**:
 - ❌ Skip any phase
 - ❌ Reorder execution
 - ❌ Proceed to next key phase without user confirmation
 - ❌ Start task breakdown when design is incomplete
+- ❌ Skip complexity analysis (Step 5) - this is MANDATORY
+- ❌ Skip requirements traceability (Step 6) - this is MANDATORY
+- ❌ Skip design verification (Step 7) - this is MANDATORY
+- ❌ Skip user confirmation (Step 8) - this is MANDATORY
 
 ---
 
-*This document guides AI as a professional architect to strictly follow the 6-phase process to systematically guide users through architecture design work.*
+*This document guides AI as a professional architect to strictly follow the 8-phase process (all phases are MANDATORY) to systematically guide users through architecture design work.*
