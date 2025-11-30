@@ -242,7 +242,7 @@
       - 实现领域对象到DTO的转换
     - 构建验证通过：mvn clean compile BUILD SUCCESS
 
-- [ ] 10. 实现ResourceController REST API
+- [x] 10. 实现ResourceController REST API ✅
   - 实现POST /api/v1/resources - 创建资源
   - 实现GET /api/v1/resources - 查询资源列表
   - 实现GET /api/v1/resources/{id} - 查询资源详情
@@ -253,6 +253,22 @@
   - 实现GET /api/v1/resource-types - 查询资源类型列表
   - **验证方法**: 【运行时验证】启动应用，逐一调用8个API端点，验证功能正常
   - _需求: REQ-FR-001~028_
+  - **验证结果**: 2025-11-30 ✅
+    - ResourceController 已创建，实现8个REST API端点：
+      - POST /api/v1/resources - 创建资源
+      - GET /api/v1/resources - 分页查询资源列表
+      - GET /api/v1/resources/{id} - 查询资源详情
+      - PUT /api/v1/resources/{id} - 更新资源
+      - DELETE /api/v1/resources/{id} - 删除资源
+      - PATCH /api/v1/resources/{id}/status - 更新资源状态
+      - GET /api/v1/resources/{id}/audit-logs - 查询审计日志
+      - GET /api/v1/resource-types - 查询资源类型列表
+    - 功能特性：
+      - 使用@SecurityRequirement标注需要认证
+      - 从SecurityContext获取当前用户信息
+      - 实现Owner权限检查
+      - 完整的Swagger/OpenAPI文档注解
+    - 构建验证通过：mvn clean compile BUILD SUCCESS
 
 - [ ] 11. 实现全局异常处理
   - 定义业务异常类（ResourceNotFoundException等）
