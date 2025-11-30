@@ -136,13 +136,25 @@
     - 错误码已添加：UNAUTHORIZED、FORBIDDEN、INVALID_PARAMETER、VERSION_CONFLICT
     - 构建验证通过：mvn clean compile BUILD SUCCESS
 
-- [ ] 6. 实现Redis缓存服务
+- [x] 6. 实现Redis缓存服务 ✅
   - 实现ResourceCacheService接口和实现类
   - 支持资源详情缓存（5分钟TTL）
   - 支持资源列表缓存（前3页，5分钟TTL）
   - 支持缓存清除操作
   - **验证方法**: 【运行时验证】查询资源详情两次，第二次查询时间明显缩短
   - _需求: REQ-NFR-001, REQ-NFR-003_
+  - **验证结果**: 2025-11-30 ✅
+    - 接口已创建：ResourceCacheService.java
+      - cacheResource/getResource: 资源详情缓存
+      - cacheResourceList/getResourceList: 资源列表缓存
+      - cacheResourceTypes/getResourceTypes: 资源类型缓存
+      - evictResource/evictAllResourceLists: 缓存清除
+    - 实现已创建：ResourceCacheServiceImpl.java
+      - 资源详情TTL: 5分钟
+      - 资源列表TTL: 5分钟（前3页）
+      - 资源类型TTL: 30分钟
+      - Redis降级策略：连接失败返回空，不阻塞主流程
+    - 构建验证通过：mvn clean compile BUILD SUCCESS
 
 - [ ] 7. 实现审计日志服务
   - 实现AuditLogService接口和实现类
