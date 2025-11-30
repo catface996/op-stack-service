@@ -178,7 +178,7 @@
       - 分页参数校验：page从1开始，size限制1-100
     - 构建验证通过：mvn clean compile BUILD SUCCESS
 
-- [ ] 8. 实现ResourceDomainService核心业务逻辑
+- [x] 8. 实现ResourceDomainService核心业务逻辑 ✅
   - 实现createResource()方法：验证、加密、保存、审计
   - 实现listResources()和getResourceById()方法：缓存、查询、分页
   - 实现updateResource()方法：权限检查、乐观锁、加密、审计
@@ -187,6 +187,27 @@
   - 实现checkOwnerPermission()和getAuditLogs()方法
   - **验证方法**: 【运行时验证】调用创建资源API，验证资源创建成功且敏感信息已加密
   - _需求: REQ-FR-001~028_
+  - **验证结果**: 2025-11-30 ✅
+    - 接口已创建：ResourceDomainService.java
+      - createResource: 资源创建（验证、加密、保存、审计）
+      - listResources: 分页查询（支持缓存）
+      - countResources: 统计资源数量
+      - getResourceById: 获取详情（支持缓存、解密）
+      - getResourceByIdWithType: 获取详情含类型
+      - updateResource: 更新资源（乐观锁、加密、审计）
+      - deleteResource: 删除资源（标签清理、审计）
+      - updateResourceStatus: 状态更新（审计）
+      - checkOwnerPermission: 权限检查
+      - getAuditLogs: 获取审计日志
+      - getAllResourceTypes: 获取所有资源类型（支持缓存）
+      - getResourceTypeById: 获取资源类型
+    - 实现已创建：ResourceDomainServiceImpl.java
+      - 集成EncryptionService实现敏感数据加解密
+      - 集成ResourceCacheService实现缓存管理
+      - 集成AuditLogService实现审计日志
+      - 支持@Transactional事务控制
+    - 添加spring-tx依赖到domain-impl
+    - 构建验证通过：mvn clean compile BUILD SUCCESS
 
 - [ ] 9. 实现ResourceApplicationService应用服务
   - 定义完整的Command、Query、DTO类

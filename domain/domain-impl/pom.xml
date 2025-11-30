@@ -64,6 +64,12 @@
             <artifactId>spring-context</artifactId>
         </dependency>
 
+        <!-- Spring Transaction -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-tx</artifactId>
+        </dependency>
+
         <!-- Spring Security (for BCryptPasswordEncoder) -->
         <dependency>
             <groupId>org.springframework.security</groupId>
