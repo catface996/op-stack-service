@@ -24,28 +24,32 @@
 aiops-service/
 ├── common/                    # 通用模块 (异常、工具类、Result)
 ├── bootstrap/                 # 启动模块
-├── interface/                 # 接口层
+├── interface/                 # 接口层 (聚合模块)
 │   ├── interface-http/        #   - HTTP REST 接口
 │   └── interface-consumer/    #   - 消息队列消费者
-├── application/               # 应用层
+├── application/               # 应用层 (聚合模块)
 │   ├── application-api/       #   - 应用服务接口
 │   └── application-impl/      #   - 应用服务实现
-├── domain/                    # 领域层
-│   ├── domain-api/            #   - 领域模型定义
-│   └── domain-impl/           #   - 领域服务实现
-└── infrastructure/            # 基础设施层
-    ├── repository/            #   - 数据持久化
-    │   ├── repository-api/    #     * 仓储接口 + Entity
-    │   └── mysql-impl/        #     * MySQL 实现 + PO
-    ├── cache/                 #   - 缓存
-    │   ├── cache-api/         #     * 缓存接口
-    │   └── redis-impl/        #     * Redis 实现
-    └── mq/                    #   - 消息队列
-        ├── mq-api/            #     * 消息队列接口
-        └── sqs-impl/          #     * AWS SQS 实现
+├── domain/                    # 领域层 (聚合模块)
+│   ├── domain-model/          #   - 领域模型 (聚合根、实体、值对象)
+│   ├── domain-api/            #   - 领域服务接口
+│   ├── domain-impl/           #   - 领域服务实现
+│   ├── repository-api/        #   - 仓储接口 (Port)
+│   ├── cache-api/             #   - 缓存接口 (Port)
+│   ├── mq-api/                #   - 消息队列接口 (Port)
+│   └── security-api/          #   - 安全接口 (Port)
+└── infrastructure/            # 基础设施层 (聚合模块)
+    ├── repository/            #   - 数据持久化 (聚合模块)
+    │   └── mysql-impl/        #     * MySQL 实现 (Adapter)
+    ├── cache/                 #   - 缓存 (聚合模块)
+    │   └── redis-impl/        #     * Redis 实现 (Adapter)
+    ├── mq/                    #   - 消息队列 (聚合模块)
+    │   └── sqs-impl/          #     * AWS SQS 实现 (Adapter)
+    └── security/              #   - 安全 (聚合模块)
+        └── jwt-impl/          #     * JWT 实现 (Adapter)
 ```
 
-**模块总数**: 22 个 (1个父POM + 7个聚合模块 + 14个代码模块)
+**模块总数**: 26 个 (1个父POM + 8个聚合模块 + 17个代码模块)
 
 ## 快速开始
 
@@ -141,7 +145,6 @@ curl http://localhost:8080/actuator/prometheus
 ### 核心文档
 - **文档目录索引**: [doc/README.md](doc/README.md) - 所有文档的组织说明
 - **快速开始**: [specs/001-init-ddd-architecture/quickstart.md](specs/001-init-ddd-architecture/quickstart.md)
-- **依赖管理**: [doc/01-init-backend/DEPENDENCIES.md](doc/01-init-backend/DEPENDENCIES.md)
 - **POM 配置规范**: [specs/001-init-ddd-architecture/contracts/pom-structure.md](specs/001-init-ddd-architecture/contracts/pom-structure.md)
 - **架构决策**: [specs/001-init-ddd-architecture/research.md](specs/001-init-ddd-architecture/research.md)
 - **环境配置**: [bootstrap/src/main/resources/README.md](bootstrap/src/main/resources/README.md)
@@ -150,7 +153,7 @@ curl http://localhost:8080/actuator/prometheus
 - **验证目录**: [doc/02-verification/](doc/02-verification/) - 按 spec 编号组织的验证文档
 - **完整验证报告**: [doc/02-verification/001-init-ddd-architecture/PRODUCTION_READINESS_VERIFICATION.md](doc/02-verification/001-init-ddd-architecture/PRODUCTION_READINESS_VERIFICATION.md) - 基于 10 条成功标准的详细验证
 - **快速验证清单**: [doc/02-verification/001-init-ddd-architecture/QUICK_VERIFICATION.md](doc/02-verification/001-init-ddd-architecture/QUICK_VERIFICATION.md) - 5 分钟快速验证指南
-- **自动化验证脚本**: `./verify-production-ready.sh` - 一键运行所有验证测试
+- **自动化验证脚本**: `./verify.sh` - 一键运行所有验证测试
 
 ## 开发规范
 
@@ -177,7 +180,7 @@ curl http://localhost:8080/actuator/prometheus
 
 - 编译时间: < 3 秒
 - 启动时间: < 3 秒
-- JAR 文件大小: 54MB
+- JAR 文件大小: ~68MB
 - JDK 版本: 21
 
 ## 贡献指南
