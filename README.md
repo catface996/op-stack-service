@@ -2,6 +2,8 @@
 
 基于 Spring Boot 3.4.1 和 Spring Cloud 2025.0.0 的 DDD 分层架构微服务项目。
 
+![AI运筹运营运维一体化](doc/image/AI运筹运营运维一体化.png)
+
 ## 技术栈
 
 - **Java**: 21 (LTS)
