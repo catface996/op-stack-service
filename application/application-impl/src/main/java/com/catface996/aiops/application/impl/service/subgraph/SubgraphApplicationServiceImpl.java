@@ -2,19 +2,28 @@ package com.catface996.aiops.application.impl.service.subgraph;
 
 import com.catface996.aiops.application.api.dto.common.PageResult;
 import com.catface996.aiops.application.api.dto.relationship.RelationshipDTO;
-import com.catface996.aiops.application.api.dto.subgraph.*;
+import com.catface996.aiops.application.api.dto.subgraph.SubgraphDTO;
+import com.catface996.aiops.application.api.dto.subgraph.SubgraphDetailDTO;
+import com.catface996.aiops.application.api.dto.subgraph.SubgraphPermissionDTO;
+import com.catface996.aiops.application.api.dto.subgraph.SubgraphResourceDTO;
+import com.catface996.aiops.application.api.dto.subgraph.SubgraphResourcesWithRelationsDTO;
+import com.catface996.aiops.application.api.dto.subgraph.SubgraphTopologyDTO;
 import com.catface996.aiops.application.api.dto.subgraph.request.*;
 import com.catface996.aiops.application.api.service.subgraph.SubgraphApplicationService;
 import com.catface996.aiops.domain.model.relationship.Relationship;
+import com.catface996.aiops.domain.model.resource.Resource;
 import com.catface996.aiops.domain.model.subgraph.PermissionRole;
 import com.catface996.aiops.domain.model.subgraph.Subgraph;
 import com.catface996.aiops.domain.model.subgraph.SubgraphPermission;
+import com.catface996.aiops.domain.model.subgraph.SubgraphResource;
 import com.catface996.aiops.domain.model.subgraph.SubgraphTopology;
 import com.catface996.aiops.domain.service.subgraph.SubgraphDomainService;
+import com.catface996.aiops.repository.resource.ResourceRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -33,9 +42,12 @@ import java.util.stream.Collectors;
 public class SubgraphApplicationServiceImpl implements SubgraphApplicationService {
 
     private final SubgraphDomainService subgraphDomainService;
+    private final ResourceRepository resourceRepository;
 
-    public SubgraphApplicationServiceImpl(SubgraphDomainService subgraphDomainService) {
+    public SubgraphApplicationServiceImpl(SubgraphDomainService subgraphDomainService,
+                                          ResourceRepository resourceRepository) {
         this.subgraphDomainService = subgraphDomainService;
+        this.resourceRepository = resourceRepository;
     }
 
     // ==================== 子图生命周期 ====================
@@ -169,12 +181,88 @@ public class SubgraphApplicationServiceImpl implements SubgraphApplicationServic
         subgraphDomainService.removeResources(subgraphId, request.getResourceIds(), operatorId, operatorName);
     }
 
+    @Override
+    public PageResult<SubgraphResourceDTO> getSubgraphResources(Long subgraphId,
+                                                                 ListSubgraphResourcesRequest request,
+                                                                 Long userId) {
+        int page = request.getPage() != null ? request.getPage() : 1;
+        int size = request.getSize() != null ? request.getSize() : 20;
+
+        // 获取分页的资源关联记录
+        List<SubgraphResource> subgraphResources = subgraphDomainService.getSubgraphResourcesPaged(
+                subgraphId, userId, page, size);
+
+        // 获取总数
+        long total = subgraphDomainService.countResources(subgraphId);
+
+        // 批量查询资源详情
+        List<Long> resourceIds = subgraphResources.stream()
+                .map(SubgraphResource::getResourceId)
+                .collect(Collectors.toList());
+
+        Map<Long, Resource> resourceMap = resourceIds.stream()
+                .map(resourceRepository::findByIdWithType)
+                .filter(java.util.Optional::isPresent)
+                .map(java.util.Optional::get)
+                .collect(Collectors.toMap(Resource::getId, r -> r, (a, b) -> a));
+
+        // 转换为DTO
+        List<SubgraphResourceDTO> dtos = subgraphResources.stream()
+                .map(sr -> toSubgraphResourceDTO(sr, resourceMap.get(sr.getResourceId())))
+                .collect(Collectors.toList());
+
+        return PageResult.of(dtos, page, size, total);
+    }
+
     // ==================== 拓扑查询 ====================
 
     @Override
     public SubgraphTopologyDTO getSubgraphTopology(Long subgraphId, Long userId) {
         SubgraphTopology topology = subgraphDomainService.getSubgraphTopology(subgraphId, userId);
         return toTopologyDTO(topology);
+    }
+
+    @Override
+    public SubgraphResourcesWithRelationsDTO getSubgraphResourcesWithRelations(Long subgraphId, Long userId) {
+        // 获取子图拓扑（包含资源ID和关系）
+        SubgraphTopology topology = subgraphDomainService.getSubgraphTopology(subgraphId, userId);
+        if (topology == null) {
+            return null;
+        }
+
+        // 获取所有资源关联记录
+        List<SubgraphResource> subgraphResources = subgraphDomainService.getSubgraphResourcesPaged(
+                subgraphId, userId, 1, Integer.MAX_VALUE);
+
+        // 批量查询资源详情
+        List<Long> resourceIds = subgraphResources.stream()
+                .map(SubgraphResource::getResourceId)
+                .collect(Collectors.toList());
+
+        Map<Long, Resource> resourceMap = resourceIds.stream()
+                .map(resourceRepository::findByIdWithType)
+                .filter(java.util.Optional::isPresent)
+                .map(java.util.Optional::get)
+                .collect(Collectors.toMap(Resource::getId, r -> r, (a, b) -> a));
+
+        // 转换资源为DTO
+        List<SubgraphResourceDTO> resourceDTOs = subgraphResources.stream()
+                .map(sr -> toSubgraphResourceDTO(sr, resourceMap.get(sr.getResourceId())))
+                .collect(Collectors.toList());
+
+        // 转换关系为DTO
+        List<RelationshipDTO> relationshipDTOs = topology.getRelationships().stream()
+                .map(this::toRelationshipDTO)
+                .collect(Collectors.toList());
+
+        return SubgraphResourcesWithRelationsDTO.builder()
+                .subgraphId(topology.getSubgraphId())
+                .subgraphName(topology.getSubgraphName())
+                .resources(resourceDTOs)
+                .relationships(relationshipDTOs)
+                .nodeCount(resourceDTOs.size())
+                .edgeCount(relationshipDTOs.size())
+                .build();
     }
 
     // ==================== DTO 转换方法 ====================
@@ -277,5 +365,27 @@ public class SubgraphApplicationServiceImpl implements SubgraphApplicationServic
                 .sourceResourceName(relationship.getSourceResourceName())
                 .targetResourceName(relationship.getTargetResourceName())
                 .build();
+    }
+
+    private SubgraphResourceDTO toSubgraphResourceDTO(SubgraphResource subgraphResource, Resource resource) {
+        if (subgraphResource == null) {
+            return null;
+        }
+        SubgraphResourceDTO.SubgraphResourceDTOBuilder builder = SubgraphResourceDTO.builder()
+                .id(subgraphResource.getId())
+                .resourceId(subgraphResource.getResourceId())
+                .subgraphId(subgraphResource.getSubgraphId())
+                .addedAt(subgraphResource.getAddedAt())
+                .addedBy(subgraphResource.getAddedBy());
+
+        if (resource != null) {
+            builder.resourceName(resource.getName())
+                    .resourceStatus(resource.getStatus() != null ? resource.getStatus().name() : null);
+            if (resource.getResourceType() != null) {
+                builder.resourceType(resource.getResourceType().getName());
+            }
+        }
+
+        return builder.build();
     }
 }

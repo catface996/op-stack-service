@@ -453,6 +453,22 @@ public class SubgraphDomainServiceImpl implements SubgraphDomainService {
         return subgraphResourceRepository.isSubgraphEmpty(subgraphId);
     }
 
+    @Override
+    public List<com.catface996.aiops.domain.model.subgraph.SubgraphResource> getSubgraphResourcesPaged(
+            Long subgraphId, Long userId, int page, int size) {
+        // 检查权限
+        if (!subgraphRepository.hasAnyPermission(subgraphId, userId)) {
+            throw new BusinessException(SubgraphErrorCode.SUBGRAPH_ACCESS_DENIED);
+        }
+
+        // 规范化参数
+        if (page < 1) page = 1;
+        if (size < 1) size = 20;
+        if (size > 100) size = 100;
+
+        return subgraphResourceRepository.findBySubgraphIdPaged(subgraphId, page, size);
+    }
+
     // ==================== 拓扑查询 ====================
 
     @Override

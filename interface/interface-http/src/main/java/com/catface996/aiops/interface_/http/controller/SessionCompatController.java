@@ -2,9 +2,10 @@ package com.catface996.aiops.interface_.http.controller;
 
 import com.catface996.aiops.application.api.dto.auth.SessionValidationResult;
 import com.catface996.aiops.application.api.service.auth.AuthApplicationService;
-import com.catface996.aiops.interface_.http.response.ApiResponse;
+import com.catface996.aiops.interface_.http.response.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -46,16 +47,16 @@ public class SessionCompatController {
             description = "验证用户会话是否有效，返回会话状态和用户信息。此接口是兼容路径，建议使用 /api/v1/sessions/validate"
     )
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "验证完成"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Token无效")
+            @ApiResponse(responseCode = "200", description = "验证完成"),
+            @ApiResponse(responseCode = "401", description = "Token无效")
     })
     @GetMapping("/validate")
-    public ResponseEntity<ApiResponse<SessionValidationResult>> validateSession(
+    public ResponseEntity<Result<SessionValidationResult>> validateSession(
             @Parameter(description = "JWT Token", required = true)
             @RequestHeader("Authorization") String authorization) {
         log.info("接收到会话验证请求 (兼容路径 /api/v1/session/validate)");
         SessionValidationResult result = authApplicationService.validateSession(authorization);
         log.info("会话验证完成: valid={}, sessionId={}", result.isValid(), result.getSessionId());
-        return ResponseEntity.ok(ApiResponse.success(result));
+        return ResponseEntity.ok(Result.success(result));
     }
 }

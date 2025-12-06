@@ -108,4 +108,16 @@ public interface SubgraphResourceMapper extends BaseMapper<SubgraphResourcePO> {
      * @return 删除的行数
      */
     int deleteAllByResourceId(@Param("resourceId") Long resourceId);
+
+    /**
+     * 分页查询子图中的资源关联
+     *
+     * @param subgraphId 子图ID
+     * @param offset 偏移量
+     * @param limit 每页大小
+     * @return 资源关联列表
+     */
+    List<SubgraphResourcePO> selectBySubgraphIdPaged(@Param("subgraphId") Long subgraphId,
+                                                      @Param("offset") int offset,
+                                                      @Param("limit") int limit);
 }

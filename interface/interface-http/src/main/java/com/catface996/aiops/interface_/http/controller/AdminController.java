@@ -3,9 +3,10 @@ package com.catface996.aiops.interface_.http.controller;
 import com.catface996.aiops.application.api.dto.admin.AccountDTO;
 import com.catface996.aiops.application.api.dto.common.PageResult;
 import com.catface996.aiops.application.api.service.auth.AuthApplicationService;
-import com.catface996.aiops.interface_.http.response.ApiResponse;
+import com.catface996.aiops.interface_.http.response.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -163,7 +164,7 @@ public class AdminController {
      */
     @PostMapping("/accounts/{accountId}/unlock")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<Void>> unlockAccount(
+    public ResponseEntity<Result<Void>> unlockAccount(
             @RequestHeader("Authorization") String authorization,
             @PathVariable Long accountId) {
         log.info("接收到管理员解锁账号请求: accountId={}", accountId);
@@ -171,7 +172,7 @@ public class AdminController {
         authApplicationService.unlockAccount(authorization, accountId);
 
         log.info("管理员解锁账号成功: accountId={}", accountId);
-        return ResponseEntity.ok(ApiResponse.success("账号解锁成功", null));
+        return ResponseEntity.ok(Result.success("账号解锁成功", null));
     }
 
     /**
@@ -221,13 +222,13 @@ public class AdminController {
             description = "管理员查询用户列表，支持分页。页码从1开始。"
     )
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "查询成功"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Token无效"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "权限不足")
+            @ApiResponse(responseCode = "200", description = "查询成功"),
+            @ApiResponse(responseCode = "401", description = "Token无效"),
+            @ApiResponse(responseCode = "403", description = "权限不足")
     })
     @GetMapping({"/accounts", "/users"})
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<PageResult<AccountDTO>>> getAccounts(
+    public ResponseEntity<Result<PageResult<AccountDTO>>> getAccounts(
             @Parameter(description = "页码（从1开始）", example = "1")
             @RequestParam(defaultValue = "1") int page,
             @Parameter(description = "每页大小（最大100）", example = "10")
@@ -241,6 +242,6 @@ public class AdminController {
         PageResult<AccountDTO> result = authApplicationService.getAccounts(validPage, validSize);
 
         log.info("获取用户列表成功: total={}, returned={}", result.getTotalElements(), result.getContent().size());
-        return ResponseEntity.ok(ApiResponse.success(result));
+        return ResponseEntity.ok(Result.success(result));
     }
 }

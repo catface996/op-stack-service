@@ -9,9 +9,10 @@ import com.catface996.aiops.application.api.service.session.SessionApplicationSe
 import com.catface996.aiops.infrastructure.security.api.service.JwtTokenProvider;
 import com.catface996.aiops.interface_.http.dto.session.SessionListResponse;
 import com.catface996.aiops.interface_.http.dto.session.TerminateOthersResponse;
-import com.catface996.aiops.interface_.http.response.ApiResponse;
+import com.catface996.aiops.interface_.http.response.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -150,17 +151,17 @@ public class SessionController {
             description = "验证用户会话是否有效，返回会话状态和用户信息"
     )
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "验证完成"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Token无效")
+            @ApiResponse(responseCode = "200", description = "验证完成"),
+            @ApiResponse(responseCode = "401", description = "Token无效")
     })
     @GetMapping("/validate")
-    public ResponseEntity<ApiResponse<SessionValidationResult>> validateSession(
+    public ResponseEntity<Result<SessionValidationResult>> validateSession(
             @Parameter(description = "JWT Token", required = true)
             @RequestHeader("Authorization") String authorization) {
         log.info("接收到会话验证请求");
         SessionValidationResult result = authApplicationService.validateSession(authorization);
         log.info("会话验证完成: valid={}, sessionId={}", result.isValid(), result.getSessionId());
-        return ResponseEntity.ok(ApiResponse.success(result));
+        return ResponseEntity.ok(Result.success(result));
     }
 
     /**
@@ -256,12 +257,12 @@ public class SessionController {
             description = "使当前用户在其他设备的会话失效，需要验证密码。操作成功后返回新的Token"
     )
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "操作成功"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "密码错误"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Token无效")
+            @ApiResponse(responseCode = "200", description = "操作成功"),
+            @ApiResponse(responseCode = "400", description = "密码错误"),
+            @ApiResponse(responseCode = "401", description = "Token无效")
     })
     @PostMapping("/force-logout-others")
-    public ResponseEntity<ApiResponse<LoginResult>> forceLogoutOthers(
+    public ResponseEntity<Result<LoginResult>> forceLogoutOthers(
             @Parameter(description = "JWT Token", required = true)
             @RequestHeader("Authorization") String authorization,
             @Valid @RequestBody ForceLogoutRequest request) {
@@ -275,7 +276,7 @@ public class SessionController {
                 result.getUserInfo().getAccountId(),
                 result.getUserInfo().getUsername(),
                 result.getSessionId());
-        return ResponseEntity.ok(ApiResponse.success(result));
+        return ResponseEntity.ok(Result.success(result));
     }
 
     // ================== 新增会话管理接口 ==================
@@ -334,11 +335,11 @@ public class SessionController {
             description = "查询当前用户的所有活跃会话，用于多设备会话管理"
     )
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "查询成功"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Token无效")
+            @ApiResponse(responseCode = "200", description = "查询成功"),
+            @ApiResponse(responseCode = "401", description = "Token无效")
     })
     @GetMapping
-    public ResponseEntity<ApiResponse<SessionListResponse>> getUserSessions(
+    public ResponseEntity<Result<SessionListResponse>> getUserSessions(
             @Parameter(description = "JWT Token", required = true)
             @RequestHeader("Authorization") String authorization) {
         log.info("接收到查询用户会话列表请求");
@@ -355,7 +356,7 @@ public class SessionController {
                 session.setCurrentSession(session.getSessionId().equals(currentSessionId)));
 
         log.info("查询用户会话列表成功: userId={}, sessionCount={}", userId, sessions.size());
-        return ResponseEntity.ok(ApiResponse.success(SessionListResponse.of(sessions)));
+        return ResponseEntity.ok(Result.success(SessionListResponse.of(sessions)));
     }
 
     /**
@@ -396,12 +397,12 @@ public class SessionController {
             description = "终止指定的会话，只能终止自己的会话"
     )
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "终止成功"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Token无效"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "无权限终止该会话")
+            @ApiResponse(responseCode = "200", description = "终止成功"),
+            @ApiResponse(responseCode = "401", description = "Token无效"),
+            @ApiResponse(responseCode = "403", description = "无权限终止该会话")
     })
     @DeleteMapping("/{sessionId}")
-    public ResponseEntity<ApiResponse<Void>> terminateSession(
+    public ResponseEntity<Result<Void>> terminateSession(
             @Parameter(description = "JWT Token", required = true)
             @RequestHeader(value = "Authorization") String authorization,
             @Parameter(description = "会话ID", required = true)
@@ -415,7 +416,7 @@ public class SessionController {
         sessionApplicationService.terminateSession(sessionId, userId);
 
         log.info("会话终止成功: sessionId={}", sessionId);
-        return ResponseEntity.ok(ApiResponse.success("会话终止成功", null));
+        return ResponseEntity.ok(Result.success("会话终止成功", null));
     }
 
     /**
@@ -449,11 +450,11 @@ public class SessionController {
             description = "终止当前用户除当前会话外的所有会话"
     )
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "操作成功"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Token无效")
+            @ApiResponse(responseCode = "200", description = "操作成功"),
+            @ApiResponse(responseCode = "401", description = "Token无效")
     })
     @PostMapping("/terminate-others")
-    public ResponseEntity<ApiResponse<TerminateOthersResponse>> terminateOtherSessions(
+    public ResponseEntity<Result<TerminateOthersResponse>> terminateOtherSessions(
             @Parameter(description = "JWT Token", required = true)
             @RequestHeader("Authorization") String authorization) {
         log.info("接收到终止其他会话请求");
@@ -466,7 +467,7 @@ public class SessionController {
         int terminatedCount = sessionApplicationService.terminateOtherSessions(currentSessionId, userId);
 
         log.info("终止其他会话成功: userId={}, terminatedCount={}", userId, terminatedCount);
-        return ResponseEntity.ok(ApiResponse.success(TerminateOthersResponse.of(terminatedCount)));
+        return ResponseEntity.ok(Result.success(TerminateOthersResponse.of(terminatedCount)));
     }
 
     /**

@@ -1,7 +1,7 @@
 package com.catface996.aiops.bootstrap.security;
 
 import com.catface996.aiops.common.exception.BusinessException;
-import com.catface996.aiops.interface_.http.response.ApiResponse;
+import com.catface996.aiops.interface_.http.response.Result;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -80,7 +80,7 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
         }
 
         // 构造统一的错误响应
-        ApiResponse<Void> apiResponse = ApiResponse.error(errorCode, errorMessage);
+        Result<Void> apiResponse = Result.error(errorCode, errorMessage);
 
         // 设置响应头
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

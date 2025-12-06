@@ -1,6 +1,6 @@
 package com.catface996.aiops.bootstrap.security;
 
-import com.catface996.aiops.interface_.http.response.ApiResponse;
+import com.catface996.aiops.interface_.http.response.Result;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -62,7 +62,7 @@ public class JwtAccessDeniedHandler implements AccessDeniedHandler {
         log.warn("[访问拒绝] 请求路径: {}, 原因: {}", request.getRequestURI(), accessDeniedException.getMessage());
 
         // 构造统一的错误响应
-        ApiResponse<Void> apiResponse = ApiResponse.error(403001, "权限不足，无法访问该资源");
+        Result<Void> apiResponse = Result.error(403001, "权限不足，无法访问该资源");
 
         // 设置响应头
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);

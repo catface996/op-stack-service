@@ -288,6 +288,19 @@ public interface SubgraphDomainService {
      */
     boolean isSubgraphEmpty(Long subgraphId);
 
+    /**
+     * 分页查询子图中的资源关联记录
+     *
+     * @param subgraphId 子图ID
+     * @param userId 用户ID（用于权限检查）
+     * @param page 页码（从1开始）
+     * @param size 每页大小
+     * @return 资源关联列表
+     * @throws RuntimeException 如果无权限访问
+     */
+    List<com.catface996.aiops.domain.model.subgraph.SubgraphResource> getSubgraphResourcesPaged(
+            Long subgraphId, Long userId, int page, int size);
+
     // ==================== 拓扑查询 ====================
 
     /**

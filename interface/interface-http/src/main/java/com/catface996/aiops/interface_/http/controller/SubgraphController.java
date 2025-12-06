@@ -3,14 +3,17 @@ package com.catface996.aiops.interface_.http.controller;
 import com.catface996.aiops.application.api.dto.common.PageResult;
 import com.catface996.aiops.application.api.dto.subgraph.SubgraphDTO;
 import com.catface996.aiops.application.api.dto.subgraph.SubgraphDetailDTO;
+import com.catface996.aiops.application.api.dto.subgraph.SubgraphResourceDTO;
+import com.catface996.aiops.application.api.dto.subgraph.SubgraphResourcesWithRelationsDTO;
 import com.catface996.aiops.application.api.dto.subgraph.SubgraphTopologyDTO;
 import com.catface996.aiops.application.api.dto.subgraph.request.*;
 import com.catface996.aiops.application.api.service.subgraph.SubgraphApplicationService;
-import com.catface996.aiops.interface_.http.response.ApiResponse;
+import com.catface996.aiops.interface_.http.response.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -57,19 +60,19 @@ public class SubgraphController {
     @Operation(summary = "创建子图", description = "创建新的资源子图，用于资源分组和权限隔离")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "创建成功",
+            @ApiResponse(responseCode = "201", description = "创建成功",
                     content = @Content(schema = @Schema(implementation = SubgraphDTO.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "参数无效"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "未认证"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "子图名称冲突")
+            @ApiResponse(responseCode = "400", description = "参数无效"),
+            @ApiResponse(responseCode = "401", description = "未认证"),
+            @ApiResponse(responseCode = "409", description = "子图名称冲突")
     })
-    public ResponseEntity<ApiResponse<SubgraphDTO>> createSubgraph(
+    public ResponseEntity<Result<SubgraphDTO>> createSubgraph(
             @Valid @RequestBody CreateSubgraphRequest request) {
         Long operatorId = getCurrentUserId();
         String operatorName = getCurrentUserName();
         SubgraphDTO result = subgraphApplicationService.createSubgraph(request, operatorId, operatorName);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(result));
+                .body(Result.success(result));
     }
 
     // ==================== 任务22: 查询子图接口 ====================
@@ -80,7 +83,7 @@ public class SubgraphController {
     @GetMapping
     @Operation(summary = "查询子图列表", description = "分页查询子图列表，支持关键词搜索、标签过滤、按创建者过滤")
     @SecurityRequirement(name = "bearerAuth")
-    public ResponseEntity<ApiResponse<PageResult<SubgraphDTO>>> listSubgraphs(
+    public ResponseEntity<Result<PageResult<SubgraphDTO>>> listSubgraphs(
             @Parameter(description = "搜索关键词") @RequestParam(required = false) String keyword,
             @Parameter(description = "按标签过滤") @RequestParam(required = false) List<String> tags,
             @Parameter(description = "按创建者ID过滤") @RequestParam(required = false) Long ownerId,
@@ -97,7 +100,7 @@ public class SubgraphController {
 
         Long userId = getCurrentUserId();
         PageResult<SubgraphDTO> result = subgraphApplicationService.listSubgraphs(request, userId);
-        return ResponseEntity.ok(ApiResponse.success(result));
+        return ResponseEntity.ok(Result.success(result));
     }
 
     /**
@@ -107,19 +110,19 @@ public class SubgraphController {
     @Operation(summary = "获取子图详情", description = "获取子图的详细信息，包括权限列表和资源列表")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "查询成功"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "未认证"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "无权限访问"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "子图不存在")
+            @ApiResponse(responseCode = "200", description = "查询成功"),
+            @ApiResponse(responseCode = "401", description = "未认证"),
+            @ApiResponse(responseCode = "403", description = "无权限访问"),
+            @ApiResponse(responseCode = "404", description = "子图不存在")
     })
-    public ResponseEntity<ApiResponse<SubgraphDetailDTO>> getSubgraphDetail(
+    public ResponseEntity<Result<SubgraphDetailDTO>> getSubgraphDetail(
             @Parameter(description = "子图ID") @PathVariable Long subgraphId) {
         Long userId = getCurrentUserId();
         SubgraphDetailDTO result = subgraphApplicationService.getSubgraphDetail(subgraphId, userId);
         if (result == null) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(ApiResponse.success(result));
+        return ResponseEntity.ok(Result.success(result));
     }
 
     // ==================== 任务23: 更新子图接口 ====================
@@ -131,21 +134,21 @@ public class SubgraphController {
     @Operation(summary = "更新子图", description = "更新子图的基本信息，需要OWNER权限")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "更新成功"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "参数无效"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "未认证"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "无权限"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "子图不存在"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "版本冲突")
+            @ApiResponse(responseCode = "200", description = "更新成功"),
+            @ApiResponse(responseCode = "400", description = "参数无效"),
+            @ApiResponse(responseCode = "401", description = "未认证"),
+            @ApiResponse(responseCode = "403", description = "无权限"),
+            @ApiResponse(responseCode = "404", description = "子图不存在"),
+            @ApiResponse(responseCode = "409", description = "版本冲突")
     })
-    public ResponseEntity<ApiResponse<SubgraphDTO>> updateSubgraph(
+    public ResponseEntity<Result<SubgraphDTO>> updateSubgraph(
             @Parameter(description = "子图ID") @PathVariable Long subgraphId,
             @Valid @RequestBody UpdateSubgraphRequest request) {
         Long operatorId = getCurrentUserId();
         String operatorName = getCurrentUserName();
         SubgraphDTO result = subgraphApplicationService.updateSubgraph(
                 subgraphId, request, operatorId, operatorName);
-        return ResponseEntity.ok(ApiResponse.success(result));
+        return ResponseEntity.ok(Result.success(result));
     }
 
     /**
@@ -155,19 +158,19 @@ public class SubgraphController {
     @Operation(summary = "添加权限", description = "为用户添加子图访问权限，需要OWNER权限")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "添加成功"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "参数无效"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "未认证"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "无权限"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "子图不存在")
+            @ApiResponse(responseCode = "200", description = "添加成功"),
+            @ApiResponse(responseCode = "400", description = "参数无效"),
+            @ApiResponse(responseCode = "401", description = "未认证"),
+            @ApiResponse(responseCode = "403", description = "无权限"),
+            @ApiResponse(responseCode = "404", description = "子图不存在")
     })
-    public ResponseEntity<ApiResponse<Void>> addPermission(
+    public ResponseEntity<Result<Void>> addPermission(
             @Parameter(description = "子图ID") @PathVariable Long subgraphId,
             @Valid @RequestBody UpdatePermissionRequest request) {
         Long operatorId = getCurrentUserId();
         String operatorName = getCurrentUserName();
         subgraphApplicationService.addPermission(subgraphId, request, operatorId, operatorName);
-        return ResponseEntity.ok(ApiResponse.success(null));
+        return ResponseEntity.ok(Result.success(null));
     }
 
     /**
@@ -177,10 +180,10 @@ public class SubgraphController {
     @Operation(summary = "移除权限", description = "移除用户的子图访问权限，需要OWNER权限")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "移除成功"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "未认证"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "无权限"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "子图不存在")
+            @ApiResponse(responseCode = "204", description = "移除成功"),
+            @ApiResponse(responseCode = "401", description = "未认证"),
+            @ApiResponse(responseCode = "403", description = "无权限"),
+            @ApiResponse(responseCode = "404", description = "子图不存在")
     })
     public ResponseEntity<Void> removePermission(
             @Parameter(description = "子图ID") @PathVariable Long subgraphId,
@@ -200,11 +203,11 @@ public class SubgraphController {
     @Operation(summary = "删除子图", description = "删除子图，需要OWNER权限且子图必须为空")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "删除成功"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "未认证"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "无权限"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "子图不存在"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "子图非空，无法删除")
+            @ApiResponse(responseCode = "204", description = "删除成功"),
+            @ApiResponse(responseCode = "401", description = "未认证"),
+            @ApiResponse(responseCode = "403", description = "无权限"),
+            @ApiResponse(responseCode = "404", description = "子图不存在"),
+            @ApiResponse(responseCode = "409", description = "子图非空，无法删除")
     })
     public ResponseEntity<Void> deleteSubgraph(
             @Parameter(description = "子图ID") @PathVariable Long subgraphId) {
@@ -223,19 +226,19 @@ public class SubgraphController {
     @Operation(summary = "添加资源", description = "向子图添加资源节点，需要OWNER权限")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "添加成功"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "参数无效"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "未认证"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "无权限"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "子图不存在")
+            @ApiResponse(responseCode = "200", description = "添加成功"),
+            @ApiResponse(responseCode = "400", description = "参数无效"),
+            @ApiResponse(responseCode = "401", description = "未认证"),
+            @ApiResponse(responseCode = "403", description = "无权限"),
+            @ApiResponse(responseCode = "404", description = "子图不存在")
     })
-    public ResponseEntity<ApiResponse<Void>> addResources(
+    public ResponseEntity<Result<Void>> addResources(
             @Parameter(description = "子图ID") @PathVariable Long subgraphId,
             @Valid @RequestBody AddResourcesRequest request) {
         Long operatorId = getCurrentUserId();
         String operatorName = getCurrentUserName();
         subgraphApplicationService.addResources(subgraphId, request, operatorId, operatorName);
-        return ResponseEntity.ok(ApiResponse.success(null));
+        return ResponseEntity.ok(Result.success(null));
     }
 
     /**
@@ -245,19 +248,47 @@ public class SubgraphController {
     @Operation(summary = "移除资源", description = "从子图移除资源节点，需要OWNER权限")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "移除成功"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "参数无效"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "未认证"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "无权限"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "子图不存在")
+            @ApiResponse(responseCode = "200", description = "移除成功"),
+            @ApiResponse(responseCode = "400", description = "参数无效"),
+            @ApiResponse(responseCode = "401", description = "未认证"),
+            @ApiResponse(responseCode = "403", description = "无权限"),
+            @ApiResponse(responseCode = "404", description = "子图不存在")
     })
-    public ResponseEntity<ApiResponse<Void>> removeResources(
+    public ResponseEntity<Result<Void>> removeResources(
             @Parameter(description = "子图ID") @PathVariable Long subgraphId,
             @Valid @RequestBody RemoveResourcesRequest request) {
         Long operatorId = getCurrentUserId();
         String operatorName = getCurrentUserName();
         subgraphApplicationService.removeResources(subgraphId, request, operatorId, operatorName);
-        return ResponseEntity.ok(ApiResponse.success(null));
+        return ResponseEntity.ok(Result.success(null));
+    }
+
+    /**
+     * 查询子图资源列表
+     */
+    @GetMapping("/{subgraphId}/resources")
+    @Operation(summary = "查询子图资源列表", description = "分页查询子图包含的资源节点列表，需要OWNER或VIEWER权限")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "查询成功"),
+            @ApiResponse(responseCode = "401", description = "未认证"),
+            @ApiResponse(responseCode = "403", description = "无权限访问"),
+            @ApiResponse(responseCode = "404", description = "子图不存在")
+    })
+    public ResponseEntity<Result<PageResult<SubgraphResourceDTO>>> getSubgraphResources(
+            @Parameter(description = "子图ID") @PathVariable Long subgraphId,
+            @Parameter(description = "页码", example = "1") @RequestParam(defaultValue = "1") Integer page,
+            @Parameter(description = "每页大小", example = "20") @RequestParam(defaultValue = "20") Integer size) {
+
+        ListSubgraphResourcesRequest request = ListSubgraphResourcesRequest.builder()
+                .page(page)
+                .size(size)
+                .build();
+
+        Long userId = getCurrentUserId();
+        PageResult<SubgraphResourceDTO> result = subgraphApplicationService.getSubgraphResources(
+                subgraphId, request, userId);
+        return ResponseEntity.ok(Result.success(result));
     }
 
     // ==================== 任务26: 拓扑查询接口 ====================
@@ -269,19 +300,42 @@ public class SubgraphController {
     @Operation(summary = "获取子图拓扑", description = "获取子图内的资源节点和关系边，用于可视化展示")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "查询成功"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "未认证"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "无权限访问"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "子图不存在")
+            @ApiResponse(responseCode = "200", description = "查询成功"),
+            @ApiResponse(responseCode = "401", description = "未认证"),
+            @ApiResponse(responseCode = "403", description = "无权限访问"),
+            @ApiResponse(responseCode = "404", description = "子图不存在")
     })
-    public ResponseEntity<ApiResponse<SubgraphTopologyDTO>> getSubgraphTopology(
+    public ResponseEntity<Result<SubgraphTopologyDTO>> getSubgraphTopology(
             @Parameter(description = "子图ID") @PathVariable Long subgraphId) {
         Long userId = getCurrentUserId();
         SubgraphTopologyDTO result = subgraphApplicationService.getSubgraphTopology(subgraphId, userId);
         if (result == null) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(ApiResponse.success(result));
+        return ResponseEntity.ok(Result.success(result));
+    }
+
+    /**
+     * 获取子图所有资源及关系（不分页）
+     */
+    @GetMapping("/{subgraphId}/resources-with-relations")
+    @Operation(summary = "获取子图资源及关系", description = "获取子图内所有资源节点的完整信息及节点之间的关系，不分页，用于前端拓扑图展示")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "查询成功"),
+            @ApiResponse(responseCode = "401", description = "未认证"),
+            @ApiResponse(responseCode = "403", description = "无权限访问"),
+            @ApiResponse(responseCode = "404", description = "子图不存在")
+    })
+    public ResponseEntity<Result<SubgraphResourcesWithRelationsDTO>> getSubgraphResourcesWithRelations(
+            @Parameter(description = "子图ID") @PathVariable Long subgraphId) {
+        Long userId = getCurrentUserId();
+        SubgraphResourcesWithRelationsDTO result = subgraphApplicationService.getSubgraphResourcesWithRelations(
+                subgraphId, userId);
+        if (result == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(Result.success(result));
     }
 
     // ==================== 辅助方法 ====================

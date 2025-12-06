@@ -3,6 +3,8 @@ package com.catface996.aiops.application.api.service.subgraph;
 import com.catface996.aiops.application.api.dto.common.PageResult;
 import com.catface996.aiops.application.api.dto.subgraph.SubgraphDTO;
 import com.catface996.aiops.application.api.dto.subgraph.SubgraphDetailDTO;
+import com.catface996.aiops.application.api.dto.subgraph.SubgraphResourceDTO;
+import com.catface996.aiops.application.api.dto.subgraph.SubgraphResourcesWithRelationsDTO;
 import com.catface996.aiops.application.api.dto.subgraph.SubgraphTopologyDTO;
 import com.catface996.aiops.application.api.dto.subgraph.request.*;
 
@@ -130,6 +132,18 @@ public interface SubgraphApplicationService {
     void removeResources(Long subgraphId, RemoveResourcesRequest request,
                          Long operatorId, String operatorName);
 
+    /**
+     * 查询子图资源列表（分页）
+     *
+     * @param subgraphId 子图ID
+     * @param request 查询请求
+     * @param userId 当前用户ID
+     * @return 分页结果
+     */
+    PageResult<SubgraphResourceDTO> getSubgraphResources(Long subgraphId,
+                                                          ListSubgraphResourcesRequest request,
+                                                          Long userId);
+
     // ==================== 拓扑查询 ====================
 
     /**
@@ -140,4 +154,15 @@ public interface SubgraphApplicationService {
      * @return 子图拓扑DTO
      */
     SubgraphTopologyDTO getSubgraphTopology(Long subgraphId, Long userId);
+
+    /**
+     * 获取子图所有资源及关系（不分页）
+     *
+     * <p>返回子图内所有资源节点的完整信息及节点之间的关系，用于前端拓扑图展示。</p>
+     *
+     * @param subgraphId 子图ID
+     * @param userId 当前用户ID
+     * @return 子图资源及关系DTO
+     */
+    SubgraphResourcesWithRelationsDTO getSubgraphResourcesWithRelations(Long subgraphId, Long userId);
 }

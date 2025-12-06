@@ -5,11 +5,12 @@ import com.catface996.aiops.application.api.dto.relationship.*;
 import com.catface996.aiops.application.api.dto.relationship.request.CreateRelationshipRequest;
 import com.catface996.aiops.application.api.dto.relationship.request.UpdateRelationshipRequest;
 import com.catface996.aiops.application.api.service.relationship.RelationshipApplicationService;
-import com.catface996.aiops.interface_.http.response.ApiResponse;
+import com.catface996.aiops.interface_.http.response.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -46,18 +47,18 @@ public class RelationshipController {
     @Operation(summary = "创建关系", description = "创建两个资源之间的关系")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "创建成功",
+            @ApiResponse(responseCode = "201", description = "创建成功",
                     content = @Content(schema = @Schema(implementation = RelationshipDTO.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "参数无效"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "无权限"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "关系已存在")
+            @ApiResponse(responseCode = "400", description = "参数无效"),
+            @ApiResponse(responseCode = "403", description = "无权限"),
+            @ApiResponse(responseCode = "409", description = "关系已存在")
     })
-    public ResponseEntity<ApiResponse<RelationshipDTO>> createRelationship(
+    public ResponseEntity<Result<RelationshipDTO>> createRelationship(
             @Valid @RequestBody CreateRelationshipRequest request) {
         Long operatorId = getCurrentUserId();
         RelationshipDTO result = relationshipApplicationService.createRelationship(request, operatorId);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(result));
+                .body(Result.success(result));
     }
 
     /**
@@ -66,7 +67,7 @@ public class RelationshipController {
     @GetMapping
     @Operation(summary = "查询关系列表", description = "分页查询关系列表，支持多条件筛选")
     @SecurityRequirement(name = "bearerAuth")
-    public ResponseEntity<ApiResponse<PageResult<RelationshipDTO>>> listRelationships(
+    public ResponseEntity<Result<PageResult<RelationshipDTO>>> listRelationships(
             @Parameter(description = "源资源ID") @RequestParam(required = false) Long sourceResourceId,
             @Parameter(description = "目标资源ID") @RequestParam(required = false) Long targetResourceId,
             @Parameter(description = "关系类型") @RequestParam(required = false) String relationshipType,
@@ -75,7 +76,7 @@ public class RelationshipController {
             @Parameter(description = "每页大小") @RequestParam(defaultValue = "20") Integer pageSize) {
         PageResult<RelationshipDTO> result = relationshipApplicationService.listRelationships(
                 sourceResourceId, targetResourceId, relationshipType, status, pageNum, pageSize);
-        return ResponseEntity.ok(ApiResponse.success(result));
+        return ResponseEntity.ok(Result.success(result));
     }
 
     /**
@@ -84,10 +85,10 @@ public class RelationshipController {
     @GetMapping("/resource/{resourceId}")
     @Operation(summary = "获取资源的所有关系", description = "查询指定资源的上游和下游依赖关系")
     @SecurityRequirement(name = "bearerAuth")
-    public ResponseEntity<ApiResponse<ResourceRelationshipsDTO>> getResourceRelationships(
+    public ResponseEntity<Result<ResourceRelationshipsDTO>> getResourceRelationships(
             @Parameter(description = "资源ID") @PathVariable Long resourceId) {
         ResourceRelationshipsDTO result = relationshipApplicationService.getResourceRelationships(resourceId);
-        return ResponseEntity.ok(ApiResponse.success(result));
+        return ResponseEntity.ok(Result.success(result));
     }
 
     /**
@@ -96,10 +97,10 @@ public class RelationshipController {
     @GetMapping("/{relationshipId}")
     @Operation(summary = "获取关系详情", description = "根据ID查询关系详情")
     @SecurityRequirement(name = "bearerAuth")
-    public ResponseEntity<ApiResponse<RelationshipDTO>> getRelationshipById(
+    public ResponseEntity<Result<RelationshipDTO>> getRelationshipById(
             @Parameter(description = "关系ID") @PathVariable Long relationshipId) {
         RelationshipDTO result = relationshipApplicationService.getRelationshipById(relationshipId);
-        return ResponseEntity.ok(ApiResponse.success(result));
+        return ResponseEntity.ok(Result.success(result));
     }
 
     /**
@@ -109,17 +110,17 @@ public class RelationshipController {
     @Operation(summary = "更新关系", description = "更新关系的属性")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "更新成功"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "无权限"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "关系不存在")
+            @ApiResponse(responseCode = "200", description = "更新成功"),
+            @ApiResponse(responseCode = "403", description = "无权限"),
+            @ApiResponse(responseCode = "404", description = "关系不存在")
     })
-    public ResponseEntity<ApiResponse<RelationshipDTO>> updateRelationship(
+    public ResponseEntity<Result<RelationshipDTO>> updateRelationship(
             @Parameter(description = "关系ID") @PathVariable Long relationshipId,
             @Valid @RequestBody UpdateRelationshipRequest request) {
         Long operatorId = getCurrentUserId();
         RelationshipDTO result = relationshipApplicationService.updateRelationship(
                 relationshipId, request, operatorId);
-        return ResponseEntity.ok(ApiResponse.success(result));
+        return ResponseEntity.ok(Result.success(result));
     }
 
     /**
@@ -129,9 +130,9 @@ public class RelationshipController {
     @Operation(summary = "删除关系", description = "删除指定的关系")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "删除成功"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "无权限"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "关系不存在")
+            @ApiResponse(responseCode = "204", description = "删除成功"),
+            @ApiResponse(responseCode = "403", description = "无权限"),
+            @ApiResponse(responseCode = "404", description = "关系不存在")
     })
     public ResponseEntity<Void> deleteRelationship(
             @Parameter(description = "关系ID") @PathVariable Long relationshipId) {
@@ -146,10 +147,10 @@ public class RelationshipController {
     @GetMapping("/resource/{resourceId}/cycle-detection")
     @Operation(summary = "检测循环依赖", description = "检测从指定资源开始是否存在循环依赖")
     @SecurityRequirement(name = "bearerAuth")
-    public ResponseEntity<ApiResponse<CycleDetectionDTO>> detectCycle(
+    public ResponseEntity<Result<CycleDetectionDTO>> detectCycle(
             @Parameter(description = "资源ID") @PathVariable Long resourceId) {
         CycleDetectionDTO result = relationshipApplicationService.detectCycle(resourceId);
-        return ResponseEntity.ok(ApiResponse.success(result));
+        return ResponseEntity.ok(Result.success(result));
     }
 
     /**
@@ -158,11 +159,11 @@ public class RelationshipController {
     @GetMapping("/resource/{resourceId}/traverse")
     @Operation(summary = "图遍历", description = "从指定资源开始进行广度优先遍历")
     @SecurityRequirement(name = "bearerAuth")
-    public ResponseEntity<ApiResponse<TraverseDTO>> traverse(
+    public ResponseEntity<Result<TraverseDTO>> traverse(
             @Parameter(description = "资源ID") @PathVariable Long resourceId,
             @Parameter(description = "最大深度") @RequestParam(defaultValue = "10") Integer maxDepth) {
         TraverseDTO result = relationshipApplicationService.traverse(resourceId, maxDepth);
-        return ResponseEntity.ok(ApiResponse.success(result));
+        return ResponseEntity.ok(Result.success(result));
     }
 
     /**

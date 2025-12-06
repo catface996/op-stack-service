@@ -230,14 +230,14 @@ if (!sourceResource.isOwner(operatorId)) {
 |-----|------|
 | 🔴 NEW | 1 |
 | 🟡 IN_PROGRESS | 0 |
-| 🟢 FIXED | 0 |
+| 🟢 FIXED | 1 |
 | ✅ VERIFIED | 5 |
-| **总计** | **6** |
+| **总计** | **7** |
 
 | 优先级 | 数量 |
 |-------|------|
 | P0 (致命) | 1 (已修复) |
-| P1 (严重) | 1 (已修复) |
+| P1 (严重) | 2 (已修复) |
 | P2 (一般) | 3 (1待修复, 2已修复) |
 | P3 (轻微) | 1 (已修复) |
 
@@ -253,12 +253,93 @@ if (!sourceResource.isOwner(operatorId)) {
 | 2025-11-26 | BUG-004 | 新建 | /health 端点认证问题 |
 | 2025-12-04 | BUG-005 | 修复+验证 | 权限不足返回 403 而非 401 |
 | 2025-12-04 | BUG-006 | 修复+验证 | 关系权限检查改为只检查源资源 |
+| 2025-12-06 | BUG-007 | 修复 | 添加查询子图资源列表的GET端点 |
+
+---
+
+### BUG-007: 缺少查询子图资源列表的API端点
+
+| 属性 | 值 |
+|-----|-----|
+| **状态** | 🟢 FIXED |
+| **优先级** | P1 |
+| **类型** | 设计缺陷 |
+| **模块** | 子图管理 (F08-subgraph-management) |
+| **发现日期** | 2025-12-06 |
+| **修复日期** | 2025-12-06 |
+
+**问题描述**:
+
+子图管理模块缺少 `GET /api/v1/subgraphs/{id}/resources` 端点，无法查询指定子图包含的资源节点列表。
+
+当前 SubgraphController 只有：
+- `POST /api/v1/subgraphs/{subgraphId}/resources` - 添加资源
+- `DELETE /api/v1/subgraphs/{subgraphId}/resources` - 移除资源
+
+缺少 **GET** 方法来查询子图包含的资源列表，导致前端无法获取子图的资源信息。
+
+**复现步骤**:
+
+```bash
+# 尝试查询子图资源列表
+curl -X GET http://localhost:8080/api/v1/subgraphs/5/resources \
+  -H "Authorization: Bearer <valid_token>"
+
+# 返回 500 Internal Server Error (实际是找不到端点)
+```
+
+**根本原因**:
+
+设计阶段遗漏了查询子图资源列表的 GET 接口，只实现了添加和移除资源的接口。
+
+**修复方案**:
+
+1. 创建 `SubgraphResourceDTO` - 子图资源响应DTO
+2. 创建 `ListSubgraphResourcesRequest` - 分页查询请求DTO
+3. 在 `SubgraphApplicationService` 添加 `getSubgraphResources()` 方法
+4. 在 `SubgraphDomainService` 添加 `getSubgraphResources()` 方法
+5. 在 `SubgraphController` 添加 `GET /{subgraphId}/resources` 端点
+
+**预期响应格式**:
+
+```json
+{
+  "code": 0,
+  "message": "操作成功",
+  "data": {
+    "content": [
+      {
+        "id": 1,
+        "resourceId": 123,
+        "subgraphId": 5,
+        "resourceName": "资源名称",
+        "resourceType": "SERVER",
+        "resourceStatus": "RUNNING",
+        "addedAt": "2025-12-06T10:00:00Z",
+        "addedBy": 1
+      }
+    ],
+    "totalElements": 2
+  },
+  "success": true
+}
+```
+
+**影响文件**:
+- `application/application-api/.../dto/subgraph/SubgraphResourceDTO.java` (新建)
+- `application/application-api/.../dto/subgraph/request/ListSubgraphResourcesRequest.java` (新建)
+- `application/application-api/.../service/subgraph/SubgraphApplicationService.java`
+- `application/application-impl/.../SubgraphApplicationServiceImpl.java`
+- `domain/domain-api/.../SubgraphDomainService.java`
+- `domain/domain-impl/.../SubgraphDomainServiceImpl.java`
+- `interface/interface-http/.../controller/SubgraphController.java`
 
 ---
 
 ## 下一步行动
 
 - [ ] 修复 BUG-004: 在 SecurityConfig 中添加 /health 到公开接口列表
+- [x] 修复 BUG-007: 实现查询子图资源列表的API端点
 
 ---
 

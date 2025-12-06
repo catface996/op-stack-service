@@ -8,11 +8,12 @@ import com.catface996.aiops.application.api.service.auth.AuthApplicationService;
 import com.catface996.aiops.application.api.service.session.SessionApplicationService;
 import com.catface996.aiops.infrastructure.security.api.service.JwtTokenProvider;
 import com.catface996.aiops.interface_.http.dto.auth.RefreshTokenResponse;
-import com.catface996.aiops.interface_.http.response.ApiResponse;
+import com.catface996.aiops.interface_.http.response.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -115,19 +116,19 @@ public class AuthController {
             description = "创建新的用户账号，注册成功后需要使用用户名/邮箱和密码登录"
     )
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "注册成功"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "请求参数无效"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "用户名或邮箱已存在")
+            @ApiResponse(responseCode = "201", description = "注册成功"),
+            @ApiResponse(responseCode = "400", description = "请求参数无效"),
+            @ApiResponse(responseCode = "409", description = "用户名或邮箱已存在")
     })
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<RegisterResult>> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<Result<RegisterResult>> register(@Valid @RequestBody RegisterRequest request) {
         log.info("接收到用户注册请求: username={}, email={}", request.getUsername(), request.getEmail());
 
         RegisterResult result = authApplicationService.register(request);
 
         log.info("用户注册成功: accountId={}, username={}", result.getAccountId(), result.getUsername());
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(result));
+                .body(Result.success(result));
     }
 
     /**
@@ -193,13 +194,13 @@ public class AuthController {
             description = "验证用户凭据并创建会话，支持使用用户名或邮箱登录。登录成功返回JWT Token，客户端需保存并在后续请求中携带"
     )
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "登录成功"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "请求参数无效"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "用户名或密码错误"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "423", description = "账号已被锁定")
+            @ApiResponse(responseCode = "200", description = "登录成功"),
+            @ApiResponse(responseCode = "400", description = "请求参数无效"),
+            @ApiResponse(responseCode = "401", description = "用户名或密码错误"),
+            @ApiResponse(responseCode = "423", description = "账号已被锁定")
     })
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<LoginResult>> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<Result<LoginResult>> login(@Valid @RequestBody LoginRequest request) {
         log.info("接收到用户登录请求: identifier={}, rememberMe={}", request.getIdentifier(), request.getRememberMe());
 
         LoginResult result = authApplicationService.login(request);
@@ -208,7 +209,7 @@ public class AuthController {
                 result.getUserInfo().getAccountId(),
                 result.getUserInfo().getUsername(),
                 result.getSessionId());
-        return ResponseEntity.ok(ApiResponse.success(result));
+        return ResponseEntity.ok(Result.success(result));
     }
 
     /**
@@ -253,12 +254,12 @@ public class AuthController {
             description = "使当前会话失效，登出后需要重新登录才能访问受保护的资源"
     )
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "登出成功"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Token无效或已过期")
+            @ApiResponse(responseCode = "200", description = "登出成功"),
+            @ApiResponse(responseCode = "401", description = "Token无效或已过期")
     })
     @SecurityRequirement(name = "Bearer Authentication")
     @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<Void>> logout(
+    public ResponseEntity<Result<Void>> logout(
             @Parameter(description = "JWT Token", required = true, example = "Bearer eyJhbGciOiJIUzUxMiJ9...")
             @RequestHeader("Authorization") String authorization) {
         log.info("接收到用户登出请求");
@@ -266,7 +267,7 @@ public class AuthController {
         authApplicationService.logout(authorization);
 
         log.info("用户登出成功");
-        return ResponseEntity.ok(ApiResponse.success("登出成功", null));
+        return ResponseEntity.ok(Result.success("登出成功", null));
     }
 
     /**
@@ -307,12 +308,12 @@ public class AuthController {
             description = "使用当前有效的会话刷新访问令牌，获取新的JWT Token"
     )
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "刷新成功"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "令牌无效或会话已过期")
+            @ApiResponse(responseCode = "200", description = "刷新成功"),
+            @ApiResponse(responseCode = "401", description = "令牌无效或会话已过期")
     })
     @SecurityRequirement(name = "Bearer Authentication")
     @PostMapping("/refresh")
-    public ResponseEntity<ApiResponse<RefreshTokenResponse>> refreshToken(
+    public ResponseEntity<Result<RefreshTokenResponse>> refreshToken(
             @Parameter(description = "JWT Token", required = true)
             @RequestHeader("Authorization") String authorization) {
         log.info("接收到刷新令牌请求");
@@ -337,7 +338,7 @@ public class AuthController {
         LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(15);
 
         log.info("令牌刷新成功: userId={}, sessionId={}", userId, sessionId);
-        return ResponseEntity.ok(ApiResponse.success(
+        return ResponseEntity.ok(Result.success(
                 RefreshTokenResponse.of(newToken, sessionId, expiresAt)));
     }
 

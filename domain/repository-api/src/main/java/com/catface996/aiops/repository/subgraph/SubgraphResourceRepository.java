@@ -120,4 +120,14 @@ public interface SubgraphResourceRepository {
      * @return true 如果子图为空
      */
     boolean isSubgraphEmpty(Long subgraphId);
+
+    /**
+     * 分页查询子图中的资源关联记录
+     *
+     * @param subgraphId 子图ID
+     * @param page 页码（从1开始）
+     * @param size 每页大小
+     * @return 资源关联列表
+     */
+    List<SubgraphResource> findBySubgraphIdPaged(Long subgraphId, int page, int size);
 }

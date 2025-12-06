@@ -3,7 +3,7 @@ package com.catface996.aiops.interface_.http.exception;
 import com.catface996.aiops.common.exception.BusinessException;
 import com.catface996.aiops.common.exception.ParameterException;
 import com.catface996.aiops.common.exception.SystemException;
-import com.catface996.aiops.interface_.http.response.ApiResponse;
+import com.catface996.aiops.interface_.http.response.Result;
 import com.catface996.aiops.interface_.http.response.ErrorDetail;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -91,14 +91,14 @@ public class GlobalExceptionHandler {
      * @return 400 错误响应
      */
     @ExceptionHandler(ParameterException.class)
-    public ResponseEntity<ApiResponse<List<String>>> handleParameterException(ParameterException e) {
+    public ResponseEntity<Result<List<String>>> handleParameterException(ParameterException e) {
         log.warn("[全局异常处理] 参数异常: code={}, message={}, errors={}",
                 e.getErrorCode(), e.getMessage(), e.getValidationErrors());
 
         Integer httpErrorCode = parseHttpErrorCode(e.getErrorCode());
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error(httpErrorCode, e.getMessage(), e.getValidationErrors()));
+                .body(Result.error(httpErrorCode, e.getMessage(), e.getValidationErrors()));
     }
 
     /**
@@ -108,7 +108,7 @@ public class GlobalExceptionHandler {
      * @return 400 错误响应
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<List<ErrorDetail>>> handleMethodArgumentNotValidException(
+    public ResponseEntity<Result<List<ErrorDetail>>> handleMethodArgumentNotValidException(
             MethodArgumentNotValidException e) {
         log.warn("[全局异常处理] Spring参数验证失败: {} 个字段错误", e.getBindingResult().getFieldErrorCount());
 
@@ -118,7 +118,7 @@ public class GlobalExceptionHandler {
         }
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error(400002, "请求参数无效", errors));
+                .body(Result.error(400002, "请求参数无效", errors));
     }
 
     // ==================== 业务异常（根据错误码动态返回状态码） ====================
@@ -153,7 +153,7 @@ public class GlobalExceptionHandler {
      * @return 错误响应（状态码根据 errorCode 动态判断）
      */
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException e) {
+    public ResponseEntity<Result<Void>> handleBusinessException(BusinessException e) {
         log.warn("[全局异常处理] 业务异常: code={}, message={}", e.getErrorCode(), e.getErrorMessage());
 
         Integer httpErrorCode = parseHttpErrorCode(e.getErrorCode());
@@ -162,7 +162,7 @@ public class GlobalExceptionHandler {
         HttpStatus httpStatus = determineHttpStatus(e.getErrorCode());
 
         return ResponseEntity.status(httpStatus)
-                .body(ApiResponse.error(httpErrorCode, e.getErrorMessage()));
+                .body(Result.error(httpErrorCode, e.getErrorMessage()));
     }
 
     // ==================== 系统异常 (500) ====================
@@ -174,12 +174,12 @@ public class GlobalExceptionHandler {
      * @return 500 错误响应
      */
     @ExceptionHandler(SystemException.class)
-    public ResponseEntity<ApiResponse<Void>> handleSystemException(SystemException e) {
+    public ResponseEntity<Result<Void>> handleSystemException(SystemException e) {
         log.error("[全局异常处理] 系统异常: code={}, message={}", e.getErrorCode(), e.getErrorMessage(), e);
 
         // 系统异常不向用户暴露内部细节
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error(500001, "系统异常，请稍后重试"));
+                .body(Result.error(500001, "系统异常，请稍后重试"));
     }
 
     /**
@@ -189,12 +189,12 @@ public class GlobalExceptionHandler {
      * @return 500 错误响应
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Void>> handleException(Exception e) {
+    public ResponseEntity<Result<Void>> handleException(Exception e) {
         log.error("[全局异常处理] 未知异常", e);
 
         // 不暴露内部实现细节
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error(500002, "系统错误，请稍后重试"));
+                .body(Result.error(500002, "系统错误，请稍后重试"));
     }
 
     // ==================== 工具方法 ====================

@@ -248,6 +248,42 @@ paths:
           description: Subgraph not found
 
   /api/v1/subgraphs/{subgraphId}/resources:
+    get:
+      summary: List subgraph resources (paginated)
+      operationId: listSubgraphResources
+      description: Get paginated list of resources in the subgraph with full resource information
+      parameters:
+        - name: subgraphId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: Resource list retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubgraphResourceListResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - No permission
+        '404':
+          description: Subgraph not found
+
     post:
       summary: Add resources to subgraph
       operationId: addResources
@@ -301,6 +337,32 @@ paths:
           description: Forbidden - Not an owner
         '404':
           description: Subgraph or resource not found
+
+  /api/v1/subgraphs/{subgraphId}/resources-with-relations:
+    get:
+      summary: Get subgraph resources with relationships (non-paginated)
+      operationId: getSubgraphResourcesWithRelations
+      description: Get all resources in the subgraph with full information and their relationships. Used for topology graph visualization.
+      parameters:
+        - name: subgraphId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Resources and relationships retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubgraphResourcesWithRelationsResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - No permission
+        '404':
+          description: Subgraph not found
 
   /api/v1/subgraphs/{subgraphId}/topology:
     get:
@@ -586,6 +648,117 @@ components:
         addedBy:
           type: integer
           format: int64
+
+    SubgraphResourceDTO:
+      type: object
+      description: Subgraph resource information with full details
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Association ID
+        resourceId:
+          type: integer
+          format: int64
+          description: Resource node ID
+        subgraphId:
+          type: integer
+          format: int64
+          description: Subgraph ID
+        resourceName:
+          type: string
+          description: Resource name
+        resourceType:
+          type: string
+          description: Resource type name
+        resourceStatus:
+          type: string
+          description: Resource status
+        addedAt:
+          type: string
+          format: date-time
+          description: Time when added to subgraph
+        addedBy:
+          type: integer
+          format: int64
+          description: User ID who added this resource
+
+    SubgraphResourceListResponse:
+      type: object
+      description: Paginated list of subgraph resources
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubgraphResourceDTO'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    SubgraphResourcesWithRelationsResponse:
+      type: object
+      description: All subgraph resources with their relationships (non-paginated)
+      properties:
+        subgraphId:
+          type: integer
+          format: int64
+        subgraphName:
+          type: string
+        resources:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubgraphResourceDTO'
+          description: All resources in the subgraph
+        relationships:
+          type: array
+          items:
+            $ref: '#/components/schemas/RelationshipDTO'
+          description: Relationships between resources within the subgraph
+        nodeCount:
+          type: integer
+          description: Total number of nodes
+        edgeCount:
+          type: integer
+          description: Total number of edges (relationships)
+
+    RelationshipDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        sourceResourceId:
+          type: integer
+          format: int64
+        sourceResourceName:
+          type: string
+        targetResourceId:
+          type: integer
+          format: int64
+        targetResourceName:
+          type: string
+        relationshipType:
+          type: string
+        direction:
+          type: string
+        strength:
+          type: string
+        status:
+          type: string
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
 
     ErrorResponse:
       type: object

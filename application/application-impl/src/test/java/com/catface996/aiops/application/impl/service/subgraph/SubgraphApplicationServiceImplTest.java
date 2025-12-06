@@ -10,6 +10,7 @@ import com.catface996.aiops.domain.model.subgraph.Subgraph;
 import com.catface996.aiops.domain.model.subgraph.SubgraphPermission;
 import com.catface996.aiops.domain.model.subgraph.SubgraphTopology;
 import com.catface996.aiops.domain.service.subgraph.SubgraphDomainService;
+import com.catface996.aiops.repository.resource.ResourceRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -38,11 +39,13 @@ class SubgraphApplicationServiceImplTest {
 
     private SubgraphApplicationServiceImpl subgraphApplicationService;
     private SubgraphDomainService subgraphDomainService;
+    private ResourceRepository resourceRepository;
 
     @BeforeEach
     void setUp() {
         subgraphDomainService = mock(SubgraphDomainService.class);
-        subgraphApplicationService = new SubgraphApplicationServiceImpl(subgraphDomainService);
+        resourceRepository = mock(ResourceRepository.class);
+        subgraphApplicationService = new SubgraphApplicationServiceImpl(subgraphDomainService, resourceRepository);
     }
 
     // ==================== 任务14: 创建子图测试 ====================

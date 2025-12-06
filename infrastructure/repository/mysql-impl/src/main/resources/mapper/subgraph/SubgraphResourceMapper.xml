@@ -77,4 +77,13 @@
         WHERE resource_id = #{resourceId}
     </delete>
 
+    <!-- 分页查询子图中的资源关联 -->
+    <select id="selectBySubgraphIdPaged" resultType="com.catface996.aiops.repository.mysql.po.subgraph.SubgraphResourcePO">
+        SELECT id, subgraph_id, resource_id, added_at, added_by
+        FROM subgraph_resource
+        WHERE subgraph_id = #{subgraphId}
+        ORDER BY added_at ASC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
 </mapper>

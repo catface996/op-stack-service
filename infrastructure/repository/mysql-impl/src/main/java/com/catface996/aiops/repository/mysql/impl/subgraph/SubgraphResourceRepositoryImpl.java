@@ -142,6 +142,18 @@ public class SubgraphResourceRepositoryImpl implements SubgraphResourceRepositor
         return resourceMapper.countBySubgraphId(subgraphId) == 0;
     }
 
+    @Override
+    public List<SubgraphResource> findBySubgraphIdPaged(Long subgraphId, int page, int size) {
+        if (subgraphId == null) {
+            throw new IllegalArgumentException("子图ID不能为null");
+        }
+        int offset = (page - 1) * size;
+        List<SubgraphResourcePO> poList = resourceMapper.selectBySubgraphIdPaged(subgraphId, offset, size);
+        return poList.stream()
+                .map(this::toEntity)
+                .collect(Collectors.toList());
+    }
+
     // ==================== 对象转换方法 ====================
 
     /**

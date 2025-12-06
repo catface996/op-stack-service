@@ -35,7 +35,7 @@ import java.io.Serializable;
  * @since 2025-11-24
  */
 @Data
-public class ApiResponse<T> implements Serializable {
+public class Result<T> implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -58,7 +58,7 @@ public class ApiResponse<T> implements Serializable {
     /**
      * 私有构造函数
      */
-    private ApiResponse() {
+    private Result() {
     }
 
     /**
@@ -68,7 +68,7 @@ public class ApiResponse<T> implements Serializable {
      * @param message 响应消息
      * @param data    响应数据
      */
-    private ApiResponse(Integer code, String message, T data) {
+    private Result(Integer code, String message, T data) {
         this.code = code;
         this.message = message;
         this.data = data;
@@ -80,8 +80,8 @@ public class ApiResponse<T> implements Serializable {
      * @param <T> 数据类型
      * @return 成功响应对象
      */
-    public static <T> ApiResponse<T> success() {
-        return new ApiResponse<>(0, "操作成功", null);
+    public static <T> Result<T> success() {
+        return new Result<>(0, "操作成功", null);
     }
 
     /**
@@ -91,8 +91,8 @@ public class ApiResponse<T> implements Serializable {
      * @param <T>  数据类型
      * @return 成功响应对象
      */
-    public static <T> ApiResponse<T> success(T data) {
-        return new ApiResponse<>(0, "操作成功", data);
+    public static <T> Result<T> success(T data) {
+        return new Result<>(0, "操作成功", data);
     }
 
     /**
@@ -103,8 +103,8 @@ public class ApiResponse<T> implements Serializable {
      * @param <T>     数据类型
      * @return 成功响应对象
      */
-    public static <T> ApiResponse<T> success(String message, T data) {
-        return new ApiResponse<>(0, message, data);
+    public static <T> Result<T> success(String message, T data) {
+        return new Result<>(0, message, data);
     }
 
     /**
@@ -115,8 +115,8 @@ public class ApiResponse<T> implements Serializable {
      * @param <T>     数据类型
      * @return 失败响应对象
      */
-    public static <T> ApiResponse<T> error(Integer code, String message) {
-        return new ApiResponse<>(code, message, null);
+    public static <T> Result<T> error(Integer code, String message) {
+        return new Result<>(code, message, null);
     }
 
     /**
@@ -128,8 +128,8 @@ public class ApiResponse<T> implements Serializable {
      * @param <T>     数据类型
      * @return 失败响应对象
      */
-    public static <T> ApiResponse<T> error(Integer code, String message, T data) {
-        return new ApiResponse<>(code, message, data);
+    public static <T> Result<T> error(Integer code, String message, T data) {
+        return new Result<>(code, message, data);
     }
 
     /**

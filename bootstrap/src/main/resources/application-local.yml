@@ -15,13 +15,13 @@ spring:
       host: localhost
       port: 6379
       database: 0
-      password: 
+      password: difyai123456
       
   # 数据源配置
   datasource:
-    url: jdbc:mysql://localhost:3306/aiops_local?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC&useSSL=false
+    url: jdbc:mysql://localhost:3306/aiops_local?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true
     username: root
-    password: root
+    password: root123
     driver-class-name: com.mysql.cj.jdbc.Driver
     type: com.alibaba.druid.pool.DruidDataSource
 
@@ -54,6 +54,9 @@ spring:
           slow-sql-millis: 1000
         wall:
           enabled: true
+          config:
+            multi-statement-allow: true
+            none-base-statement-allow: true
 
 # MyBatis-Plus 配置 (Local 环境特定)
 mybatis-plus:
