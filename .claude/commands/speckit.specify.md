@@ -20,7 +20,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ## Outline
 
-The text the user typed after `/speckit.specify` in the triggering message **is** the feature description. Assume you always have it available in this conversation even if `$ARGUMENTS` appears literally below. Do not ask the user to repeat it unless they provided an empty command.
+The text the user typed after `/speckit.specify` in the triggering message **is** the feature description. Assume you always have it available in this conversation even if `{ARGS}` appears literally below. Do not ask the user to repeat it unless they provided an empty command.
 
 Given that feature description, do this:
 
@@ -37,27 +37,28 @@ Given that feature description, do this:
      - "Fix payment processing timeout bug" → "fix-payment-timeout"
 
 2. **Check for existing branches before creating new one**:
-   
+
    a. First, fetch all remote branches to ensure we have the latest information:
+
       ```bash
       git fetch --all --prune
       ```
-   
+
    b. Find the highest feature number across all sources for the short-name:
       - Remote branches: `git ls-remote --heads origin | grep -E 'refs/heads/[0-9]+-<short-name>$'`
       - Local branches: `git branch | grep -E '^[* ]*[0-9]+-<short-name>$'`
       - Specs directories: Check for directories matching `specs/[0-9]+-<short-name>`
-   
+
    c. Determine the next available number:
       - Extract all numbers from all three sources
       - Find the highest number N
       - Use N+1 for the new branch number
-   
-   d. Run the script `.specify/scripts/bash/create-new-feature.sh --json "$ARGUMENTS"` with the calculated number and short-name:
+
+   d. Run the script `scripts/bash/create-new-feature.sh --json "{ARGS}"` with the calculated number and short-name:
       - Pass `--number N+1` and `--short-name "your-short-name"` along with the feature description
-      - Bash example: `.specify/scripts/bash/create-new-feature.sh --json "$ARGUMENTS" --json --number 5 --short-name "user-auth" "Add user authentication"`
-      - PowerShell example: `.specify/scripts/bash/create-new-feature.sh --json "$ARGUMENTS" -Json -Number 5 -ShortName "user-auth" "Add user authentication"`
-   
+      - Bash example: `scripts/bash/create-new-feature.sh --json "{ARGS}" --json --number 5 --short-name "user-auth" "Add user authentication"`
+      - PowerShell example: `scripts/bash/create-new-feature.sh --json "{ARGS}" -Json -Number 5 -ShortName "user-auth" "Add user authentication"`
+
    **IMPORTANT**:
    - Check all three sources (remote branches, local branches, specs directories) to find the highest number
    - Only match branches/directories with the exact short-name pattern
@@ -67,7 +68,7 @@ Given that feature description, do this:
    - The JSON output will contain BRANCH_NAME and SPEC_FILE paths
    - For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot")
 
-3. Load `.specify/templates/spec-template.md` to understand required sections.
+3. Load `templates/spec-template.md` to understand required sections.
 
 4. Follow this execution flow:
 

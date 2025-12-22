@@ -9,6 +9,7 @@ import com.catface996.aiops.domain.model.resource.ResourceStatus;
 import com.catface996.aiops.domain.model.resource.ResourceType;
 import com.catface996.aiops.domain.service.resource.AuditLogService;
 import com.catface996.aiops.domain.service.resource.ResourceDomainService;
+import com.catface996.aiops.domain.service.subgraph.SubgraphMemberDomainService;
 import com.catface996.aiops.infrastructure.cache.api.service.ResourceCacheService;
 import com.catface996.aiops.infrastructure.security.api.service.EncryptionService;
 import com.catface996.aiops.repository.resource.ResourceRepository;
@@ -51,6 +52,8 @@ public class ResourceDomainServiceImpl implements ResourceDomainService {
 
     private static final Logger logger = LoggerFactory.getLogger(ResourceDomainServiceImpl.class);
 
+    private static final String SUBGRAPH_TYPE_CODE = "SUBGRAPH";
+
     private final ResourceRepository resourceRepository;
     private final ResourceTypeRepository resourceTypeRepository;
     private final ResourceTagRepository resourceTagRepository;
@@ -58,6 +61,7 @@ public class ResourceDomainServiceImpl implements ResourceDomainService {
     private final ResourceCacheService cacheService;
     private final AuditLogService auditLogService;
     private final ObjectMapper objectMapper;
+    private final SubgraphMemberDomainService subgraphMemberDomainService;
 
     public ResourceDomainServiceImpl(
             ResourceRepository resourceRepository,
@@ -66,7 +70,8 @@ public class ResourceDomainServiceImpl implements ResourceDomainService {
             EncryptionService encryptionService,
             ResourceCacheService cacheService,
             AuditLogService auditLogService,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            SubgraphMemberDomainService subgraphMemberDomainService) {
         this.resourceRepository = resourceRepository;
         this.resourceTypeRepository = resourceTypeRepository;
         this.resourceTagRepository = resourceTagRepository;
@@ -74,6 +79,7 @@ public class ResourceDomainServiceImpl implements ResourceDomainService {
         this.cacheService = cacheService;
         this.auditLogService = auditLogService;
         this.objectMapper = objectMapper;
+        this.subgraphMemberDomainService = subgraphMemberDomainService;
     }
 
     @Override
@@ -270,7 +276,14 @@ public class ResourceDomainServiceImpl implements ResourceDomainService {
             throw new BusinessException(ResourceErrorCode.RESOURCE_NAME_MISMATCH);
         }
 
-        // 3. 保存旧值用于审计
+        // 3. 如果是子图类型，验证子图为空
+        if (isSubgraphType(resource)) {
+            if (!subgraphMemberDomainService.isSubgraphEmpty(resourceId)) {
+                throw new BusinessException(ResourceErrorCode.SUBGRAPH_NOT_EMPTY);
+            }
+        }
+
+        // 4. 保存旧值用于审计
         String oldValue = toJson(resource);
 
         // 4. 删除资源标签
@@ -467,6 +480,16 @@ public class ResourceDomainServiceImpl implements ResourceDomainService {
         }
         String lowerName = fieldName.toLowerCase();
         return SENSITIVE_FIELDS.stream().anyMatch(lowerName::contains);
+    }
+
+    /**
+     * 判断资源是否为子图类型
+     */
+    private boolean isSubgraphType(Resource resource) {
+        if (resource == null || resource.getResourceType() == null) {
+            return false;
+        }
+        return SUBGRAPH_TYPE_CODE.equals(resource.getResourceType().getCode());
     }
 
     /**

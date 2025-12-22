@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.catface996.aiops.repository.mysql.mapper.subgraph.SubgraphMemberMapper">
+
+    <!-- 结果映射：基础字段 -->
+    <resultMap id="BaseResultMap" type="com.catface996.aiops.repository.mysql.po.subgraph.SubgraphMemberPO">
+        <id column="id" property="id"/>
+        <result column="subgraph_id" property="subgraphId"/>
+        <result column="member_id" property="memberId"/>
+        <result column="added_at" property="addedAt"/>
+        <result column="added_by" property="addedBy"/>
+    </resultMap>
+
+    <!-- 结果映射：含成员详情 -->
+    <resultMap id="DetailResultMap" type="com.catface996.aiops.repository.mysql.po.subgraph.SubgraphMemberPO">
+        <id column="id" property="id"/>
+        <result column="subgraph_id" property="subgraphId"/>
+        <result column="member_id" property="memberId"/>
+        <result column="added_at" property="addedAt"/>
+        <result column="added_by" property="addedBy"/>
+        <result column="member_name" property="memberName"/>
+        <result column="member_type_code" property="memberTypeCode"/>
+        <result column="member_status" property="memberStatus"/>
+        <result column="is_subgraph" property="isSubgraph"/>
+        <result column="nested_member_count" property="nestedMemberCount"/>
+    </resultMap>
+
+    <!-- 批量插入成员关联 -->
+    <insert id="batchInsert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO subgraph_member (subgraph_id, member_id, added_at, added_by)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.subgraphId}, #{item.memberId}, #{item.addedAt}, #{item.addedBy})
+        </foreach>
+    </insert>
+
+    <!-- 批量删除成员关联 -->
+    <delete id="batchDeleteBySubgraphIdAndMemberIds">
+        DELETE FROM subgraph_member
+        WHERE subgraph_id = #{subgraphId}
+        AND member_id IN
+        <foreach collection="memberIds" item="memberId" open="(" separator="," close=")">
+            #{memberId}
+        </foreach>
+    </delete>
+
+    <!-- 根据子图 ID 查询所有成员（含成员详情 JOIN 查询） -->
+    <select id="selectBySubgraphIdWithDetails" resultMap="DetailResultMap">
+        SELECT
+            sm.id,
+            sm.subgraph_id,
+            sm.member_id,
+            sm.added_at,
+            sm.added_by,
+            r.name AS member_name,
+            rt.code AS member_type_code,
+            r.status AS member_status,
+            (rt.code = 'SUBGRAPH') AS is_subgraph,
+            (SELECT COUNT(*) FROM subgraph_member WHERE subgraph_id = sm.member_id) AS nested_member_count
+        FROM subgraph_member sm
+        JOIN resource r ON sm.member_id = r.id
+        JOIN resource_type rt ON r.resource_type_id = rt.id
+        WHERE sm.subgraph_id = #{subgraphId}
+        ORDER BY sm.added_at DESC
+    </select>
+
+    <!-- 分页查询子图成员（含成员详情 JOIN 查询） -->
+    <select id="selectBySubgraphIdPagedWithDetails" resultMap="DetailResultMap">
+        SELECT
+            sm.id,
+            sm.subgraph_id,
+            sm.member_id,
+            sm.added_at,
+            sm.added_by,
+            r.name AS member_name,
+            rt.code AS member_type_code,
+            r.status AS member_status,
+            (rt.code = 'SUBGRAPH') AS is_subgraph,
+            (SELECT COUNT(*) FROM subgraph_member WHERE subgraph_id = sm.member_id) AS nested_member_count
+        FROM subgraph_member sm
+        JOIN resource r ON sm.member_id = r.id
+        JOIN resource_type rt ON r.resource_type_id = rt.id
+        WHERE sm.subgraph_id = #{subgraphId}
+        ORDER BY sm.added_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <!-- 查询子图的所有成员 ID -->
+    <select id="selectMemberIdsBySubgraphId" resultType="java.lang.Long">
+        SELECT member_id
+        FROM subgraph_member
+        WHERE subgraph_id = #{subgraphId}
+        ORDER BY added_at ASC
+    </select>
+
+    <!-- 统计子图的成员数量 -->
+    <select id="countBySubgraphId" resultType="int">
+        SELECT COUNT(*)
+        FROM subgraph_member
+        WHERE subgraph_id = #{subgraphId}
+    </select>
+
+    <!-- 查询包含指定成员的所有子图 ID（直接父级） -->
+    <select id="selectSubgraphIdsByMemberId" resultType="java.lang.Long">
+        SELECT subgraph_id
+        FROM subgraph_member
+        WHERE member_id = #{memberId}
+    </select>
+
+    <!-- 查询包含指定成员的所有子图关联 -->
+    <select id="selectByMemberId" resultMap="BaseResultMap">
+        SELECT id, subgraph_id, member_id, added_at, added_by
+        FROM subgraph_member
+        WHERE member_id = #{memberId}
+        ORDER BY added_at ASC
+    </select>
+
+    <!-- 检查成员是否已在子图中 -->
+    <select id="existsBySubgraphIdAndMemberId" resultType="int">
+        SELECT COUNT(1)
+        FROM subgraph_member
+        WHERE subgraph_id = #{subgraphId} AND member_id = #{memberId}
+        LIMIT 1
+    </select>
+
+    <!-- 检查子图是否有任何成员 -->
+    <select id="hasMembers" resultType="int">
+        SELECT COUNT(1)
+        FROM subgraph_member
+        WHERE subgraph_id = #{subgraphId}
+        LIMIT 1
+    </select>
+
+    <!-- 检查指定资源是否为子图类型 -->
+    <select id="isSubgraphType" resultType="int">
+        SELECT COUNT(1)
+        FROM resource r
+        JOIN resource_type rt ON r.resource_type_id = rt.id
+        WHERE r.id = #{resourceId} AND rt.code = 'SUBGRAPH'
+        LIMIT 1
+    </select>
+
+    <!-- 批量筛选子图类型的资源 ID -->
+    <select id="filterSubgraphTypeIds" resultType="java.lang.Long">
+        SELECT r.id
+        FROM resource r
+        JOIN resource_type rt ON r.resource_type_id = rt.id
+        WHERE rt.code = 'SUBGRAPH'
+        AND r.id IN
+        <foreach collection="resourceIds" item="resourceId" open="(" separator="," close=")">
+            #{resourceId}
+        </foreach>
+    </select>
+
+    <!-- 删除单个成员关联 -->
+    <delete id="deleteBySubgraphIdAndMemberId">
+        DELETE FROM subgraph_member
+        WHERE subgraph_id = #{subgraphId} AND member_id = #{memberId}
+    </delete>
+
+    <!-- 删除子图的所有成员关联 -->
+    <delete id="deleteAllBySubgraphId">
+        DELETE FROM subgraph_member
+        WHERE subgraph_id = #{subgraphId}
+    </delete>
+
+</mapper>

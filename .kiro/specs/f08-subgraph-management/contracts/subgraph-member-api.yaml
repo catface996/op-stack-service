@@ -1,0 +1,485 @@
+openapi: 3.0.3
+info:
+  title: Subgraph Member Management API
+  version: 2.0.0
+  description: |
+    子图成员管理 API。子图 CRUD 操作复用资源 API (`/api/v1/resources`)，
+    本文档仅定义子图特有的成员管理接口。
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development server
+
+tags:
+  - name: Subgraph Members
+    description: 子图成员管理操作
+
+paths:
+  /subgraphs/{subgraphId}/members:
+    get:
+      tags: [Subgraph Members]
+      summary: 查询子图成员列表（分页）
+      operationId: listSubgraphMembers
+      description: 获取子图的成员列表，支持分页。成员可以包含其他子图（嵌套）。
+      parameters:
+        - name: subgraphId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: 子图资源 ID
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: 成员列表获取成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubgraphMemberListResponse'
+        '401':
+          description: 未认证
+        '403':
+          description: 无权限访问
+        '404':
+          description: 子图不存在
+
+    post:
+      tags: [Subgraph Members]
+      summary: 添加成员到子图
+      operationId: addMembers
+      description: |
+        添加资源（包括其他子图）作为成员。
+        - 添加子图时会执行循环检测
+        - 不验证成员资源的所有权
+      parameters:
+        - name: subgraphId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddMembersRequest'
+      responses:
+        '200':
+          description: 成员添加成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationResult'
+        '400':
+          description: 请求无效、成员已存在、或检测到循环引用
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未认证
+        '403':
+          description: 不是 Owner，无权添加成员
+        '404':
+          description: 子图或资源不存在
+
+    delete:
+      tags: [Subgraph Members]
+      summary: 从子图移除成员
+      operationId: removeMembers
+      parameters:
+        - name: subgraphId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoveMembersRequest'
+      responses:
+        '204':
+          description: 成员移除成功
+        '401':
+          description: 未认证
+        '403':
+          description: 不是 Owner，无权移除成员
+        '404':
+          description: 子图或成员不存在
+
+  /subgraphs/{subgraphId}/members-with-relations:
+    get:
+      tags: [Subgraph Members]
+      summary: 获取子图成员及关系（非分页）
+      operationId: getMembersWithRelations
+      description: |
+        获取子图所有成员及其关系，用于拓扑图渲染。
+        对于嵌套子图，根据 expandNested 参数决定是否递归展开。
+      parameters:
+        - name: subgraphId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: expandNested
+          in: query
+          schema:
+            type: boolean
+            default: true
+          description: 是否递归展开嵌套子图
+        - name: maxDepth
+          in: query
+          schema:
+            type: integer
+            default: 3
+            maximum: 10
+          description: 嵌套子图最大展开深度
+      responses:
+        '200':
+          description: 成员和关系获取成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubgraphMembersWithRelationsResponse'
+        '401':
+          description: 未认证
+        '403':
+          description: 无权限访问
+        '404':
+          description: 子图不存在
+
+  /subgraphs/{subgraphId}/topology:
+    get:
+      tags: [Subgraph Members]
+      summary: 获取子图拓扑数据
+      operationId: getSubgraphTopology
+      description: |
+        获取优化后的拓扑数据，用于图形可视化。
+        嵌套子图显示为可展开/折叠的节点。
+      parameters:
+        - name: subgraphId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: expandNested
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: 是否默认展开嵌套子图
+      responses:
+        '200':
+          description: 拓扑数据获取成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopologyGraphResponse'
+        '401':
+          description: 未认证
+        '403':
+          description: 无权限访问
+        '404':
+          description: 子图不存在
+
+  /subgraphs/{subgraphId}/ancestors:
+    get:
+      tags: [Subgraph Members]
+      summary: 获取祖先子图
+      operationId: getSubgraphAncestors
+      description: 获取包含此子图的所有父级子图（用于循环检测和导航）
+      parameters:
+        - name: subgraphId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 祖先列表获取成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubgraphAncestorsResponse'
+        '401':
+          description: 未认证
+        '404':
+          description: 子图不存在
+
+components:
+  schemas:
+    AddMembersRequest:
+      type: object
+      required: [memberIds]
+      properties:
+        memberIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+          minItems: 1
+          description: 要添加的资源 ID 列表（可以包含子图 ID 实现嵌套）
+
+    RemoveMembersRequest:
+      type: object
+      required: [memberIds]
+      properties:
+        memberIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+          minItems: 1
+          description: 要移除的资源 ID 列表
+
+    SubgraphMemberDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: 关联 ID
+        memberId:
+          type: integer
+          format: int64
+          description: 成员资源 ID
+        subgraphId:
+          type: integer
+          format: int64
+          description: 父子图 ID
+        memberName:
+          type: string
+          description: 成员资源名称
+        memberType:
+          type: string
+          description: 成员资源类型（如 SERVER, APPLICATION, SUBGRAPH）
+        memberStatus:
+          type: string
+          description: 成员资源状态
+        isSubgraph:
+          type: boolean
+          description: 该成员是否为子图
+        nestedMemberCount:
+          type: integer
+          description: 如果是子图，其包含的成员数量
+        addedAt:
+          type: string
+          format: date-time
+          description: 添加时间
+        addedBy:
+          type: integer
+          format: int64
+          description: 添加者用户 ID
+
+    SubgraphMemberListResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubgraphMemberDTO'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    SubgraphMembersWithRelationsResponse:
+      type: object
+      properties:
+        subgraphId:
+          type: integer
+          format: int64
+        subgraphName:
+          type: string
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubgraphMemberDTO'
+        relationships:
+          type: array
+          items:
+            $ref: '#/components/schemas/RelationshipDTO'
+        nestedSubgraphs:
+          type: array
+          items:
+            $ref: '#/components/schemas/NestedSubgraphInfo'
+        nodeCount:
+          type: integer
+        edgeCount:
+          type: integer
+        maxDepth:
+          type: integer
+
+    NestedSubgraphInfo:
+      type: object
+      properties:
+        subgraphId:
+          type: integer
+          format: int64
+        subgraphName:
+          type: string
+        parentSubgraphId:
+          type: integer
+          format: int64
+        depth:
+          type: integer
+          description: 嵌套深度（0 = 直接成员）
+        memberCount:
+          type: integer
+        expanded:
+          type: boolean
+          description: 是否在响应中展开
+
+    SubgraphAncestorsResponse:
+      type: object
+      properties:
+        subgraphId:
+          type: integer
+          format: int64
+        ancestors:
+          type: array
+          items:
+            $ref: '#/components/schemas/AncestorInfo'
+
+    AncestorInfo:
+      type: object
+      properties:
+        subgraphId:
+          type: integer
+          format: int64
+        subgraphName:
+          type: string
+        depth:
+          type: integer
+          description: 距离查询子图的层数（1 = 直接父级）
+
+    TopologyGraphResponse:
+      type: object
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/TopologyNode'
+        edges:
+          type: array
+          items:
+            $ref: '#/components/schemas/TopologyEdge'
+        subgraphBoundaries:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubgraphBoundary'
+
+    TopologyNode:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        isSubgraph:
+          type: boolean
+        expanded:
+          type: boolean
+        parentSubgraphId:
+          type: integer
+          format: int64
+
+    TopologyEdge:
+      type: object
+      properties:
+        source:
+          type: integer
+          format: int64
+        target:
+          type: integer
+          format: int64
+        type:
+          type: string
+
+    SubgraphBoundary:
+      type: object
+      properties:
+        subgraphId:
+          type: integer
+          format: int64
+        subgraphName:
+          type: string
+        memberIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+
+    RelationshipDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        sourceResourceId:
+          type: integer
+          format: int64
+        targetResourceId:
+          type: integer
+          format: int64
+        relationshipType:
+          type: string
+        direction:
+          type: string
+        strength:
+          type: string
+        status:
+          type: string
+
+    OperationResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+          description: 错误码（如 CIRCULAR_REFERENCE_DETECTED, MEMBER_ALREADY_EXISTS）
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        path:
+          type: string
+        traceId:
+          type: string

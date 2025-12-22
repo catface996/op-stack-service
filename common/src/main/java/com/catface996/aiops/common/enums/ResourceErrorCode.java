@@ -82,7 +82,14 @@ public enum ResourceErrorCode implements ErrorCode {
     /**
      * 资源版本冲突（乐观锁）
      */
-    VERSION_CONFLICT("CONFLICT_003", "资源已被其他用户修改，请刷新后重试");
+    VERSION_CONFLICT("CONFLICT_003", "资源已被其他用户修改，请刷新后重试"),
+
+    // ==================== 子图错误 (400) ====================
+
+    /**
+     * 子图不为空，不能删除
+     */
+    SUBGRAPH_NOT_EMPTY("SUBGRAPH_001", "子图不为空，请先移除所有成员后再删除");
 
     private final String code;
     private final String message;
