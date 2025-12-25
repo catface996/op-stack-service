@@ -3,6 +3,8 @@
 Auto-generated from all feature plans. Last updated: 2025-11-21
 
 ## Active Technologies
+- Java 21 (LTS) + Spring Boot 3.4.1, MyBatis-Plus 3.5.7, SpringDoc OpenAPI (001-remove-llm-service)
+- MySQL 8.0 (via Flyway migrations) (001-remove-llm-service)
 
 - Java 21 (LTS) + Spring Boot 3.4.1, Spring Web MVC, SpringDoc OpenAPI (024-post-only-api)
 - MySQL 8.0 (通过 MyBatis-Plus) (024-post-only-api)
@@ -45,6 +47,7 @@ mvn test
 Java 21 (LTS): Follow standard conventions
 
 ## Recent Changes
+- 001-remove-llm-service: Added Java 21 (LTS) + Spring Boot 3.4.1, MyBatis-Plus 3.5.7, SpringDoc OpenAPI
 
 - 024-post-only-api: Added Java 21 (LTS) + Spring Boot 3.4.1, Spring Web MVC, SpringDoc OpenAPI
 - 001-init-ddd-architecture: Added Java 21 (LTS)
