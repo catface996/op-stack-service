@@ -26,6 +26,9 @@ import lombok.NoArgsConstructor;
 @Schema(description = "更新资源请求")
 public class UpdateResourceRequest {
 
+    @Schema(description = "资源ID（POST-Only API 使用）", example = "1")
+    private Long id;
+
     @Schema(description = "资源名称（null表示不修改）", example = "web-server-02")
     @Size(max = 100, message = "资源名称最长100个字符")
     private String name;

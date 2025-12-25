@@ -27,6 +27,9 @@ import lombok.NoArgsConstructor;
 @Schema(description = "删除资源请求")
 public class DeleteResourceRequest {
 
+    @Schema(description = "资源ID（POST-Only API 使用）", example = "1")
+    private Long id;
+
     @Schema(description = "确认的资源名称（必须与资源名称完全匹配）",
             example = "web-server-01", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "确认名称不能为空")

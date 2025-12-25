@@ -20,6 +20,9 @@ import lombok.NoArgsConstructor;
 @Schema(description = "更新关系请求")
 public class UpdateRelationshipRequest {
 
+    @Schema(description = "关系ID（POST-Only API 使用）", example = "1")
+    private Long relationshipId;
+
     @Schema(description = "关系类型: DEPENDENCY, CALL, DEPLOYMENT, OWNERSHIP, ASSOCIATION",
             example = "DEPENDENCY")
     private String relationshipType;

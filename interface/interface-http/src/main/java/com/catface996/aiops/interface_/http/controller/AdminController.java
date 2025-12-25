@@ -3,7 +3,10 @@ package com.catface996.aiops.interface_.http.controller;
 import com.catface996.aiops.application.api.dto.admin.AccountDTO;
 import com.catface996.aiops.application.api.dto.common.PageResult;
 import com.catface996.aiops.application.api.service.auth.AuthApplicationService;
+import com.catface996.aiops.interface_.http.request.admin.QueryAccountsRequest;
+import com.catface996.aiops.interface_.http.request.admin.UnlockAccountRequest;
 import com.catface996.aiops.interface_.http.response.Result;
+import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -17,13 +20,14 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * 管理员功能控制器
+ * 管理员功能控制器（POST-Only API）
  *
- * <p>提供管理员专用的 HTTP 接口，包括账号管理和系统管理功能。</p>
+ * <p>提供管理员专用的 HTTP 接口，所有业务接口统一使用 POST 方法。</p>
  *
  * <p>接口列表：</p>
  * <ul>
- *   <li>POST /api/v1/admin/accounts/{accountId}/unlock - 手动解锁账号</li>
+ *   <li>POST /api/v1/admin/accounts/unlock - 手动解锁账号</li>
+ *   <li>POST /api/v1/admin/accounts/query - 查询用户列表</li>
  * </ul>
  *
  * <p>统一响应格式：</p>
@@ -62,6 +66,7 @@ import org.springframework.web.bind.annotation.*;
  * <p>需求追溯：</p>
  * <ul>
  *   <li>REQ-FR-006: 管理员手动解锁</li>
+ *   <li>Feature 024: POST-Only API 重构</li>
  * </ul>
  *
  * @author AI Assistant
@@ -107,8 +112,13 @@ public class AdminController {
      *
      * <p>请求示例：</p>
      * <pre>
-     * POST /api/v1/admin/accounts/12345/unlock
-     * Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+     * POST /api/v1/admin/accounts/unlock
+     * Content-Type: application/json
+     *
+     * {
+     *   "accountId": 12345,
+     *   "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+     * }
      * </pre>
      *
      * <p>成功响应示例（200 OK）：</p>
@@ -154,24 +164,22 @@ public class AdminController {
      *   <li>AC4: 管理员尝试解锁未锁定的账号，显示提示消息</li>
      * </ul>
      *
-     * @param authorization JWT Token（包含 Bearer 前缀），通过请求头传递
-     * @param accountId 待解锁的账号ID
+     * @param request 解锁账号请求，包含 accountId 和 authorization
      * @return 操作结果
      * @throws IllegalArgumentException 当请求参数无效时抛出
      * @throws com.catface996.aiops.common.exception.ForbiddenException 当非管理员尝试解锁时抛出
      * @throws com.catface996.aiops.common.exception.AccountNotFoundException 当账号不存在时抛出
      * @throws com.catface996.aiops.common.exception.InvalidTokenException 当 Token 格式错误时抛出
      */
-    @PostMapping("/accounts/{accountId}/unlock")
+    @PostMapping("/accounts/unlock")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Result<Void>> unlockAccount(
-            @RequestHeader("Authorization") String authorization,
-            @PathVariable Long accountId) {
-        log.info("接收到管理员解锁账号请求: accountId={}", accountId);
+            @Valid @RequestBody UnlockAccountRequest request) {
+        log.info("接收到管理员解锁账号请求: accountId={}", request.getAccountId());
 
-        authApplicationService.unlockAccount(authorization, accountId);
+        authApplicationService.unlockAccount(request.getAuthorization(), request.getAccountId());
 
-        log.info("管理员解锁账号成功: accountId={}", accountId);
+        log.info("管理员解锁账号成功: accountId={}", request.getAccountId());
         return ResponseEntity.ok(Result.success("账号解锁成功", null));
     }
 
@@ -182,8 +190,13 @@ public class AdminController {
      *
      * <p>请求示例：</p>
      * <pre>
-     * GET /api/v1/admin/accounts?page=0&size=10
-     * Authorization: Bearer eyJhbGciOiJIUzUxMiJ9...
+     * POST /api/v1/admin/accounts/query
+     * Content-Type: application/json
+     *
+     * {
+     *   "page": 1,
+     *   "size": 10
+     * }
      * </pre>
      *
      * <p>成功响应示例（200 OK）：</p>
@@ -203,7 +216,7 @@ public class AdminController {
      *         "isLocked": false
      *       }
      *     ],
-     *     "page": 0,
+     *     "page": 1,
      *     "size": 10,
      *     "totalElements": 100,
      *     "totalPages": 10,
@@ -213,8 +226,7 @@ public class AdminController {
      * }
      * </pre>
      *
-     * @param page 页码（从1开始），默认1
-     * @param size 每页大小，默认10，最大100
+     * @param request 查询账号请求，包含分页参数
      * @return 分页的用户列表
      */
     @Operation(
@@ -226,18 +238,15 @@ public class AdminController {
             @ApiResponse(responseCode = "401", description = "Token无效"),
             @ApiResponse(responseCode = "403", description = "权限不足")
     })
-    @GetMapping({"/accounts", "/users"})
+    @PostMapping("/accounts/query")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Result<PageResult<AccountDTO>>> getAccounts(
-            @Parameter(description = "页码（从1开始）", example = "1")
-            @RequestParam(defaultValue = "1") int page,
-            @Parameter(description = "每页大小（最大100）", example = "10")
-            @RequestParam(defaultValue = "10") int size) {
-        log.info("接收到获取用户列表请求: page={}, size={}", page, size);
+            @Valid @RequestBody QueryAccountsRequest request) {
+        log.info("接收到获取用户列表请求: page={}, size={}", request.getPage(), request.getSize());
 
         // 边界处理：页码小于1时使用1，size超过100时限制为100
-        int validPage = Math.max(1, page);
-        int validSize = Math.min(Math.max(1, size), 100);
+        int validPage = Math.max(1, request.getPage());
+        int validSize = Math.min(Math.max(1, request.getSize()), 100);
 
         PageResult<AccountDTO> result = authApplicationService.getAccounts(validPage, validSize);
 

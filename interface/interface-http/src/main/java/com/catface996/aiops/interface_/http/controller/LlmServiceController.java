@@ -5,6 +5,10 @@ import com.catface996.aiops.application.api.dto.llm.LlmServiceDTO;
 import com.catface996.aiops.application.api.dto.llm.UpdateLlmServiceCommand;
 import com.catface996.aiops.application.api.dto.llm.UpdateStatusCommand;
 import com.catface996.aiops.application.api.service.llm.LlmServiceApplicationService;
+import com.catface996.aiops.interface_.http.request.llm.DeleteLlmServiceRequest;
+import com.catface996.aiops.interface_.http.request.llm.GetLlmServiceRequest;
+import com.catface996.aiops.interface_.http.request.llm.QueryLlmServicesRequest;
+import com.catface996.aiops.interface_.http.request.llm.SetDefaultLlmServiceRequest;
 import com.catface996.aiops.interface_.http.response.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -27,11 +31,15 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * LLM 服务配置控制器
+ * LLM 服务配置控制器（POST-Only API）
  *
- * <p>提供 LLM 服务管理相关的 HTTP 接口</p>
+ * <p>提供 LLM 服务管理相关的 HTTP 接口，所有业务接口统一使用 POST 方法。</p>
  *
- * <p>需求追溯：FR-001~011</p>
+ * <p>需求追溯：</p>
+ * <ul>
+ *   <li>FR-001~011</li>
+ *   <li>Feature 024: POST-Only API 重构</li>
+ * </ul>
  *
  * @author AI Assistant
  * @since 2025-12-05
@@ -50,7 +58,7 @@ public class LlmServiceController {
     /**
      * 获取 LLM 服务列表
      */
-    @GetMapping
+    @PostMapping("/query")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "获取 LLM 服务列表", description = "获取所有 LLM 服务配置，支持按启用状态过滤")
     @SecurityRequirement(name = "bearerAuth")
@@ -60,9 +68,8 @@ public class LlmServiceController {
             @ApiResponse(responseCode = "403", description = "无权限")
     })
     public ResponseEntity<Result<Map<String, Object>>> listLlmServices(
-            @Parameter(description = "是否只返回启用的服务")
-            @RequestParam(required = false, defaultValue = "false") boolean enabledOnly) {
-        List<LlmServiceDTO> items = llmServiceApplicationService.list(enabledOnly);
+            @Valid @RequestBody QueryLlmServicesRequest request) {
+        List<LlmServiceDTO> items = llmServiceApplicationService.list(request.getEnabledOnly());
         Map<String, Object> result = new HashMap<>();
         result.put("items", items);
         result.put("total", items.size());
@@ -74,7 +81,7 @@ public class LlmServiceController {
     /**
      * 创建 LLM 服务
      */
-    @PostMapping
+    @PostMapping("/create")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "创建 LLM 服务", description = "创建新的 LLM 服务配置")
     @SecurityRequirement(name = "bearerAuth")
@@ -98,9 +105,9 @@ public class LlmServiceController {
     /**
      * 获取 LLM 服务详情
      */
-    @GetMapping("/{id}")
+    @PostMapping("/get")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "获取 LLM 服务详情", description = "根据 ID 获取 LLM 服务配置详情")
+    @Operation(summary = "获取 LLM 服务详情", description = "根据 ID 获取 LLM 服务配置详情。ID通过请求体传递")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "获取成功"),
@@ -109,8 +116,8 @@ public class LlmServiceController {
             @ApiResponse(responseCode = "404", description = "服务不存在")
     })
     public ResponseEntity<Result<LlmServiceDTO>> getLlmService(
-            @Parameter(description = "服务 ID") @PathVariable Long id) {
-        LlmServiceDTO result = llmServiceApplicationService.getById(id);
+            @Valid @RequestBody GetLlmServiceRequest request) {
+        LlmServiceDTO result = llmServiceApplicationService.getById(request.getId());
         return ResponseEntity.ok(Result.success(result));
     }
 
@@ -119,9 +126,9 @@ public class LlmServiceController {
     /**
      * 更新 LLM 服务
      */
-    @PutMapping("/{id}")
+    @PostMapping("/update")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "更新 LLM 服务", description = "更新指定 LLM 服务的配置")
+    @Operation(summary = "更新 LLM 服务", description = "更新指定 LLM 服务的配置。ID通过请求体传递")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "更新成功"),
@@ -132,9 +139,8 @@ public class LlmServiceController {
             @ApiResponse(responseCode = "409", description = "服务名称已存在")
     })
     public ResponseEntity<Result<LlmServiceDTO>> updateLlmService(
-            @Parameter(description = "服务 ID") @PathVariable Long id,
             @Valid @RequestBody UpdateLlmServiceCommand command) {
-        LlmServiceDTO result = llmServiceApplicationService.update(id, command);
+        LlmServiceDTO result = llmServiceApplicationService.update(command.getId(), command);
         return ResponseEntity.ok(Result.success(result));
     }
 
@@ -143,23 +149,21 @@ public class LlmServiceController {
     /**
      * 删除 LLM 服务
      */
-    @DeleteMapping("/{id}")
+    @PostMapping("/delete")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "删除 LLM 服务", description = "删除指定的 LLM 服务配置")
+    @Operation(summary = "删除 LLM 服务", description = "删除指定的 LLM 服务配置。ID通过请求体传递")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "删除成功"),
+            @ApiResponse(responseCode = "200", description = "删除成功"),
             @ApiResponse(responseCode = "401", description = "未认证"),
             @ApiResponse(responseCode = "403", description = "无权限"),
             @ApiResponse(responseCode = "404", description = "服务不存在"),
             @ApiResponse(responseCode = "409", description = "服务被引用，需强制删除")
     })
-    public ResponseEntity<Void> deleteLlmService(
-            @Parameter(description = "服务 ID") @PathVariable Long id,
-            @Parameter(description = "是否强制删除")
-            @RequestParam(required = false, defaultValue = "false") boolean force) {
-        llmServiceApplicationService.delete(id, force);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Result<Void>> deleteLlmService(
+            @Valid @RequestBody DeleteLlmServiceRequest request) {
+        llmServiceApplicationService.delete(request.getId(), request.getForce());
+        return ResponseEntity.ok(Result.success("LLM服务删除成功", null));
     }
 
     // ==================== 更新服务状态 ====================
@@ -167,9 +171,9 @@ public class LlmServiceController {
     /**
      * 更新服务状态（启用/禁用）
      */
-    @PutMapping("/{id}/status")
+    @PostMapping("/update-status")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "更新服务状态", description = "启用或禁用 LLM 服务")
+    @Operation(summary = "更新服务状态", description = "启用或禁用 LLM 服务。ID通过请求体传递")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "更新成功"),
@@ -179,9 +183,8 @@ public class LlmServiceController {
             @ApiResponse(responseCode = "404", description = "服务不存在")
     })
     public ResponseEntity<Result<LlmServiceDTO>> updateLlmServiceStatus(
-            @Parameter(description = "服务 ID") @PathVariable Long id,
             @Valid @RequestBody UpdateStatusCommand command) {
-        LlmServiceDTO result = llmServiceApplicationService.updateStatus(id, command.getEnabled());
+        LlmServiceDTO result = llmServiceApplicationService.updateStatus(command.getId(), command.getEnabled());
         return ResponseEntity.ok(Result.success(result));
     }
 
@@ -190,9 +193,9 @@ public class LlmServiceController {
     /**
      * 设置为默认服务
      */
-    @PutMapping("/{id}/default")
+    @PostMapping("/set-default")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "设置默认服务", description = "将指定服务设为默认 LLM 服务")
+    @Operation(summary = "设置默认服务", description = "将指定服务设为默认 LLM 服务。ID通过请求体传递")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "设置成功"),
@@ -202,8 +205,8 @@ public class LlmServiceController {
             @ApiResponse(responseCode = "404", description = "服务不存在")
     })
     public ResponseEntity<Result<LlmServiceDTO>> setDefaultLlmService(
-            @Parameter(description = "服务 ID") @PathVariable Long id) {
-        LlmServiceDTO result = llmServiceApplicationService.setDefault(id);
+            @Valid @RequestBody SetDefaultLlmServiceRequest request) {
+        LlmServiceDTO result = llmServiceApplicationService.setDefault(request.getId());
         return ResponseEntity.ok(Result.success(result));
     }
 }

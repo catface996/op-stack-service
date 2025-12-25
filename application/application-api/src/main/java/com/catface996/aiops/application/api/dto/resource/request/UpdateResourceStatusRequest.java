@@ -28,6 +28,9 @@ import lombok.NoArgsConstructor;
 @Schema(description = "更新资源状态请求")
 public class UpdateResourceStatusRequest {
 
+    @Schema(description = "资源ID（POST-Only API 使用）", example = "1")
+    private Long id;
+
     @Schema(description = "新状态（RUNNING/STOPPED/MAINTENANCE/OFFLINE）",
             example = "STOPPED", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "状态不能为空")

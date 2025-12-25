@@ -22,6 +22,11 @@ import java.util.List;
 public class AddMembersRequest {
 
     /**
+     * 资源 ID（POST-Only API 使用，从路径参数迁移到请求体）
+     */
+    private Long resourceId;
+
+    /**
      * 要添加的成员资源 ID 列表（可以包含子图 ID 实现嵌套）
      */
     @NotEmpty(message = "成员 ID 列表不能为空")
@@ -38,6 +43,14 @@ public class AddMembersRequest {
     }
 
     // ==================== Getters and Setters ====================
+
+    public Long getResourceId() {
+        return resourceId;
+    }
+
+    public void setResourceId(Long resourceId) {
+        this.resourceId = resourceId;
+    }
 
     public List<Long> getMemberIds() {
         return memberIds;

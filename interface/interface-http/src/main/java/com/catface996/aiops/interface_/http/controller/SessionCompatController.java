@@ -2,7 +2,9 @@ package com.catface996.aiops.interface_.http.controller;
 
 import com.catface996.aiops.application.api.dto.auth.SessionValidationResult;
 import com.catface996.aiops.application.api.service.auth.AuthApplicationService;
+import com.catface996.aiops.interface_.http.request.session.ValidateSessionRequest;
 import com.catface996.aiops.interface_.http.response.Result;
+import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -15,10 +17,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * 会话管理兼容控制器
+ * 会话管理兼容控制器（POST-Only API）
  *
  * <p>提供兼容性的会话管理接口，用于支持前端使用的 /api/v1/session (单数) 路径。</p>
  * <p>注意：新开发请使用 /api/v1/sessions (复数) 路径。</p>
+ *
+ * <p>需求追溯：</p>
+ * <ul>
+ *   <li>Feature 024: POST-Only API 重构</li>
+ * </ul>
  *
  * @author AI Assistant
  * @since 2025-11-29
@@ -39,7 +46,17 @@ public class SessionCompatController {
      * <p>验证用户会话是否有效，委托给 AuthApplicationService 处理。</p>
      * <p>此接口是为了兼容前端使用的 /api/v1/session/validate 路径。</p>
      *
-     * @param authorization JWT Token（包含 Bearer 前缀）
+     * <p>请求示例：</p>
+     * <pre>
+     * POST /api/v1/session/validate
+     * Content-Type: application/json
+     *
+     * {
+     *   "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+     * }
+     * </pre>
+     *
+     * @param request 验证会话请求，包含 authorization
      * @return 会话验证结果
      */
     @Operation(
@@ -50,12 +67,11 @@ public class SessionCompatController {
             @ApiResponse(responseCode = "200", description = "验证完成"),
             @ApiResponse(responseCode = "401", description = "Token无效")
     })
-    @GetMapping("/validate")
+    @PostMapping("/validate")
     public ResponseEntity<Result<SessionValidationResult>> validateSession(
-            @Parameter(description = "JWT Token", required = true)
-            @RequestHeader("Authorization") String authorization) {
+            @Valid @RequestBody ValidateSessionRequest request) {
         log.info("接收到会话验证请求 (兼容路径 /api/v1/session/validate)");
-        SessionValidationResult result = authApplicationService.validateSession(authorization);
+        SessionValidationResult result = authApplicationService.validateSession(request.getAuthorization());
         log.info("会话验证完成: valid={}, sessionId={}", result.isValid(), result.getSessionId());
         return ResponseEntity.ok(Result.success(result));
     }

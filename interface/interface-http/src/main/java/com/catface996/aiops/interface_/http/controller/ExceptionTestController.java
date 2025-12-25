@@ -3,7 +3,7 @@ package com.catface996.aiops.interface_.http.controller;
 import com.catface996.aiops.common.exception.BusinessException;
 import com.catface996.aiops.common.exception.SystemException;
 import com.catface996.aiops.common.result.Result;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -22,7 +22,7 @@ public class ExceptionTestController {
      *
      * @return 不会返回，会被全局异常处理器捕获
      */
-    @GetMapping("/business-exception")
+    @PostMapping("/business-exception")
     public Result<Void> testBusinessException() {
         throw new BusinessException("BUSINESS_ERROR", "用户余额不足");
     }
@@ -32,7 +32,7 @@ public class ExceptionTestController {
      *
      * @return 不会返回，会被全局异常处理器捕获
      */
-    @GetMapping("/system-exception")
+    @PostMapping("/system-exception")
     public Result<Void> testSystemException() {
         throw new SystemException("SYSTEM_ERROR", "数据库连接失败");
     }
@@ -42,7 +42,7 @@ public class ExceptionTestController {
      *
      * @return 不会返回，会被全局异常处理器捕获
      */
-    @GetMapping("/unknown-exception")
+    @PostMapping("/unknown-exception")
     public Result<Void> testUnknownException() {
         throw new RuntimeException("这是一个未知的运行时异常");
     }

@@ -1,7 +1,7 @@
 package com.catface996.aiops.interface_.http.controller;
 
 import com.catface996.aiops.common.result.Result;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -23,7 +23,7 @@ public class HealthController {
      *
      * @return 健康状态
      */
-    @GetMapping
+    @PostMapping
     public Result<Map<String, String>> health() {
         Map<String, String> data = new HashMap<>();
         data.put("status", "UP");

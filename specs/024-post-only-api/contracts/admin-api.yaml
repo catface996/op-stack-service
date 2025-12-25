@@ -1,0 +1,78 @@
+# Admin API Contracts - POST-Only
+# Feature: 024-post-only-api
+# Generated: 2025-12-22
+
+openapi: 3.0.3
+info:
+  title: Admin API (POST-Only)
+  version: 2.0.0
+  description: Admin management API with POST-only endpoints
+
+paths:
+  /api/v1/admin/accounts/query:
+    post:
+      summary: Query accounts
+      operationId: queryAccounts
+      tags: [Admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryAccountsRequest'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedAccountResult'
+
+components:
+  schemas:
+    GatewayInjectableRequest:
+      type: object
+      properties:
+        tenantId:
+          type: integer
+          format: int64
+        traceId:
+          type: string
+        userId:
+          type: string
+
+    QueryAccountsRequest:
+      allOf:
+        - $ref: '#/components/schemas/GatewayInjectableRequest'
+        - type: object
+          properties:
+            page:
+              type: integer
+              minimum: 1
+              default: 1
+            size:
+              type: integer
+              minimum: 1
+              maximum: 100
+              default: 20
+            username:
+              type: string
+            email:
+              type: string
+            status:
+              type: string
+
+    # Response schemas
+    Result:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+
+    PagedAccountResult:
+      allOf:
+        - $ref: '#/components/schemas/Result'
