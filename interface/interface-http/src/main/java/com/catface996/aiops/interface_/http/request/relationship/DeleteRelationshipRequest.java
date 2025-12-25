@@ -20,6 +20,10 @@ import jakarta.validation.constraints.NotNull;
 @Schema(description = "删除关系请求")
 public class DeleteRelationshipRequest {
 
+    @Schema(description = "操作者ID", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotNull(message = "操作者ID不能为空")
+    private Long operatorId;
+
     @Schema(description = "关系ID", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "关系ID不能为空")
     private Long relationshipId;
@@ -37,11 +41,20 @@ public class DeleteRelationshipRequest {
     public DeleteRelationshipRequest() {
     }
 
-    public DeleteRelationshipRequest(Long relationshipId) {
+    public DeleteRelationshipRequest(Long operatorId, Long relationshipId) {
+        this.operatorId = operatorId;
         this.relationshipId = relationshipId;
     }
 
     // ==================== Getters and Setters ====================
+
+    public Long getOperatorId() {
+        return operatorId;
+    }
+
+    public void setOperatorId(Long operatorId) {
+        this.operatorId = operatorId;
+    }
 
     public Long getRelationshipId() {
         return relationshipId;

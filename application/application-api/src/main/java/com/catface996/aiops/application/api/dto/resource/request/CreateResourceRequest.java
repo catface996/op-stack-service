@@ -26,6 +26,10 @@ import lombok.NoArgsConstructor;
 @Schema(description = "创建资源请求")
 public class CreateResourceRequest {
 
+    @Schema(description = "操作者ID", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotNull(message = "操作者ID不能为空")
+    private Long operatorId;
+
     @Schema(description = "资源名称", example = "web-server-01", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "资源名称不能为空")
     @Size(max = 100, message = "资源名称最长100个字符")

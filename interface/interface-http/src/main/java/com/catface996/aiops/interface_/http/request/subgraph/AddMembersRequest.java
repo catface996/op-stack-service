@@ -1,6 +1,8 @@
 package com.catface996.aiops.interface_.http.request.subgraph;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.util.List;
@@ -19,11 +21,18 @@ import java.util.List;
  * @author AI Assistant
  * @since 2025-12-22
  */
+@Schema(description = "添加成员请求")
 public class AddMembersRequest {
+
+    @Schema(description = "操作者ID", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotNull(message = "操作者ID不能为空")
+    private Long operatorId;
 
     /**
      * 资源 ID（POST-Only API 使用，从路径参数迁移到请求体）
      */
+    @Schema(description = "资源ID", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotNull(message = "资源ID不能为空")
     private Long resourceId;
 
     /**
@@ -43,6 +52,14 @@ public class AddMembersRequest {
     }
 
     // ==================== Getters and Setters ====================
+
+    public Long getOperatorId() {
+        return operatorId;
+    }
+
+    public void setOperatorId(Long operatorId) {
+        this.operatorId = operatorId;
+    }
 
     public Long getResourceId() {
         return resourceId;

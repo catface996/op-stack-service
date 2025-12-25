@@ -43,8 +43,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -112,10 +110,10 @@ public class ResourceController {
     })
     public ResponseEntity<Result<ResourceDTO>> createResource(
             @Valid @RequestBody CreateResourceRequest request) {
-        log.info("创建资源请求，name: {}", request.getName());
+        log.info("创建资源请求，name: {}, operatorId: {}", request.getName(), request.getOperatorId());
 
-        Long operatorId = getCurrentUserId();
-        String operatorName = getCurrentUsername();
+        Long operatorId = request.getOperatorId();
+        String operatorName = "operator-" + operatorId;
 
         ResourceDTO resource = resourceApplicationService.createResource(request, operatorId, operatorName);
 
@@ -182,13 +180,13 @@ public class ResourceController {
     public ResponseEntity<Result<ResourceDTO>> updateResource(
             @Valid @RequestBody UpdateResourceRequest request) {
         Long id = request.getId();
-        log.info("更新资源请求，resourceId: {}", id);
+        log.info("更新资源请求，resourceId: {}, operatorId: {}", id, request.getOperatorId());
 
-        Long operatorId = getCurrentUserId();
-        String operatorName = getCurrentUsername();
+        Long operatorId = request.getOperatorId();
+        String operatorName = "operator-" + operatorId;
 
         // 权限检查
-        if (!resourceApplicationService.checkPermission(id, operatorId, isAdmin())) {
+        if (!resourceApplicationService.checkPermission(id, operatorId, false)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Result.error(403001, "无权限操作此资源"));
         }
@@ -214,13 +212,13 @@ public class ResourceController {
     public ResponseEntity<Result<Void>> deleteResource(
             @Valid @RequestBody DeleteResourceRequest request) {
         Long id = request.getId();
-        log.info("删除资源请求，resourceId: {}", id);
+        log.info("删除资源请求，resourceId: {}, operatorId: {}", id, request.getOperatorId());
 
-        Long operatorId = getCurrentUserId();
-        String operatorName = getCurrentUsername();
+        Long operatorId = request.getOperatorId();
+        String operatorName = "operator-" + operatorId;
 
         // 权限检查
-        if (!resourceApplicationService.checkPermission(id, operatorId, isAdmin())) {
+        if (!resourceApplicationService.checkPermission(id, operatorId, false)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Result.error(403001, "无权限操作此资源"));
         }
@@ -246,10 +244,10 @@ public class ResourceController {
     public ResponseEntity<Result<ResourceDTO>> updateResourceStatus(
             @Valid @RequestBody UpdateResourceStatusRequest request) {
         Long id = request.getId();
-        log.info("更新资源状态请求，resourceId: {}, newStatus: {}", id, request.getStatus());
+        log.info("更新资源状态请求，resourceId: {}, newStatus: {}, operatorId: {}", id, request.getStatus(), request.getOperatorId());
 
-        Long operatorId = getCurrentUserId();
-        String operatorName = getCurrentUsername();
+        Long operatorId = request.getOperatorId();
+        String operatorName = "operator-" + operatorId;
 
         ResourceDTO resource = resourceApplicationService.updateResourceStatus(id, request, operatorId, operatorName);
 
@@ -312,8 +310,8 @@ public class ResourceController {
             @Valid @RequestBody AddMembersRequest request) {
 
         Long id = request.getResourceId();
-        Long operatorId = getCurrentUserId();
-        String operatorName = getCurrentUsername();
+        Long operatorId = request.getOperatorId();
+        String operatorName = "operator-" + operatorId;
 
         AddMembersCommand command = new AddMembersCommand(id, request.getMemberIds(), operatorId);
         command.setOperatorName(operatorName);
@@ -346,7 +344,7 @@ public class ResourceController {
             @Valid @RequestBody RemoveMembersRequest request) {
 
         Long id = request.getResourceId();
-        Long operatorId = getCurrentUserId();
+        Long operatorId = request.getOperatorId();
 
         memberApplicationService.removeMembers(id, request.getMemberIds(), operatorId);
 
@@ -458,45 +456,5 @@ public class ResourceController {
         SubgraphAncestorsResponse response = SubgraphAncestorsResponse.from(dto);
 
         return ResponseEntity.ok(Result.success(response));
-    }
-
-    // ===== 私有辅助方法 =====
-
-    /**
-     * 获取当前登录用户ID
-     */
-    private Long getCurrentUserId() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() != null) {
-            try {
-                return Long.parseLong(authentication.getName());
-            } catch (NumberFormatException e) {
-                log.warn("无法解析用户ID: {}", authentication.getName());
-            }
-        }
-        return null;
-    }
-
-    /**
-     * 获取当前登录用户名
-     */
-    private String getCurrentUsername() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getCredentials() != null) {
-            return authentication.getCredentials().toString();
-        }
-        return "unknown";
-    }
-
-    /**
-     * 检查当前用户是否为管理员
-     */
-    private boolean isAdmin() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null) {
-            return authentication.getAuthorities().stream()
-                    .anyMatch(auth -> "ROLE_ADMIN".equals(auth.getAuthority()));
-        }
-        return false;
     }
 }

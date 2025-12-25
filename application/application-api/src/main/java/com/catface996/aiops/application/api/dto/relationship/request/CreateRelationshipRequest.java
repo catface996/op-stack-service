@@ -21,6 +21,10 @@ import lombok.NoArgsConstructor;
 @Schema(description = "创建关系请求")
 public class CreateRelationshipRequest {
 
+    @NotNull(message = "操作者ID不能为空")
+    @Schema(description = "操作者ID", example = "1", required = true)
+    private Long operatorId;
+
     @NotNull(message = "源资源ID不能为空")
     @Schema(description = "源资源ID", example = "1", required = true)
     private Long sourceResourceId;

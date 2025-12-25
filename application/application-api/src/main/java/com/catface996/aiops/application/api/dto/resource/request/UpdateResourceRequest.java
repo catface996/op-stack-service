@@ -26,6 +26,10 @@ import lombok.NoArgsConstructor;
 @Schema(description = "更新资源请求")
 public class UpdateResourceRequest {
 
+    @Schema(description = "操作者ID", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotNull(message = "操作者ID不能为空")
+    private Long operatorId;
+
     @Schema(description = "资源ID", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "资源ID不能为空")
     private Long id;
