@@ -217,4 +217,36 @@ public interface ResourceDomainService {
      * @return 资源类型（如果存在）
      */
     Optional<ResourceType> getResourceTypeById(Long resourceTypeId);
+
+    /**
+     * 分页查询资源节点列表（排除 SUBGRAPH 类型）
+     *
+     * <p>用于资源节点查询接口，自动排除拓扑图类型。</p>
+     *
+     * @param resourceTypeId 资源类型ID（可选，不能是 SUBGRAPH）
+     * @param status 资源状态（可选）
+     * @param keyword 搜索关键词（可选）
+     * @param page 页码（从1开始）
+     * @param size 每页大小
+     * @return 资源节点列表（不包含 SUBGRAPH 类型）
+     */
+    List<Resource> listResourceNodes(Long resourceTypeId, ResourceStatus status,
+                                     String keyword, int page, int size);
+
+    /**
+     * 统计资源节点数量（排除 SUBGRAPH 类型）
+     *
+     * @param resourceTypeId 资源类型ID（可选）
+     * @param status 资源状态（可选）
+     * @param keyword 搜索关键词（可选）
+     * @return 资源节点数量
+     */
+    long countResourceNodes(Long resourceTypeId, ResourceStatus status, String keyword);
+
+    /**
+     * 获取 SUBGRAPH 类型的 ID
+     *
+     * @return SUBGRAPH 类型ID
+     */
+    Long getSubgraphTypeId();
 }

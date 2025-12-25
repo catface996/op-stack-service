@@ -144,4 +144,67 @@ public interface ResourceRepository {
      * @return 资源总数
      */
     long count();
+
+    /**
+     * 分页查询资源列表，排除指定资源类型
+     *
+     * <p>用于资源节点查询，排除 SUBGRAPH 类型。</p>
+     *
+     * @param resourceTypeId 资源类型ID（可选，为null则不过滤）
+     * @param status 资源状态（可选，为null则不过滤）
+     * @param keyword 搜索关键词（可选，搜索名称和描述）
+     * @param excludeTypeId 要排除的资源类型ID
+     * @param page 页码（从1开始）
+     * @param size 每页大小
+     * @return 资源列表
+     */
+    List<Resource> findByConditionExcludeType(Long resourceTypeId, ResourceStatus status,
+                                               String keyword, Long excludeTypeId, int page, int size);
+
+    /**
+     * 按条件统计资源数量，排除指定资源类型
+     *
+     * @param resourceTypeId 资源类型ID（可选）
+     * @param status 资源状态（可选）
+     * @param keyword 搜索关键词（可选）
+     * @param excludeTypeId 要排除的资源类型ID
+     * @return 资源数量
+     */
+    long countByConditionExcludeType(Long resourceTypeId, ResourceStatus status, String keyword, Long excludeTypeId);
+
+    /**
+     * 根据类型ID和条件查询资源（用于拓扑图查询）
+     *
+     * @param typeId 资源类型ID（必填）
+     * @param status 资源状态（可选）
+     * @param keyword 名称模糊查询（可选）
+     * @param page 页码
+     * @param size 每页大小
+     * @return 资源列表
+     */
+    List<Resource> findByTypeIdAndConditions(Long typeId, ResourceStatus status, String keyword, int page, int size);
+
+    /**
+     * 统计指定类型的资源数量
+     *
+     * @param typeId 资源类型ID（必填）
+     * @param status 资源状态（可选）
+     * @param keyword 名称模糊查询（可选）
+     * @return 资源数量
+     */
+    long countByTypeIdAndConditions(Long typeId, ResourceStatus status, String keyword);
+
+    /**
+     * 插入资源
+     *
+     * @param resource 资源实体
+     */
+    void insert(Resource resource);
+
+    /**
+     * 根据ID更新资源
+     *
+     * @param resource 资源实体
+     */
+    void updateById(Resource resource);
 }

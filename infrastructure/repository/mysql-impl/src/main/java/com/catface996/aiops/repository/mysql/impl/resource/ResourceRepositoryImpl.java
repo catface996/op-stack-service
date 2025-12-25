@@ -154,6 +154,54 @@ public class ResourceRepositoryImpl implements ResourceRepository {
         return resourceMapper.selectCount(null);
     }
 
+    @Override
+    public List<Resource> findByConditionExcludeType(Long resourceTypeId, ResourceStatus status,
+                                                      String keyword, Long excludeTypeId, int page, int size) {
+        int offset = (page - 1) * size;
+        String statusStr = status != null ? status.name() : null;
+        List<ResourcePO> poList = resourceMapper.selectByConditionExcludeType(
+                resourceTypeId, statusStr, keyword, excludeTypeId, offset, size);
+        return poList.stream()
+                .map(this::toEntity)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public long countByConditionExcludeType(Long resourceTypeId, ResourceStatus status, String keyword, Long excludeTypeId) {
+        String statusStr = status != null ? status.name() : null;
+        return resourceMapper.countByConditionExcludeType(resourceTypeId, statusStr, keyword, excludeTypeId);
+    }
+
+    @Override
+    public List<Resource> findByTypeIdAndConditions(Long typeId, ResourceStatus status, String keyword, int page, int size) {
+        // 使用现有方法，直接按类型ID过滤
+        return findByCondition(typeId, status, keyword, page, size);
+    }
+
+    @Override
+    public long countByTypeIdAndConditions(Long typeId, ResourceStatus status, String keyword) {
+        return countByCondition(typeId, status, keyword);
+    }
+
+    @Override
+    public void insert(Resource resource) {
+        if (resource == null) {
+            throw new IllegalArgumentException("资源实体不能为null");
+        }
+        ResourcePO po = toPO(resource);
+        resourceMapper.insert(po);
+        resource.setId(po.getId());
+    }
+
+    @Override
+    public void updateById(Resource resource) {
+        if (resource == null) {
+            throw new IllegalArgumentException("资源实体不能为null");
+        }
+        ResourcePO po = toPO(resource);
+        resourceMapper.updateById(po);
+    }
+
     /**
      * 将领域实体转换为持久化对象
      */

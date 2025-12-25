@@ -122,10 +122,12 @@ public class ResourceController {
     }
 
     /**
-     * 查询资源列表
+     * 查询资源节点列表（自动排除拓扑图类型）
+     *
+     * <p>此接口返回资源节点（非 SUBGRAPH 类型），拓扑图请使用 /api/v1/topologies/query 接口查询。</p>
      */
     @PostMapping("/resources/query")
-    @Operation(summary = "查询资源列表", description = "分页查询资源列表，支持按类型、状态、关键词过滤")
+    @Operation(summary = "查询资源节点列表", description = "分页查询资源节点列表，支持按类型、状态、关键词过滤。自动排除拓扑图类型（SUBGRAPH），拓扑图请使用 /api/v1/topologies/query 接口")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "查询成功"),
@@ -291,13 +293,16 @@ public class ResourceController {
         return ResponseEntity.ok(Result.success(types));
     }
 
-    // ==================== 成员管理接口（仅适用于 SUBGRAPH 类型） ====================
+    // ==================== 成员管理接口（已废弃，请使用 /api/v1/topologies/* 接口） ====================
 
     /**
      * 添加成员到资源（仅适用于 SUBGRAPH 类型）
+     *
+     * @deprecated 此接口已废弃，请使用 /api/v1/topologies/members/add 接口
      */
+    @Deprecated(since = "2025-12-25", forRemoval = true)
     @PostMapping("/resources/members/add")
-    @Operation(summary = "添加成员", description = "添加资源作为成员。仅适用于 SUBGRAPH 类型资源。添加子图时会执行循环检测。ID通过请求体传递")
+    @Operation(summary = "[已废弃] 添加成员", description = "已废弃，请使用 /api/v1/topologies/members/add。添加资源作为成员。仅适用于 SUBGRAPH 类型资源。")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "成员添加成功"),
@@ -329,9 +334,12 @@ public class ResourceController {
 
     /**
      * 从资源移除成员（仅适用于 SUBGRAPH 类型）
+     *
+     * @deprecated 此接口已废弃，请使用 /api/v1/topologies/members/remove 接口
      */
+    @Deprecated(since = "2025-12-25", forRemoval = true)
     @PostMapping("/resources/members/remove")
-    @Operation(summary = "移除成员", description = "从资源中移除成员。仅适用于 SUBGRAPH 类型资源。成员资源本身不被删除。ID通过请求体传递")
+    @Operation(summary = "[已废弃] 移除成员", description = "已废弃，请使用 /api/v1/topologies/members/remove。从资源中移除成员。仅适用于 SUBGRAPH 类型资源。")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "成员移除成功"),
@@ -353,9 +361,12 @@ public class ResourceController {
 
     /**
      * 查询资源成员列表（仅适用于 SUBGRAPH 类型）
+     *
+     * @deprecated 此接口已废弃，请使用 /api/v1/topologies/members/query 接口
      */
+    @Deprecated(since = "2025-12-25", forRemoval = true)
     @PostMapping("/resources/members/query")
-    @Operation(summary = "查询成员列表", description = "获取资源的成员列表，支持分页。仅适用于 SUBGRAPH 类型资源。ID通过请求体传递")
+    @Operation(summary = "[已废弃] 查询成员列表", description = "已废弃，请使用 /api/v1/topologies/members/query。获取资源的成员列表，支持分页。仅适用于 SUBGRAPH 类型资源。")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "成员列表获取成功",
@@ -385,9 +396,12 @@ public class ResourceController {
 
     /**
      * 获取资源成员及其关系（仅适用于 SUBGRAPH 类型）
+     *
+     * @deprecated 此接口已废弃，请使用 /api/v1/topologies/members-with-relations/query 接口
      */
+    @Deprecated(since = "2025-12-25", forRemoval = true)
     @PostMapping("/resources/members-with-relations/query")
-    @Operation(summary = "获取成员及关系", description = "获取资源的成员列表及成员之间的关系，支持嵌套展开。仅适用于 SUBGRAPH 类型资源。ID通过请求体传递")
+    @Operation(summary = "[已废弃] 获取成员及关系", description = "已废弃，请使用 /api/v1/topologies/members-with-relations/query。获取成员列表及成员之间的关系，支持嵌套展开。")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "成员及关系获取成功",
@@ -412,9 +426,12 @@ public class ResourceController {
 
     /**
      * 获取资源拓扑图数据（仅适用于 SUBGRAPH 类型）
+     *
+     * @deprecated 此接口已废弃，请使用 /api/v1/topologies/graph/query 接口
      */
+    @Deprecated(since = "2025-12-25", forRemoval = true)
     @PostMapping("/resources/topology/query")
-    @Operation(summary = "获取拓扑图数据", description = "获取用于图形渲染的拓扑数据，包含节点、边和子图边界。仅适用于 SUBGRAPH 类型资源。ID通过请求体传递")
+    @Operation(summary = "[已废弃] 获取拓扑图数据", description = "已废弃，请使用 /api/v1/topologies/graph/query。获取用于图形渲染的拓扑数据，包含节点、边和子图边界。")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "拓扑图数据获取成功",
@@ -438,9 +455,12 @@ public class ResourceController {
 
     /**
      * 获取资源祖先链（仅适用于 SUBGRAPH 类型）
+     *
+     * @deprecated 此接口已废弃，请使用 /api/v1/topologies/ancestors/query 接口
      */
+    @Deprecated(since = "2025-12-25", forRemoval = true)
     @PostMapping("/resources/ancestors/query")
-    @Operation(summary = "获取祖先链", description = "获取资源的祖先链，用于导航和面包屑显示。仅适用于 SUBGRAPH 类型资源。ID通过请求体传递")
+    @Operation(summary = "[已废弃] 获取祖先链", description = "已废弃，请使用 /api/v1/topologies/ancestors/query。获取资源的祖先链，用于导航和面包屑显示。")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "祖先链获取成功",

@@ -78,4 +78,38 @@ public interface ResourceMapper extends BaseMapper<ResourcePO> {
     int updateStatus(@Param("id") Long id,
                      @Param("status") String status,
                      @Param("version") Integer version);
+
+    /**
+     * 分页查询资源列表，排除指定资源类型
+     *
+     * <p>用于资源节点查询，排除 SUBGRAPH 类型。</p>
+     *
+     * @param resourceTypeId 资源类型ID（可选）
+     * @param status 资源状态（可选）
+     * @param keyword 搜索关键词（可选）
+     * @param excludeTypeId 要排除的资源类型ID
+     * @param offset 偏移量
+     * @param limit 限制数量
+     * @return 资源列表
+     */
+    List<ResourcePO> selectByConditionExcludeType(@Param("resourceTypeId") Long resourceTypeId,
+                                                   @Param("status") String status,
+                                                   @Param("keyword") String keyword,
+                                                   @Param("excludeTypeId") Long excludeTypeId,
+                                                   @Param("offset") int offset,
+                                                   @Param("limit") int limit);
+
+    /**
+     * 按条件统计资源数量，排除指定资源类型
+     *
+     * @param resourceTypeId 资源类型ID（可选）
+     * @param status 资源状态（可选）
+     * @param keyword 搜索关键词（可选）
+     * @param excludeTypeId 要排除的资源类型ID
+     * @return 资源数量
+     */
+    long countByConditionExcludeType(@Param("resourceTypeId") Long resourceTypeId,
+                                      @Param("status") String status,
+                                      @Param("keyword") String keyword,
+                                      @Param("excludeTypeId") Long excludeTypeId);
 }

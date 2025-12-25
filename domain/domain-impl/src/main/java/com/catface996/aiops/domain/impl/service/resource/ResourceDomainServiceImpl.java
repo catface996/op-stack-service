@@ -383,6 +383,41 @@ public class ResourceDomainServiceImpl implements ResourceDomainService {
         return resourceTypeRepository.findById(resourceTypeId);
     }
 
+    @Override
+    public List<Resource> listResourceNodes(Long resourceTypeId, ResourceStatus status,
+                                            String keyword, int page, int size) {
+        // 规范化参数
+        if (page < 1) page = 1;
+        if (size < 1) size = 20;
+        if (size > 100) size = 100;
+
+        // 获取 SUBGRAPH 类型ID用于排除
+        Long subgraphTypeId = getSubgraphTypeId();
+
+        // 从数据库查询，排除 SUBGRAPH 类型
+        List<Resource> resources = resourceRepository.findByConditionExcludeType(
+                resourceTypeId, status, keyword, subgraphTypeId, page, size);
+
+        // 解密属性
+        resources.forEach(this::decryptResourceAttributes);
+
+        return resources;
+    }
+
+    @Override
+    public long countResourceNodes(Long resourceTypeId, ResourceStatus status, String keyword) {
+        Long subgraphTypeId = getSubgraphTypeId();
+        return resourceRepository.countByConditionExcludeType(resourceTypeId, status, keyword, subgraphTypeId);
+    }
+
+    @Override
+    public Long getSubgraphTypeId() {
+        // 通过 code 查询 SUBGRAPH 类型ID
+        return resourceTypeRepository.findByCode(SUBGRAPH_TYPE_CODE)
+                .map(ResourceType::getId)
+                .orElse(null);
+    }
+
     // ===== 私有辅助方法 =====
 
     /**

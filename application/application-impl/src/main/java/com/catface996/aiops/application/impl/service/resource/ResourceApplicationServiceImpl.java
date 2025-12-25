@@ -10,6 +10,7 @@ import com.catface996.aiops.application.api.dto.resource.request.ListResourcesRe
 import com.catface996.aiops.application.api.dto.resource.request.UpdateResourceRequest;
 import com.catface996.aiops.application.api.dto.resource.request.UpdateResourceStatusRequest;
 import com.catface996.aiops.application.api.service.resource.ResourceApplicationService;
+import com.catface996.aiops.domain.constant.ResourceTypeConstants;
 import com.catface996.aiops.domain.model.resource.OperationType;
 import com.catface996.aiops.domain.model.resource.Resource;
 import com.catface996.aiops.domain.model.resource.ResourceAuditLog;
@@ -55,6 +56,14 @@ public class ResourceApplicationServiceImpl implements ResourceApplicationServic
     public ResourceDTO createResource(CreateResourceRequest request, Long operatorId, String operatorName) {
         logger.info("创建资源，name: {}, operatorId: {}", request.getName(), operatorId);
 
+        // 禁止通过资源API创建SUBGRAPH类型，应使用拓扑图API
+        ResourceType resourceType = resourceDomainService.getResourceTypeById(request.getResourceTypeId())
+                .orElseThrow(() -> new IllegalArgumentException("资源类型不存在: " + request.getResourceTypeId()));
+
+        if (ResourceTypeConstants.isTopologyType(resourceType.getCode())) {
+            throw new IllegalArgumentException("禁止通过资源API创建拓扑图类型，请使用 /api/v1/topologies/create 接口");
+        }
+
         Resource resource = resourceDomainService.createResource(
                 request.getName(),
                 request.getDescription(),
@@ -78,7 +87,9 @@ public class ResourceApplicationServiceImpl implements ResourceApplicationServic
             }
         }
 
-        List<Resource> resources = resourceDomainService.listResources(
+        // 使用 listResourceNodes 方法，自动排除 SUBGRAPH 类型（拓扑图）
+        // 拓扑图应通过 /api/v1/topologies/query 接口查询
+        List<Resource> resources = resourceDomainService.listResourceNodes(
                 request.getResourceTypeId(),
                 status,
                 request.getKeyword(),
@@ -86,7 +97,7 @@ public class ResourceApplicationServiceImpl implements ResourceApplicationServic
                 request.getSize()
         );
 
-        long total = resourceDomainService.countResources(
+        long total = resourceDomainService.countResourceNodes(
                 request.getResourceTypeId(),
                 status,
                 request.getKeyword()
@@ -170,7 +181,9 @@ public class ResourceApplicationServiceImpl implements ResourceApplicationServic
 
     @Override
     public List<ResourceTypeDTO> getAllResourceTypes() {
+        // 过滤掉 SUBGRAPH 类型，拓扑图类型不应显示在资源类型列表中
         return resourceDomainService.getAllResourceTypes().stream()
+                .filter(type -> !ResourceTypeConstants.isTopologyType(type.getCode()))
                 .map(this::toResourceTypeDTO)
                 .collect(Collectors.toList());
     }
