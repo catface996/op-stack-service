@@ -6,6 +6,7 @@ import com.catface996.aiops.domain.model.resource.Resource;
 import com.catface996.aiops.domain.model.resource.ResourceStatus;
 import com.catface996.aiops.domain.model.resource.ResourceType;
 import com.catface996.aiops.domain.service.resource.AuditLogService;
+import com.catface996.aiops.domain.service.subgraph.SubgraphMemberDomainService;
 import com.catface996.aiops.infrastructure.cache.api.service.ResourceCacheService;
 import com.catface996.aiops.infrastructure.security.api.service.EncryptionService;
 import com.catface996.aiops.repository.resource.ResourceRepository;
@@ -40,6 +41,7 @@ class ResourceDomainServiceImplTest {
     private ResourceCacheService cacheService;
     private AuditLogService auditLogService;
     private ObjectMapper objectMapper;
+    private SubgraphMemberDomainService subgraphMemberDomainService;
 
     @BeforeEach
     void setUp() {
@@ -50,6 +52,7 @@ class ResourceDomainServiceImplTest {
         cacheService = mock(ResourceCacheService.class);
         auditLogService = mock(AuditLogService.class);
         objectMapper = new ObjectMapper();
+        subgraphMemberDomainService = mock(SubgraphMemberDomainService.class);
 
         resourceDomainService = new ResourceDomainServiceImpl(
                 resourceRepository,
@@ -58,7 +61,8 @@ class ResourceDomainServiceImplTest {
                 encryptionService,
                 cacheService,
                 auditLogService,
-                objectMapper
+                objectMapper,
+                subgraphMemberDomainService
         );
     }
 

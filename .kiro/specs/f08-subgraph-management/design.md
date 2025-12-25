@@ -4,11 +4,18 @@
 
 The Subgraph Management feature enables operations engineers to create logical groupings of resource nodes, providing subgraph-level topology visualization and facilitating team collaboration. This design follows the DDD layered architecture and integrates with the existing resource management and topology visualization systems.
 
+### Design Principle
+
+**Subgraph is a Resource Type.** Subgraph is not a separate entity but a type in `resource_type` (code=SUBGRAPH), stored in the unified `resource` table, reusing the resource permission model and management mechanisms.
+
 ### Key Design Goals
 
+- **Unified Management**: Subgraph reuses resource CRUD APIs and permission model
+- **Nested Subgraphs**: Subgraph can contain other subgraphs, forming hierarchical structures
+- **Cycle Detection**: Prevent circular references when adding nested subgraphs
 - Provide flexible subgraph organization without restricting resource ownership
-- Support fine-grained permission control (Owner, Viewer)
-- Maintain data integrity across subgraph and resource relationships
+- Support fine-grained permission control (Owner, Viewer) - reuse resource permission model
+- Maintain data integrity across subgraph and member resource relationships
 - Enable efficient querying and visualization of subgraph topologies
 - Ensure comprehensive audit logging for compliance
 
@@ -19,38 +26,43 @@ The Subgraph Management feature enables operations engineers to create logical g
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    Frontend (Web UI)                     │
-│  - Subgraph List  - Subgraph Detail  - Topology View   │
+│  - Resource List (filter by SUBGRAPH type)              │
+│  - Subgraph Detail  - Topology View (expand/collapse)   │
 └────────────────────┬────────────────────────────────────┘
                      │ HTTP/REST
 ┌────────────────────┴────────────────────────────────────┐
 │                  Interface Layer                         │
-│  - SubgraphController (REST API)                        │
+│  - ResourceController (Reuse for CRUD)                  │
+│  - SubgraphMemberController (Subgraph-specific APIs)    │
 └────────────────────┬────────────────────────────────────┘
                      │
 ┌────────────────────┴────────────────────────────────────┐
 │                Application Layer                         │
-│  - SubgraphApplicationService                           │
-│    • Create/Update/Delete Subgraph                      │
-│    • Manage Permissions                                 │
-│    • Add/Remove Nodes                                   │
+│  - ResourceApplicationService (Reuse for CRUD)          │
+│  - SubgraphMemberApplicationService                     │
+│    • Add/Remove Members                                 │
+│    • Get Members with Relations                         │
+│    • Cycle Detection                                    │
 └────────────────────┬────────────────────────────────────┘
                      │
 ┌────────────────────┴────────────────────────────────────┐
 │                   Domain Layer                           │
-│  - SubgraphDomainService                                │
-│    • Business Logic                                     │
-│    • Permission Validation                              │
-│    • Data Integrity Rules                               │
-│  - SubgraphRepository (Port, includes permission ops)   │
-│  - SubgraphResourceRepository (Port)                    │
+│  - ResourceDomainService (Reuse)                        │
+│  - SubgraphMemberDomainService                          │
+│    • Member Management Logic                            │
+│    • Cycle Detection Algorithm                          │
+│    • Nested Subgraph Handling                           │
+│  - ResourceRepository (Reuse, Port)                     │
+│  - SubgraphMemberRepository (New, Port)                 │
 └────────────────────┬────────────────────────────────────┘
                      │
 ┌────────────────────┴────────────────────────────────────┐
 │              Infrastructure Layer                        │
 │  - MySQL Implementation (Adapter)                       │
-│    • subgraph table                                     │
-│    • subgraph_permission table                          │
-│    • subgraph_resource table                            │
+│    • resource table (Reuse, stores subgraphs)           │
+│    • resource_type table (Add SUBGRAPH type)            │
+│    • resource_permission table (Reuse)                  │
+│    • subgraph_member table (New)                        │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -59,23 +71,27 @@ The Subgraph Management feature enables operations engineers to create logical g
 Following the project's DDD architecture:
 
 1. **Interface Layer** (`interface-http`)
-   - `SubgraphController`: REST API endpoints
+   - `ResourceController` (Reuse): CRUD operations for subgraphs as resources
+   - `SubgraphMemberController` (New): Member management APIs
    - Request/Response DTOs
    - Input validation
 
 2. **Application Layer** (`application-impl`)
-   - `SubgraphApplicationService`: Use case orchestration
+   - `ResourceApplicationService` (Reuse): Create/Update/Delete subgraph, permission management
+   - `SubgraphMemberApplicationService` (New): Member add/remove, topology query
    - Transaction management
    - DTO conversion
 
 3. **Domain Layer** (`domain-impl`)
-   - `SubgraphDomainService`: Core business logic
-   - Permission validation
+   - `ResourceDomainService` (Reuse): Basic resource operations
+   - `SubgraphMemberDomainService` (New): Member management, cycle detection
+   - Permission validation (reuse resource permission)
    - Data integrity enforcement
    - Repository interfaces (Ports)
 
 4. **Infrastructure Layer** (`mysql-impl`)
-   - Repository implementations (Adapters)
+   - `ResourceRepository` (Reuse): Resource CRUD
+   - `SubgraphMemberRepository` (New): Member associations
    - Database access
    - MyBatis mappers
 
@@ -83,175 +99,35 @@ Following the project's DDD architecture:
 
 ### HTTP API Interface Definition (OpenAPI 3.0)
 
+**Note**: Subgraph CRUD operations (Create, Read, Update, Delete) reuse the Resource API (`/api/v1/resources`). Only subgraph-specific member management APIs are defined here.
+
 ```yaml
 openapi: 3.0.0
 info:
-  title: Subgraph Management API
-  version: 1.0.0
-  description: API for managing subgraphs and their resources
+  title: Subgraph Member Management API
+  version: 2.0.0
+  description: API for managing subgraph members. Subgraph CRUD operations use Resource API with type=SUBGRAPH.
 
 paths:
-  /api/v1/subgraphs:
+  # ============================================
+  # Reused Resource APIs (for reference)
+  # ============================================
+  # POST   /api/v1/resources                 - Create subgraph (type=SUBGRAPH)
+  # GET    /api/v1/resources?type=SUBGRAPH   - List subgraphs
+  # GET    /api/v1/resources/{id}            - Get subgraph detail
+  # PUT    /api/v1/resources/{id}            - Update subgraph
+  # DELETE /api/v1/resources/{id}            - Delete subgraph (requires empty)
+  # POST   /api/v1/resources/{id}/permissions - Add permission
+  # DELETE /api/v1/resources/{id}/permissions/{userId} - Remove permission
+
+  # ============================================
+  # Subgraph-specific Member APIs
+  # ============================================
+  /api/v1/subgraphs/{subgraphId}/members:
     get:
-      summary: List subgraphs
-      operationId: listSubgraphs
-      parameters:
-        - name: keyword
-          in: query
-          schema:
-            type: string
-          description: Search keyword for name or description
-        - name: tags
-          in: query
-          schema:
-            type: array
-            items:
-              type: string
-          description: Filter by tags
-        - name: ownerId
-          in: query
-          schema:
-            type: integer
-            format: int64
-          description: Filter by owner user ID
-        - name: sortBy
-          in: query
-          schema:
-            type: string
-            enum: [createdAt, updatedAt, name]
-          description: Sort criterion
-        - name: page
-          in: query
-          schema:
-            type: integer
-            default: 1
-        - name: pageSize
-          in: query
-          schema:
-            type: integer
-            default: 20
-            maximum: 100
-      responses:
-        '200':
-          description: Subgraph list retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SubgraphListResponse'
-        '401':
-          description: Unauthorized
-        '500':
-          description: Internal server error
-
-    post:
-      summary: Create subgraph
-      operationId: createSubgraph
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateSubgraphRequest'
-      responses:
-        '201':
-          description: Subgraph created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SubgraphResponse'
-        '400':
-          description: Invalid request parameters
-        '401':
-          description: Unauthorized
-        '409':
-          description: Subgraph name already exists
-
-  /api/v1/subgraphs/{subgraphId}:
-    get:
-      summary: Get subgraph detail
-      operationId: getSubgraphDetail
-      parameters:
-        - name: subgraphId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '200':
-          description: Subgraph detail retrieved successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SubgraphDetailResponse'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden - No permission
-        '404':
-          description: Subgraph not found
-
-    put:
-      summary: Update subgraph
-      operationId: updateSubgraph
-      parameters:
-        - name: subgraphId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateSubgraphRequest'
-      responses:
-        '200':
-          description: Subgraph updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SubgraphResponse'
-        '400':
-          description: Invalid request parameters
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden - Not an owner
-        '404':
-          description: Subgraph not found
-        '409':
-          description: Version conflict or name already exists
-
-    delete:
-      summary: Delete subgraph
-      operationId: deleteSubgraph
-      parameters:
-        - name: subgraphId
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '204':
-          description: Subgraph deleted successfully
-        '400':
-          description: Subgraph not empty
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden - Not an owner
-        '404':
-          description: Subgraph not found
-
-  /api/v1/subgraphs/{subgraphId}/resources:
-    get:
-      summary: List subgraph resources (paginated)
-      operationId: listSubgraphResources
-      description: Get paginated list of resources in the subgraph with full resource information
+      summary: List subgraph members (paginated)
+      operationId: listSubgraphMembers
+      description: Get paginated list of member resources in the subgraph. Members can include other subgraphs (nested).
       parameters:
         - name: subgraphId
           in: path
@@ -272,11 +148,11 @@ paths:
             maximum: 100
       responses:
         '200':
-          description: Resource list retrieved successfully
+          description: Member list retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SubgraphResourceListResponse'
+                $ref: '#/components/schemas/SubgraphMemberListResponse'
         '401':
           description: Unauthorized
         '403':
@@ -285,8 +161,9 @@ paths:
           description: Subgraph not found
 
     post:
-      summary: Add resources to subgraph
-      operationId: addResources
+      summary: Add members to subgraph
+      operationId: addMembers
+      description: Add resources (including other subgraphs) as members. Cycle detection is performed for nested subgraphs.
       parameters:
         - name: subgraphId
           in: path
@@ -299,12 +176,12 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AddResourcesRequest'
+              $ref: '#/components/schemas/AddMembersRequest'
       responses:
         '200':
-          description: Resources added successfully
+          description: Members added successfully
         '400':
-          description: Invalid request or resource already exists
+          description: Invalid request, member already exists, or circular reference detected
         '401':
           description: Unauthorized
         '403':
@@ -313,8 +190,8 @@ paths:
           description: Subgraph or resource not found
 
     delete:
-      summary: Remove resources from subgraph
-      operationId: removeResources
+      summary: Remove members from subgraph
+      operationId: removeMembers
       parameters:
         - name: subgraphId
           in: path
@@ -327,22 +204,24 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RemoveResourcesRequest'
+              $ref: '#/components/schemas/RemoveMembersRequest'
       responses:
         '204':
-          description: Resources removed successfully
+          description: Members removed successfully
         '401':
           description: Unauthorized
         '403':
           description: Forbidden - Not an owner
         '404':
-          description: Subgraph or resource not found
+          description: Subgraph or member not found
 
-  /api/v1/subgraphs/{subgraphId}/resources-with-relations:
+  /api/v1/subgraphs/{subgraphId}/members-with-relations:
     get:
-      summary: Get subgraph resources with relationships (non-paginated)
-      operationId: getSubgraphResourcesWithRelations
-      description: Get all resources in the subgraph with full information and their relationships. Used for topology graph visualization.
+      summary: Get subgraph members with relationships (non-paginated)
+      operationId: getSubgraphMembersWithRelations
+      description: |
+        Get all member resources in the subgraph with their relationships. Used for topology graph visualization.
+        For nested subgraphs, returns recursive member information based on expand parameter.
       parameters:
         - name: subgraphId
           in: path
@@ -350,13 +229,26 @@ paths:
           schema:
             type: integer
             format: int64
+        - name: expandNested
+          in: query
+          schema:
+            type: boolean
+            default: true
+          description: Whether to recursively expand nested subgraphs
+        - name: maxDepth
+          in: query
+          schema:
+            type: integer
+            default: 3
+            maximum: 10
+          description: Maximum depth for nested subgraph expansion
       responses:
         '200':
-          description: Resources and relationships retrieved successfully
+          description: Members and relationships retrieved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SubgraphResourcesWithRelationsResponse'
+                $ref: '#/components/schemas/SubgraphMembersWithRelationsResponse'
         '401':
           description: Unauthorized
         '403':
@@ -366,8 +258,11 @@ paths:
 
   /api/v1/subgraphs/{subgraphId}/topology:
     get:
-      summary: Get subgraph topology
+      summary: Get subgraph topology for visualization
       operationId: getSubgraphTopology
+      description: |
+        Get topology data optimized for graph visualization.
+        Nested subgraphs are represented as expandable/collapsible nodes.
       parameters:
         - name: subgraphId
           in: path
@@ -375,6 +270,12 @@ paths:
           schema:
             type: integer
             format: int64
+        - name: expandNested
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: Whether to expand nested subgraphs by default
       responses:
         '200':
           description: Topology data retrieved successfully
@@ -389,10 +290,11 @@ paths:
         '404':
           description: Subgraph not found
 
-  /api/v1/subgraphs/{subgraphId}/permissions:
-    put:
-      summary: Update subgraph permissions
-      operationId: updatePermissions
+  /api/v1/subgraphs/{subgraphId}/ancestors:
+    get:
+      summary: Get ancestor subgraphs
+      operationId: getSubgraphAncestors
+      description: Get all ancestor subgraphs that contain this subgraph (for cycle detection and navigation)
       parameters:
         - name: subgraphId
           in: path
@@ -400,188 +302,191 @@ paths:
           schema:
             type: integer
             format: int64
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdatePermissionsRequest'
       responses:
         '200':
-          description: Permissions updated successfully
-        '400':
-          description: Invalid request - Cannot remove last owner
+          description: Ancestor list retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubgraphAncestorsResponse'
         '401':
           description: Unauthorized
-        '403':
-          description: Forbidden - Not an owner
         '404':
           description: Subgraph not found
 
+  # Note: Permission APIs are handled by Resource API
+  # POST   /api/v1/resources/{id}/permissions
+  # DELETE /api/v1/resources/{id}/permissions/{userId}
+
 components:
   schemas:
-    CreateSubgraphRequest:
+    # ============================================
+    # Member Management Schemas
+    # ============================================
+    AddMembersRequest:
       type: object
-      required: [name]
+      required: [memberIds]
       properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 255
-          description: Subgraph name (globally unique)
-        description:
-          type: string
-          description: Subgraph description
-        tags:
-          type: array
-          items:
-            type: string
-          description: Tags for categorization
-        metadata:
-          type: object
-          additionalProperties:
-            type: string
-          description: Key-value metadata (business domain, environment, team)
-
-    UpdateSubgraphRequest:
-      type: object
-      required: [version]
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 255
-        description:
-          type: string
-        tags:
-          type: array
-          items:
-            type: string
-        metadata:
-          type: object
-          additionalProperties:
-            type: string
-        version:
-          type: integer
-          description: Version for optimistic locking
-
-    AddResourcesRequest:
-      type: object
-      required: [resourceIds]
-      properties:
-        resourceIds:
+        memberIds:
           type: array
           items:
             type: integer
             format: int64
           minItems: 1
-          description: List of resource IDs to add
+          description: List of resource IDs to add as members (can include subgraph IDs for nesting)
 
-    RemoveResourcesRequest:
+    RemoveMembersRequest:
       type: object
-      required: [resourceIds]
+      required: [memberIds]
       properties:
-        resourceIds:
+        memberIds:
           type: array
           items:
             type: integer
             format: int64
           minItems: 1
-          description: List of resource IDs to remove
+          description: List of resource IDs to remove from subgraph
 
-    UpdatePermissionsRequest:
+    SubgraphMemberDTO:
       type: object
-      properties:
-        addOwners:
-          type: array
-          items:
-            type: integer
-            format: int64
-          description: User IDs to add as owners
-        removeOwners:
-          type: array
-          items:
-            type: integer
-            format: int64
-          description: User IDs to remove from owners
-        addViewers:
-          type: array
-          items:
-            type: integer
-            format: int64
-          description: User IDs to add as viewers
-        removeViewers:
-          type: array
-          items:
-            type: integer
-            format: int64
-          description: User IDs to remove from viewers
-
-    SubgraphResponse:
-      type: object
+      description: Subgraph member information with full details
       properties:
         id:
           type: integer
           format: int64
-        name:
-          type: string
-        description:
-          type: string
-        tags:
-          type: array
-          items:
-            type: string
-        metadata:
-          type: object
-          additionalProperties:
-            type: string
-        createdBy:
+          description: Association ID
+        memberId:
           type: integer
           format: int64
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-        version:
+          description: Member resource ID
+        subgraphId:
           type: integer
+          format: int64
+          description: Parent subgraph ID
+        memberName:
+          type: string
+          description: Member resource name
+        memberType:
+          type: string
+          description: Member resource type (e.g., SERVER, APPLICATION, SUBGRAPH)
+        memberStatus:
+          type: string
+          description: Member resource status
+        isSubgraph:
+          type: boolean
+          description: Whether this member is a subgraph (for nested subgraph indication)
+        nestedMemberCount:
+          type: integer
+          description: If isSubgraph=true, the count of members in the nested subgraph
+        addedAt:
+          type: string
+          format: date-time
+          description: Time when added to subgraph
+        addedBy:
+          type: integer
+          format: int64
+          description: User ID who added this member
 
-    SubgraphListResponse:
+    SubgraphMemberListResponse:
       type: object
+      description: Paginated list of subgraph members
       properties:
-        items:
+        content:
           type: array
           items:
-            $ref: '#/components/schemas/SubgraphResponse'
-        total:
-          type: integer
-          format: int64
+            $ref: '#/components/schemas/SubgraphMemberDTO'
         page:
           type: integer
-        pageSize:
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
           type: integer
 
-    SubgraphDetailResponse:
-      allOf:
-        - $ref: '#/components/schemas/SubgraphResponse'
-        - type: object
-          properties:
-            owners:
-              type: array
-              items:
-                $ref: '#/components/schemas/UserInfo'
-            viewers:
-              type: array
-              items:
-                $ref: '#/components/schemas/UserInfo'
-            resources:
-              type: array
-              items:
-                $ref: '#/components/schemas/ResourceInfo'
-            resourceCount:
-              type: integer
+    SubgraphMembersWithRelationsResponse:
+      type: object
+      description: All subgraph members with their relationships (non-paginated, for topology)
+      properties:
+        subgraphId:
+          type: integer
+          format: int64
+        subgraphName:
+          type: string
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubgraphMemberDTO'
+          description: All members in the subgraph (recursively expanded if requested)
+        relationships:
+          type: array
+          items:
+            $ref: '#/components/schemas/RelationshipDTO'
+          description: Relationships between members within the subgraph
+        nestedSubgraphs:
+          type: array
+          items:
+            $ref: '#/components/schemas/NestedSubgraphInfo'
+          description: Information about nested subgraphs (for expand/collapse UI)
+        nodeCount:
+          type: integer
+          description: Total number of nodes (including nested)
+        edgeCount:
+          type: integer
+          description: Total number of edges (relationships)
+        maxDepth:
+          type: integer
+          description: Maximum nesting depth reached
 
+    NestedSubgraphInfo:
+      type: object
+      description: Information about a nested subgraph for UI rendering
+      properties:
+        subgraphId:
+          type: integer
+          format: int64
+        subgraphName:
+          type: string
+        parentSubgraphId:
+          type: integer
+          format: int64
+        depth:
+          type: integer
+          description: Nesting depth level (0 = direct member)
+        memberCount:
+          type: integer
+        expanded:
+          type: boolean
+          description: Whether this subgraph is expanded in the response
+
+    SubgraphAncestorsResponse:
+      type: object
+      description: List of ancestor subgraphs (subgraphs that contain this subgraph)
+      properties:
+        subgraphId:
+          type: integer
+          format: int64
+        ancestors:
+          type: array
+          items:
+            $ref: '#/components/schemas/AncestorInfo'
+
+    AncestorInfo:
+      type: object
+      properties:
+        subgraphId:
+          type: integer
+          format: int64
+        subgraphName:
+          type: string
+        depth:
+          type: integer
+          description: Distance from the queried subgraph (1 = direct parent)
+
+    # ============================================
+    # Topology Schemas
+    # ============================================
     TopologyGraphResponse:
       type: object
       properties:
@@ -593,6 +498,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TopologyEdge'
+        subgraphBoundaries:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubgraphBoundary'
+          description: Boundaries for nested subgraphs (for visual grouping)
 
     TopologyNode:
       type: object
@@ -606,6 +516,16 @@ components:
           type: string
         status:
           type: string
+        isSubgraph:
+          type: boolean
+          description: Whether this node is a subgraph
+        expanded:
+          type: boolean
+          description: If isSubgraph=true, whether it's currently expanded
+        parentSubgraphId:
+          type: integer
+          format: int64
+          description: ID of the containing subgraph (null if top-level)
 
     TopologyEdge:
       type: object
@@ -619,113 +539,21 @@ components:
         type:
           type: string
 
-    UserInfo:
+    SubgraphBoundary:
       type: object
-      properties:
-        userId:
-          type: integer
-          format: int64
-        username:
-          type: string
-        email:
-          type: string
-
-    ResourceInfo:
-      type: object
-      properties:
-        resourceId:
-          type: integer
-          format: int64
-        name:
-          type: string
-        type:
-          type: string
-        status:
-          type: string
-        addedAt:
-          type: string
-          format: date-time
-        addedBy:
-          type: integer
-          format: int64
-
-    SubgraphResourceDTO:
-      type: object
-      description: Subgraph resource information with full details
-      properties:
-        id:
-          type: integer
-          format: int64
-          description: Association ID
-        resourceId:
-          type: integer
-          format: int64
-          description: Resource node ID
-        subgraphId:
-          type: integer
-          format: int64
-          description: Subgraph ID
-        resourceName:
-          type: string
-          description: Resource name
-        resourceType:
-          type: string
-          description: Resource type name
-        resourceStatus:
-          type: string
-          description: Resource status
-        addedAt:
-          type: string
-          format: date-time
-          description: Time when added to subgraph
-        addedBy:
-          type: integer
-          format: int64
-          description: User ID who added this resource
-
-    SubgraphResourceListResponse:
-      type: object
-      description: Paginated list of subgraph resources
-      properties:
-        content:
-          type: array
-          items:
-            $ref: '#/components/schemas/SubgraphResourceDTO'
-        page:
-          type: integer
-        size:
-          type: integer
-        totalElements:
-          type: integer
-          format: int64
-        totalPages:
-          type: integer
-
-    SubgraphResourcesWithRelationsResponse:
-      type: object
-      description: All subgraph resources with their relationships (non-paginated)
+      description: Visual boundary for a subgraph in topology view
       properties:
         subgraphId:
           type: integer
           format: int64
         subgraphName:
           type: string
-        resources:
+        memberIds:
           type: array
           items:
-            $ref: '#/components/schemas/SubgraphResourceDTO'
-          description: All resources in the subgraph
-        relationships:
-          type: array
-          items:
-            $ref: '#/components/schemas/RelationshipDTO'
-          description: Relationships between resources within the subgraph
-        nodeCount:
-          type: integer
-          description: Total number of nodes
-        edgeCount:
-          type: integer
-          description: Total number of edges (relationships)
+            type: integer
+            format: int64
+          description: IDs of nodes contained in this boundary
 
     RelationshipDTO:
       type: object
@@ -765,6 +593,7 @@ components:
       properties:
         code:
           type: string
+          description: Error code (e.g., CIRCULAR_REFERENCE_DETECTED, MEMBER_ALREADY_EXISTS)
         message:
           type: string
         timestamp:
@@ -778,56 +607,62 @@ components:
 
 ### Domain Model
 
-#### Subgraph (Aggregate Root)
+**Note**: Subgraph is a Resource type. The `Resource` entity is reused, and only member-specific entities are newly defined.
+
+#### Resource (Reused - Subgraph is stored here)
 
 ```java
-public class Subgraph {
-    private Long id;
-    private String name;
-    private String description;
-    private List<String> tags;
-    private Map<String, String> metadata;  // business domain, environment, team
-    private Long createdBy;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
-    private Integer version;  // for optimistic locking
-    
-    // Business methods
-    public void updateBasicInfo(String name, String description, List<String> tags);
-    public void updateMetadata(Map<String, String> metadata);
-    public boolean canBeEditedBy(Long userId, List<SubgraphPermission> permissions);
-    public boolean canBeDeletedBy(Long userId, List<SubgraphPermission> permissions);
-}
+// Subgraph is stored in Resource table with resource_type_id pointing to SUBGRAPH type
+// Resource entity is defined in F03 - Resource Management
+// Key fields:
+// - id, name, description, tags, metadata
+// - resource_type_id (points to SUBGRAPH type for subgraphs)
+// - created_by, created_at, updated_at, version
 ```
 
-#### SubgraphPermission (Entity)
+#### SubgraphMember (New Entity)
 
 ```java
-public class SubgraphPermission {
+public class SubgraphMember {
     private Long id;
-    private Long subgraphId;
-    private Long userId;
-    private PermissionRole role;  // OWNER, VIEWER
-    private LocalDateTime grantedAt;
-    private Long grantedBy;
-    
-    public enum PermissionRole {
-        OWNER,    // Full control
-        MANAGER,  // Can add/remove nodes
-        VIEWER    // Read-only
-    }
-}
-```
-
-#### SubgraphResource (Entity)
-
-```java
-public class SubgraphResource {
-    private Long id;
-    private Long subgraphId;
-    private Long resourceId;
+    private Long subgraphId;      // Parent subgraph resource ID
+    private Long memberId;        // Member resource ID (can be any resource including another subgraph)
     private LocalDateTime addedAt;
     private Long addedBy;
+
+    // Derived properties (from joined Resource)
+    private String memberName;
+    private String memberType;
+    private String memberStatus;
+    private boolean isSubgraph;   // True if member is also a SUBGRAPH type
+}
+```
+
+#### ResourceType - SUBGRAPH (Predefined)
+
+```java
+// SUBGRAPH type is predefined in resource_type table
+public static final String SUBGRAPH_TYPE_CODE = "SUBGRAPH";
+
+// resource_type record:
+// {
+//   code: "SUBGRAPH",
+//   name: "子图",
+//   description: "资源分组容器，支持嵌套",
+//   icon: "folder-tree",
+//   is_system: true,
+//   attribute_schema: null  // No special attributes beyond standard resource fields
+// }
+```
+
+#### Permission Model (Reused from Resource)
+
+```java
+// Subgraph permissions are stored in resource_permission table
+// Permission roles (from F03):
+public enum PermissionRole {
+    OWNER,    // Full control - edit, delete, manage members, manage permissions
+    VIEWER    // Read-only - view details and topology
 }
 ```
 
@@ -835,48 +670,37 @@ public class SubgraphResource {
 
 ```java
 // domain/repository-api
-public interface SubgraphRepository {
-    // Subgraph CRUD operations
-    Subgraph save(Subgraph subgraph);
-    Optional<Subgraph> findById(Long id);
-    Optional<Subgraph> findByName(String name);
-    List<Subgraph> findByUserId(Long userId, int page, int size);
-    long countByUserId(Long userId);
-    List<Subgraph> searchByKeyword(String keyword, Long userId, int page, int size);
-    long countByKeyword(String keyword, Long userId);
-    List<Subgraph> filterByTags(List<String> tags, Long userId, int page, int size);
-    long countByTags(List<String> tags, Long userId);
-    List<Subgraph> filterByOwner(Long ownerId, Long currentUserId, int page, int size);
-    long countByOwner(Long ownerId, Long currentUserId);
-    boolean update(Subgraph subgraph);
-    void delete(Long id);
-    boolean existsById(Long id);
-    boolean existsByName(String name);
-    boolean existsByNameExcludeId(String name, Long excludeId);
+// NOTE: ResourceRepository is reused for subgraph CRUD operations (defined in F03)
+// Only SubgraphMemberRepository is newly defined
 
-    // Permission operations (merged from SubgraphPermissionRepository)
-    SubgraphPermission savePermission(SubgraphPermission permission);
-    List<SubgraphPermission> findPermissionsBySubgraphId(Long subgraphId);
-    Optional<SubgraphPermission> findPermissionBySubgraphIdAndUserId(Long subgraphId, Long userId);
-    int countOwnersBySubgraphId(Long subgraphId);
-    void deletePermission(Long subgraphId, Long userId);
-    boolean hasPermission(Long subgraphId, Long userId, PermissionRole role);
-    boolean hasAnyPermission(Long subgraphId, Long userId);
-}
+public interface SubgraphMemberRepository {
+    // Member CRUD operations
+    SubgraphMember addMember(SubgraphMember member);
+    void addMembers(List<SubgraphMember> members);
+    void removeMember(Long subgraphId, Long memberId);
+    void removeMembers(Long subgraphId, List<Long> memberIds);
 
-public interface SubgraphResourceRepository {
-    SubgraphResource addResource(SubgraphResource subgraphResource);
-    void addResources(List<SubgraphResource> subgraphResources);
-    void removeResource(Long subgraphId, Long resourceId);
-    void removeResources(Long subgraphId, List<Long> resourceIds);
-    List<Long> findResourceIdsBySubgraphId(Long subgraphId);
-    List<SubgraphResource> findBySubgraphId(Long subgraphId);
+    // Query operations
+    List<SubgraphMember> findBySubgraphId(Long subgraphId);
+    List<SubgraphMember> findBySubgraphIdPaged(Long subgraphId, int page, int size);
     int countBySubgraphId(Long subgraphId);
-    List<Long> findSubgraphIdsByResourceId(Long resourceId);
-    boolean existsInSubgraph(Long subgraphId, Long resourceId);
-    void deleteAllBySubgraphId(Long subgraphId);
-    void deleteAllByResourceId(Long resourceId);
+    List<Long> findMemberIdsBySubgraphId(Long subgraphId);
+
+    // Reverse lookup (for cascade delete and cycle detection)
+    List<Long> findSubgraphIdsByMemberId(Long memberId);
+
+    // Existence checks
+    boolean existsInSubgraph(Long subgraphId, Long memberId);
     boolean isSubgraphEmpty(Long subgraphId);
+
+    // Cleanup operations
+    void deleteAllBySubgraphId(Long subgraphId);
+    void deleteAllByMemberId(Long memberId);
+
+    // Cycle detection support
+    List<Long> findAllAncestorSubgraphIds(Long subgraphId);
+    List<Long> findAllDescendantSubgraphIds(Long subgraphId);
+    boolean wouldCreateCycle(Long subgraphId, Long candidateMemberId);
 }
 ```
 
@@ -884,25 +708,27 @@ public interface SubgraphResourceRepository {
 
 ```java
 // domain/domain-api
-public interface SubgraphDomainService {
-    // Subgraph lifecycle
-    Subgraph createSubgraph(Subgraph subgraph, Long creatorId);
-    Subgraph updateSubgraph(Long subgraphId, Subgraph updates, Long userId);
-    void deleteSubgraph(Long subgraphId, Long userId);
-    
-    // Permission management
-    void addPermission(Long subgraphId, Long userId, PermissionRole role, Long grantedBy);
-    void removePermission(Long subgraphId, Long userId, Long removedBy);
-    boolean hasPermission(Long subgraphId, Long userId, PermissionRole requiredRole);
-    
-    // Resource management
-    void addResources(Long subgraphId, List<Long> resourceIds, Long userId);
-    void removeResources(Long subgraphId, List<Long> resourceIds, Long userId);
-    List<Resource> getSubgraphResources(Long subgraphId, Long userId);
-    
-    // Query
-    List<Subgraph> listSubgraphs(Long userId, SubgraphQuery query);
-    Subgraph getSubgraphDetail(Long subgraphId, Long userId);
+// NOTE: Subgraph CRUD and permission operations use ResourceDomainService (defined in F03)
+// Only SubgraphMemberDomainService is newly defined
+
+public interface SubgraphMemberDomainService {
+    // Member management
+    void addMembers(Long subgraphId, List<Long> memberIds, Long userId);
+    void removeMembers(Long subgraphId, List<Long> memberIds, Long userId);
+    List<SubgraphMember> getMembersBySubgraphId(Long subgraphId, Long userId);
+    List<SubgraphMember> getMembersBySubgraphIdPaged(Long subgraphId, int page, int size, Long userId);
+
+    // Cycle detection (for nested subgraphs)
+    boolean wouldCreateCycle(Long subgraphId, Long candidateMemberId);
+    List<Long> getAncestorSubgraphIds(Long subgraphId);
+    List<Long> getDescendantSubgraphIds(Long subgraphId);
+
+    // Topology queries
+    SubgraphTopology getSubgraphTopology(Long subgraphId, boolean expandNested, int maxDepth, Long userId);
+    SubgraphMembersWithRelations getMembersWithRelations(Long subgraphId, boolean expandNested, int maxDepth, Long userId);
+
+    // Validation for subgraph deletion (must be empty)
+    boolean isSubgraphEmpty(Long subgraphId);
 }
 ```
 
@@ -910,19 +736,24 @@ public interface SubgraphDomainService {
 
 ```java
 // application/application-api
-public interface SubgraphApplicationService {
-    // Commands
-    SubgraphDTO createSubgraph(CreateSubgraphCommand command);
-    SubgraphDTO updateSubgraph(UpdateSubgraphCommand command);
-    void deleteSubgraph(DeleteSubgraphCommand command);
-    void addResourcesToSubgraph(AddResourcesCommand command);
-    void removeResourcesFromSubgraph(RemoveResourcesCommand command);
-    void updatePermissions(UpdatePermissionsCommand command);
-    
-    // Queries
-    PageResult<SubgraphDTO> listSubgraphs(ListSubgraphsQuery query);
-    SubgraphDetailDTO getSubgraphDetail(Long subgraphId, Long userId);
-    TopologyGraphDTO getSubgraphTopology(Long subgraphId, Long userId);
+// NOTE: Subgraph CRUD operations use ResourceApplicationService (defined in F03)
+// Only SubgraphMemberApplicationService is newly defined
+
+public interface SubgraphMemberApplicationService {
+    // Member Commands
+    void addMembersToSubgraph(AddMembersCommand command);
+    void removeMembersFromSubgraph(RemoveMembersCommand command);
+
+    // Member Queries
+    PageResult<SubgraphMemberDTO> listMembers(ListMembersQuery query);
+    SubgraphMembersWithRelationsDTO getMembersWithRelations(Long subgraphId, boolean expandNested, int maxDepth, Long userId);
+    TopologyGraphDTO getSubgraphTopology(Long subgraphId, boolean expandNested, Long userId);
+
+    // Ancestor/Descendant Queries (for navigation and cycle detection UI)
+    SubgraphAncestorsDTO getAncestors(Long subgraphId, Long userId);
+
+    // Validation (called before resource deletion)
+    boolean isSubgraphEmpty(Long subgraphId);
 }
 ```
 
@@ -930,122 +761,176 @@ public interface SubgraphApplicationService {
 
 ### Entity Attribute Tables
 
-#### Subgraph Entity
+**Note**: Subgraph data is stored in the `resource` table (defined in F03). Subgraph permissions use `resource_permission` table. Only the member association table is newly defined.
+
+#### Resource Entity (Reused - stores Subgraph data)
 
 | Entity | Attribute | Type | Required | Description | Constraints |
 |--------|-----------|------|----------|-------------|-------------|
-| Subgraph | id | Long | Yes | Subgraph ID | Primary Key, Auto-increment |
-| Subgraph | name | String | Yes | Subgraph name | 1-255 characters, Globally unique |
-| Subgraph | description | String | No | Subgraph description | Text |
-| Subgraph | tags | List<String> | No | Tags for categorization | JSON array |
-| Subgraph | metadata | Map<String,String> | No | Key-value metadata | JSON object |
-| Subgraph | createdBy | Long | Yes | Creator user ID | > 0 |
-| Subgraph | createdAt | DateTime | Yes | Creation timestamp | ISO8601 |
-| Subgraph | updatedAt | DateTime | Yes | Last update timestamp | ISO8601 |
-| Subgraph | version | Integer | Yes | Version for optimistic locking | >= 0, Default 0 |
+| Resource | id | Long | Yes | Resource ID | Primary Key, Auto-increment |
+| Resource | resource_type_id | Long | Yes | Resource type ID | FK to resource_type, points to SUBGRAPH type |
+| Resource | name | String | Yes | Subgraph name | 1-255 characters |
+| Resource | description | String | No | Subgraph description | Text |
+| Resource | tags | List<String> | No | Tags for categorization | JSON array |
+| Resource | metadata | Map<String,String> | No | Key-value metadata | JSON object |
+| Resource | created_by | Long | Yes | Creator user ID | > 0 |
+| Resource | created_at | DateTime | Yes | Creation timestamp | ISO8601 |
+| Resource | updated_at | DateTime | Yes | Last update timestamp | ISO8601 |
+| Resource | version | Integer | Yes | Version for optimistic locking | >= 0, Default 0 |
 
-#### SubgraphPermission Entity
-
-| Entity | Attribute | Type | Required | Description | Constraints |
-|--------|-----------|------|----------|-------------|-------------|
-| SubgraphPermission | id | Long | Yes | Permission ID | Primary Key, Auto-increment |
-| SubgraphPermission | subgraphId | Long | Yes | Subgraph ID | Foreign Key |
-| SubgraphPermission | userId | Long | Yes | User ID | > 0 |
-| SubgraphPermission | role | PermissionRole | Yes | Permission role | OWNER or VIEWER |
-| SubgraphPermission | grantedAt | DateTime | Yes | Grant timestamp | ISO8601 |
-| SubgraphPermission | grantedBy | Long | Yes | Granter user ID | > 0 |
-
-#### SubgraphResource Entity
+#### ResourceType - SUBGRAPH (Predefined in resource_type table)
 
 | Entity | Attribute | Type | Required | Description | Constraints |
 |--------|-----------|------|----------|-------------|-------------|
-| SubgraphResource | id | Long | Yes | Association ID | Primary Key, Auto-increment |
-| SubgraphResource | subgraphId | Long | Yes | Subgraph ID | Foreign Key |
-| SubgraphResource | resourceId | Long | Yes | Resource node ID | Foreign Key |
-| SubgraphResource | addedAt | DateTime | Yes | Addition timestamp | ISO8601 |
-| SubgraphResource | addedBy | Long | Yes | Adder user ID | > 0 |
+| ResourceType | id | Long | Yes | Type ID | Primary Key |
+| ResourceType | code | String | Yes | Type code | "SUBGRAPH", Unique |
+| ResourceType | name | String | Yes | Display name | "子图" |
+| ResourceType | description | String | No | Type description | "资源分组容器，支持嵌套" |
+| ResourceType | icon | String | No | Icon name | "folder-tree" |
+| ResourceType | is_system | Boolean | Yes | System predefined | true |
+
+#### ResourcePermission Entity (Reused - stores Subgraph permissions)
+
+| Entity | Attribute | Type | Required | Description | Constraints |
+|--------|-----------|------|----------|-------------|-------------|
+| ResourcePermission | id | Long | Yes | Permission ID | Primary Key, Auto-increment |
+| ResourcePermission | resource_id | Long | Yes | Resource (Subgraph) ID | Foreign Key |
+| ResourcePermission | user_id | Long | Yes | User ID | > 0 |
+| ResourcePermission | role | PermissionRole | Yes | Permission role | OWNER or VIEWER |
+| ResourcePermission | granted_at | DateTime | Yes | Grant timestamp | ISO8601 |
+| ResourcePermission | granted_by | Long | Yes | Granter user ID | > 0 |
+
+#### SubgraphMember Entity (NEW)
+
+| Entity | Attribute | Type | Required | Description | Constraints |
+|--------|-----------|------|----------|-------------|-------------|
+| SubgraphMember | id | Long | Yes | Association ID | Primary Key, Auto-increment |
+| SubgraphMember | subgraph_id | Long | Yes | Parent subgraph resource ID | FK to resource(id), must be SUBGRAPH type |
+| SubgraphMember | member_id | Long | Yes | Member resource ID | FK to resource(id), can be any type including SUBGRAPH |
+| SubgraphMember | added_at | DateTime | Yes | Addition timestamp | ISO8601 |
+| SubgraphMember | added_by | Long | Yes | Adder user ID | > 0 |
+
+#### AuditLog Entity (Reused from common audit infrastructure)
+
+| Entity | Attribute | Type | Required | Description | Constraints |
+|--------|-----------|------|----------|-------------|-------------|
+| AuditLog | id | Long | Yes | Log ID | Primary Key, Auto-increment |
+| AuditLog | entity_type | String | Yes | Entity type | "RESOURCE" for subgraph operations |
+| AuditLog | entity_id | Long | Yes | Entity ID | Resource (Subgraph) ID |
+| AuditLog | operation | String | Yes | Operation type | ADD_MEMBER, REMOVE_MEMBER, etc. |
+| AuditLog | old_value | JSON | No | Value before change | JSON object |
+| AuditLog | new_value | JSON | No | Value after change | JSON object |
+| AuditLog | operator_id | Long | Yes | Operator user ID | > 0 |
+| AuditLog | created_at | DateTime | Yes | Operation timestamp | ISO8601 |
 
 ### Entity Relationship Table
 
 | Entity A | Relationship | Entity B | Multiplicity | Description |
 |----------|--------------|----------|--------------|-------------|
-| Subgraph | has | SubgraphPermission | 1:N | One subgraph has multiple permissions |
-| Subgraph | contains | SubgraphResource | 1:N | One subgraph contains multiple resource associations |
-| SubgraphPermission | belongs to | Subgraph | N:1 | Permission belongs to one subgraph |
-| SubgraphPermission | references | User | N:1 | Permission references one user |
-| SubgraphResource | belongs to | Subgraph | N:1 | Resource association belongs to one subgraph |
-| SubgraphResource | references | Resource | N:1 | Resource association references one resource node |
-| Resource | appears in | Subgraph | N:M | Resource can appear in multiple subgraphs (via SubgraphResource) |
+| Resource (SUBGRAPH) | is a | Resource | - | Subgraph is a special type of Resource |
+| Resource (SUBGRAPH) | has | ResourcePermission | 1:N | One subgraph has multiple permissions (reused) |
+| Resource (SUBGRAPH) | contains | SubgraphMember | 1:N | One subgraph contains multiple member associations |
+| SubgraphMember | belongs to | Resource (SUBGRAPH) | N:1 | Member association belongs to one subgraph |
+| SubgraphMember | references | Resource | N:1 | Member association references one resource |
+| Resource | appears in | Resource (SUBGRAPH) | N:M | Resource can appear in multiple subgraphs (via SubgraphMember) |
+| Resource (SUBGRAPH) | can contain | Resource (SUBGRAPH) | N:M | Subgraph can contain other subgraphs (nesting, acyclic) |
 
 ### Enum Definitions
 
 | Enum Type | Value | Description |
 |-----------|-------|-------------|
-| PermissionRole | OWNER | Full control - can edit, delete, manage permissions, add/remove nodes |
-| PermissionRole | VIEWER | Read-only access - can view subgraph details and topology |
+| PermissionRole | OWNER | Full control - can edit, delete, manage permissions, add/remove members (reused from F03) |
+| PermissionRole | VIEWER | Read-only access - can view subgraph details and topology (reused from F03) |
 
 ### Database Indexes
 
-#### subgraph Table Indexes
+**Note**: `resource`, `resource_type`, and `resource_permission` table indexes are defined in F03. Only `subgraph_member` table indexes are newly defined.
+
+#### subgraph_member Table Indexes (NEW)
 
 | Index Name | Type | Columns | Purpose |
 |------------|------|---------|---------|
 | PRIMARY | Primary Key | id | Unique identifier |
-| uk_name | Unique | name | Enforce global name uniqueness |
-| idx_created_by | Index | created_by | Query subgraphs by creator |
-| idx_created_at | Index | created_at | Sort by creation time |
-| idx_updated_at | Index | updated_at | Sort by update time |
-| idx_name_desc | FULLTEXT | name, description | Full-text search |
-
-#### subgraph_permission Table Indexes
-
-| Index Name | Type | Columns | Purpose |
-|------------|------|---------|---------|
-| PRIMARY | Primary Key | id | Unique identifier |
-| uk_subgraph_user | Unique | subgraph_id, user_id | One user can only have one role per subgraph |
-| idx_user_id | Index | user_id | Query subgraphs by user |
-| idx_subgraph_id | Index | subgraph_id | Query permissions by subgraph |
+| uk_subgraph_member | Unique | subgraph_id, member_id | One resource can only be added once per subgraph |
+| idx_member_id | Index | member_id | Query subgraphs by member resource |
+| idx_subgraph_id | Index | subgraph_id | Query members by subgraph |
 | fk_subgraph | Foreign Key | subgraph_id | CASCADE delete when subgraph deleted |
+| fk_member | Foreign Key | member_id | CASCADE delete when member resource deleted |
 
-#### subgraph_resource Table Indexes
+#### Database Schema (DDL)
 
-| Index Name | Type | Columns | Purpose |
-|------------|------|---------|---------|
-| PRIMARY | Primary Key | id | Unique identifier |
-| uk_subgraph_resource | Unique | subgraph_id, resource_id | One resource can only be added once per subgraph |
-| idx_resource_id | Index | resource_id | Query subgraphs by resource |
-| idx_subgraph_id | Index | subgraph_id | Query resources by subgraph |
-| fk_subgraph | Foreign Key | subgraph_id | CASCADE delete when subgraph deleted |
-| fk_resource | Foreign Key | resource_id | CASCADE delete when resource deleted |
+```sql
+-- Predefined SUBGRAPH type in resource_type table
+INSERT INTO resource_type (code, name, description, icon, is_system, created_at, updated_at)
+VALUES ('SUBGRAPH', '子图', '资源分组容器，支持嵌套', 'folder-tree', true, NOW(), NOW());
+
+-- New subgraph_member table
+CREATE TABLE subgraph_member (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    subgraph_id BIGINT NOT NULL COMMENT 'Parent subgraph resource ID',
+    member_id BIGINT NOT NULL COMMENT 'Member resource ID (can be any type including SUBGRAPH)',
+    added_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    added_by BIGINT NOT NULL COMMENT 'User ID who added this member',
+    UNIQUE KEY uk_subgraph_member (subgraph_id, member_id),
+    INDEX idx_subgraph_id (subgraph_id),
+    INDEX idx_member_id (member_id),
+    CONSTRAINT fk_subgraph_member_subgraph FOREIGN KEY (subgraph_id)
+        REFERENCES resource(id) ON DELETE CASCADE,
+    CONSTRAINT fk_subgraph_member_member FOREIGN KEY (member_id)
+        REFERENCES resource(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Subgraph member associations';
+```
 
 ### Data Access Patterns
 
-1. **List subgraphs for a user**: 
-   - JOIN subgraph with subgraph_permission ON subgraph.id = subgraph_permission.subgraph_id
-   - WHERE subgraph_permission.user_id = ?
-   - Use idx_user_id index
+**Note**: Patterns 1-5 use Resource API (defined in F03). Only member-specific patterns are newly defined.
 
-2. **Get subgraph detail**: 
-   - Query subgraph by id (PRIMARY KEY)
-   - Query permissions by subgraph_id (idx_subgraph_id)
-   - Query resources by subgraph_id (idx_subgraph_id)
+1. **List subgraphs for a user** (Reuse Resource API):
+   - GET /api/v1/resources?type=SUBGRAPH
+   - Uses resource table with resource_type filtering
+   - Permission filtering via resource_permission table
 
-3. **Search subgraphs by keyword**: 
-   - Use FULLTEXT index idx_name_desc
-   - MATCH(name, description) AGAINST(? IN NATURAL LANGUAGE MODE)
+2. **Get subgraph detail** (Reuse Resource API):
+   - GET /api/v1/resources/{id}
+   - Query resource by id (PRIMARY KEY)
+   - Query permissions by resource_id
 
-4. **Filter by tags**: 
-   - Use JSON_CONTAINS(tags, ?)
-   - Note: JSON queries are slower, consider denormalization if performance critical
+3. **Search subgraphs by keyword** (Reuse Resource API):
+   - GET /api/v1/resources?type=SUBGRAPH&keyword=xxx
+   - Uses resource table FULLTEXT index
 
-5. **Filter by owner**: 
-   - JOIN with subgraph_permission
-   - WHERE role = 'OWNER' AND user_id = ?
+4. **Filter by tags** (Reuse Resource API):
+   - GET /api/v1/resources?type=SUBGRAPH&tags=xxx
+   - Uses JSON_CONTAINS on resource.tags
 
-6. **Get subgraph topology**: 
-   - Query resource IDs from subgraph_resource by subgraph_id
+5. **Filter by owner** (Reuse Resource API):
+   - GET /api/v1/resources?type=SUBGRAPH&ownerId=xxx
+   - JOIN with resource_permission WHERE role = 'OWNER'
+
+6. **Get subgraph members** (NEW):
+   - Query member IDs from subgraph_member by subgraph_id
    - Query resource details from resource table (batch query)
-   - Query topology relationships from topology table WHERE source IN (?) AND target IN (?)
+   - JOIN to get member type for isSubgraph flag
+
+7. **Get subgraph topology** (NEW):
+   - Query member IDs from subgraph_member by subgraph_id
+   - For nested subgraphs, recursively query nested members up to maxDepth
+   - Query topology relationships from relationship table WHERE source IN (?) AND target IN (?)
+   - Build subgraphBoundaries for visual grouping
+
+8. **Cycle detection** (NEW):
+   - When adding a subgraph as member, find all ancestors of current subgraph
+   - Check if candidate member is in ancestor list
+   - Use recursive CTE or application-level DFS:
+   ```sql
+   WITH RECURSIVE ancestors AS (
+       SELECT subgraph_id, member_id FROM subgraph_member WHERE member_id = ?
+       UNION ALL
+       SELECT sm.subgraph_id, sm.member_id FROM subgraph_member sm
+       JOIN ancestors a ON sm.member_id = a.subgraph_id
+   )
+   SELECT DISTINCT subgraph_id FROM ancestors;
+   ```
 
 ### Detailed Business Processes
 
@@ -2053,5 +1938,49 @@ CREATE TABLE subgraph_resource (...);
 3. **Subgraph Versioning**: Track changes to subgraph structure over time
 4. **Advanced Search**: Full-text search with Elasticsearch
 5. **Subgraph Analytics**: Statistics and insights about subgraph usage
-6. **Bulk Operations**: Batch add/remove nodes, bulk permission updates
+6. **Bulk Operations**: Batch add/remove members, bulk permission updates
 7. **Subgraph Export/Import**: Export subgraph definitions for backup or migration
+8. **Nested Subgraph Visualization**: Advanced UI for deep nesting (breadcrumb navigation, tree view)
+
+---
+
+## Document Change Log
+
+| Version | Date | Author | Changes |
+|---------|------|--------|---------|
+| 1.0 | 2024-12-04 | - | Initial design document |
+| 2.0 | 2025-12-22 | - | Major refactoring: Subgraph as Resource Type |
+
+### v2.0 Major Changes (2025-12-22)
+
+**Design Principle Change**: Subgraph is now a Resource Type, not a separate entity.
+
+**Key Changes**:
+
+1. **Data Model**:
+   - Removed `subgraph` table - subgraphs now stored in `resource` table with type=SUBGRAPH
+   - Removed `subgraph_permission` table - reuse `resource_permission` table
+   - Renamed `subgraph_resource` to `subgraph_member` with updated schema
+   - Added SUBGRAPH type to `resource_type` table
+
+2. **API Design**:
+   - Subgraph CRUD operations now use Resource API (`/api/v1/resources`)
+   - Only member-specific APIs remain under `/api/v1/subgraphs/{id}/members`
+   - Added nested subgraph support (expandNested, maxDepth parameters)
+   - Added cycle detection for nested subgraphs
+   - Added `/api/v1/subgraphs/{id}/ancestors` endpoint
+
+3. **New Features**:
+   - **Nested Subgraphs**: Subgraph can contain other subgraphs
+   - **Cycle Detection**: Prevent circular references when nesting
+   - **Expand/Collapse**: Topology view supports expandable subgraph nodes
+
+4. **Permission Model**:
+   - Simplified to OWNER/VIEWER (removed MANAGER role)
+   - Reuse resource permission infrastructure
+
+5. **Benefits**:
+   - Unified resource management
+   - Reduced code duplication
+   - Consistent permission model
+   - Hierarchical organization support

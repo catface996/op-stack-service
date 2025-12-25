@@ -1,5 +1,5 @@
 ---
-inclusion: always
+inclusion: manual
 ---
 
 # AIDLC 智能引导系统 (AI Development Lifecycle Guide)

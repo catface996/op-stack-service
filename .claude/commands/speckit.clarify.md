@@ -22,7 +22,7 @@ Note: This clarification workflow is expected to run (and be completed) BEFORE i
 
 Execution steps:
 
-1. Run `.specify/scripts/bash/check-prerequisites.sh --json --paths-only` from repo root **once** (combined `--json --paths-only` mode / `-Json -PathsOnly`). Parse minimal JSON payload fields:
+1. Run `scripts/bash/check-prerequisites.sh --json --paths-only` from repo root **once** (combined `--json --paths-only` mode / `-Json -PathsOnly`). Parse minimal JSON payload fields:
    - `FEATURE_DIR`
    - `FEATURE_SPEC`
    - (Optionally capture `IMPL_PLAN`, `TASKS` for future chained flows.)
@@ -178,4 +178,4 @@ Behavior rules:
 - If no questions asked due to full coverage, output a compact coverage summary (all categories Clear) then suggest advancing.
 - If quota reached with unresolved high-impact categories remaining, explicitly flag them under Deferred with rationale.
 
-Context for prioritization: $ARGUMENTS
+Context for prioritization: {ARGS}

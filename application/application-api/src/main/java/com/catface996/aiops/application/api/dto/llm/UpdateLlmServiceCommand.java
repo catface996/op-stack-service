@@ -23,6 +23,11 @@ import lombok.NoArgsConstructor;
 public class UpdateLlmServiceCommand {
 
     /**
+     * 服务 ID（POST-Only API 使用）
+     */
+    private Long id;
+
+    /**
      * 服务名称
      */
     @Size(min = 1, max = 100, message = "服务名称长度为1-100字符")

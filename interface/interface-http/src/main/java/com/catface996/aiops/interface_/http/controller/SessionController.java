@@ -9,6 +9,10 @@ import com.catface996.aiops.application.api.service.session.SessionApplicationSe
 import com.catface996.aiops.infrastructure.security.api.service.JwtTokenProvider;
 import com.catface996.aiops.interface_.http.dto.session.SessionListResponse;
 import com.catface996.aiops.interface_.http.dto.session.TerminateOthersResponse;
+import com.catface996.aiops.interface_.http.request.session.QuerySessionsRequest;
+import com.catface996.aiops.interface_.http.request.session.TerminateOthersRequest;
+import com.catface996.aiops.interface_.http.request.session.TerminateSessionRequest;
+import com.catface996.aiops.interface_.http.request.session.ValidateSessionRequest;
 import com.catface996.aiops.interface_.http.response.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -25,14 +29,17 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * 会话管理控制器
+ * 会话管理控制器（POST-Only API）
  *
- * <p>提供会话管理相关的 HTTP 接口，包括会话验证和强制登出功能。</p>
+ * <p>提供会话管理相关的 HTTP 接口，所有业务接口统一使用 POST 方法。</p>
  *
  * <p>接口列表：</p>
  * <ul>
- *   <li>GET /api/v1/session/validate - 验证会话</li>
- *   <li>POST /api/v1/session/force-logout-others - 强制登出其他设备</li>
+ *   <li>POST /api/v1/sessions/validate - 验证会话</li>
+ *   <li>POST /api/v1/sessions/query - 获取当前用户的所有会话</li>
+ *   <li>POST /api/v1/sessions/terminate - 终止指定会话</li>
+ *   <li>POST /api/v1/sessions/terminate-others - 终止其他会话</li>
+ *   <li>POST /api/v1/sessions/force-logout-others - 强制登出其他设备</li>
  * </ul>
  *
  * <p>统一响应格式：</p>
@@ -58,6 +65,7 @@ import java.util.List;
  * <ul>
  *   <li>REQ-FR-007: 会话管理</li>
  *   <li>REQ-FR-009: 会话互斥</li>
+ *   <li>Feature 024: POST-Only API 重构</li>
  * </ul>
  *
  * @author AI Assistant
@@ -89,8 +97,12 @@ public class SessionController {
      *
      * <p>请求示例：</p>
      * <pre>
-     * GET /api/v1/session/validate
-     * Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+     * POST /api/v1/sessions/validate
+     * Content-Type: application/json
+     *
+     * {
+     *   "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+     * }
      * </pre>
      *
      * <p>成功响应示例（200 OK）：</p>
@@ -140,7 +152,7 @@ public class SessionController {
      * }
      * </pre>
      *
-     * @param authorization JWT Token（包含 Bearer 前缀）
+     * @param request 验证会话请求，包含 authorization
      * @return 会话验证结果
      * @throws IllegalArgumentException 当 Token 无效时抛出
      * @throws com.catface996.aiops.common.exception.InvalidTokenException 当 Token 格式错误时抛出
@@ -154,12 +166,11 @@ public class SessionController {
             @ApiResponse(responseCode = "200", description = "验证完成"),
             @ApiResponse(responseCode = "401", description = "Token无效")
     })
-    @GetMapping("/validate")
+    @PostMapping("/validate")
     public ResponseEntity<Result<SessionValidationResult>> validateSession(
-            @Parameter(description = "JWT Token", required = true)
-            @RequestHeader("Authorization") String authorization) {
+            @Valid @RequestBody ValidateSessionRequest request) {
         log.info("接收到会话验证请求");
-        SessionValidationResult result = authApplicationService.validateSession(authorization);
+        SessionValidationResult result = authApplicationService.validateSession(request.getAuthorization());
         log.info("会话验证完成: valid={}, sessionId={}", result.isValid(), result.getSessionId());
         return ResponseEntity.ok(Result.success(result));
     }
@@ -279,7 +290,7 @@ public class SessionController {
         return ResponseEntity.ok(Result.success(result));
     }
 
-    // ================== 新增会话管理接口 ==================
+    // ================== 会话管理接口（POST-Only API） ==================
 
     /**
      * 获取当前用户的所有会话
@@ -288,8 +299,12 @@ public class SessionController {
      *
      * <p>请求示例：</p>
      * <pre>
-     * GET /api/v1/sessions
-     * Authorization: Bearer eyJhbGciOiJIUzUxMiJ9...
+     * POST /api/v1/sessions/query
+     * Content-Type: application/json
+     *
+     * {
+     *   "authorization": "Bearer eyJhbGciOiJIUzUxMiJ9..."
+     * }
      * </pre>
      *
      * <p>成功响应示例（200 OK）：</p>
@@ -327,7 +342,7 @@ public class SessionController {
      * }
      * </pre>
      *
-     * @param authorization JWT Token（Header: Authorization: Bearer {token}）
+     * @param request 查询会话请求，包含 authorization
      * @return 会话列表响应
      */
     @Operation(
@@ -338,14 +353,13 @@ public class SessionController {
             @ApiResponse(responseCode = "200", description = "查询成功"),
             @ApiResponse(responseCode = "401", description = "Token无效")
     })
-    @GetMapping
+    @PostMapping("/query")
     public ResponseEntity<Result<SessionListResponse>> getUserSessions(
-            @Parameter(description = "JWT Token", required = true)
-            @RequestHeader("Authorization") String authorization) {
+            @Valid @RequestBody QuerySessionsRequest request) {
         log.info("接收到查询用户会话列表请求");
 
         // 从Token中提取用户ID
-        String token = extractToken(authorization);
+        String token = extractToken(request.getAuthorization());
         Long userId = jwtTokenProvider.getUserIdFromToken(token);
         String currentSessionId = jwtTokenProvider.getSessionIdFromToken(token);
 
@@ -366,8 +380,13 @@ public class SessionController {
      *
      * <p>请求示例：</p>
      * <pre>
-     * DELETE /api/v1/sessions/550e8400-e29b-41d4-a716-446655440000
-     * Authorization: Bearer eyJhbGciOiJIUzUxMiJ9...
+     * POST /api/v1/sessions/terminate
+     * Content-Type: application/json
+     *
+     * {
+     *   "sessionId": "550e8400-e29b-41d4-a716-446655440000",
+     *   "authorization": "Bearer eyJhbGciOiJIUzUxMiJ9..."
+     * }
      * </pre>
      *
      * <p>成功响应示例（200 OK）：</p>
@@ -388,34 +407,30 @@ public class SessionController {
      * }
      * </pre>
      *
-     * @param authorization JWT Token（Header: Authorization: Bearer {token}）
-     * @param sessionId 要终止的会话ID
+     * @param request 终止会话请求，包含 sessionId 和 authorization
      * @return 成功响应
      */
     @Operation(
             summary = "终止指定会话",
-            description = "终止指定的会话，只能终止自己的会话"
+            description = "终止指定的会话，只能终止自己的会话。会话ID通过请求体传递"
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "终止成功"),
             @ApiResponse(responseCode = "401", description = "Token无效"),
             @ApiResponse(responseCode = "403", description = "无权限终止该会话")
     })
-    @DeleteMapping("/{sessionId}")
+    @PostMapping("/terminate")
     public ResponseEntity<Result<Void>> terminateSession(
-            @Parameter(description = "JWT Token", required = true)
-            @RequestHeader(value = "Authorization") String authorization,
-            @Parameter(description = "会话ID", required = true)
-            @PathVariable(value = "sessionId") String sessionId) {
-        log.info("接收到终止会话请求: sessionId={}", sessionId);
+            @Valid @RequestBody TerminateSessionRequest request) {
+        log.info("接收到终止会话请求: sessionId={}", request.getSessionId());
 
         // 从Token中提取用户ID
-        String token = extractToken(authorization);
+        String token = extractToken(request.getAuthorization());
         Long userId = jwtTokenProvider.getUserIdFromToken(token);
 
-        sessionApplicationService.terminateSession(sessionId, userId);
+        sessionApplicationService.terminateSession(request.getSessionId(), userId);
 
-        log.info("会话终止成功: sessionId={}", sessionId);
+        log.info("会话终止成功: sessionId={}", request.getSessionId());
         return ResponseEntity.ok(Result.success("会话终止成功", null));
     }
 
@@ -427,7 +442,11 @@ public class SessionController {
      * <p>请求示例：</p>
      * <pre>
      * POST /api/v1/sessions/terminate-others
-     * Authorization: Bearer eyJhbGciOiJIUzUxMiJ9...
+     * Content-Type: application/json
+     *
+     * {
+     *   "authorization": "Bearer eyJhbGciOiJIUzUxMiJ9..."
+     * }
      * </pre>
      *
      * <p>成功响应示例（200 OK）：</p>
@@ -442,7 +461,7 @@ public class SessionController {
      * }
      * </pre>
      *
-     * @param authorization JWT Token（Header: Authorization: Bearer {token}）
+     * @param request 终止其他会话请求，包含 authorization
      * @return 终止结果响应
      */
     @Operation(
@@ -455,12 +474,11 @@ public class SessionController {
     })
     @PostMapping("/terminate-others")
     public ResponseEntity<Result<TerminateOthersResponse>> terminateOtherSessions(
-            @Parameter(description = "JWT Token", required = true)
-            @RequestHeader("Authorization") String authorization) {
+            @Valid @RequestBody TerminateOthersRequest request) {
         log.info("接收到终止其他会话请求");
 
         // 从Token中提取用户ID和当前会话ID
-        String token = extractToken(authorization);
+        String token = extractToken(request.getAuthorization());
         Long userId = jwtTokenProvider.getUserIdFromToken(token);
         String currentSessionId = jwtTokenProvider.getSessionIdFromToken(token);
 

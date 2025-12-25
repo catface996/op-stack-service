@@ -19,6 +19,11 @@ import lombok.NoArgsConstructor;
 public class UpdateStatusCommand {
 
     /**
+     * 服务 ID（POST-Only API 使用）
+     */
+    private Long id;
+
+    /**
      * 是否启用
      */
     @NotNull(message = "启用状态不能为空")

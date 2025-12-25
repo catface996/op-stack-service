@@ -4,6 +4,11 @@ spring:
   application:
     name: aiops-service
 
+  # Jackson 配置 - 支持网关参数注入
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: false
+
   # Redis 配置 (通用配置)
   data:
     redis:
