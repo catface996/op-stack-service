@@ -24,8 +24,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -65,8 +63,7 @@ public class RelationshipController {
     })
     public ResponseEntity<Result<RelationshipDTO>> createRelationship(
             @Valid @RequestBody CreateRelationshipRequest request) {
-        Long operatorId = getCurrentUserId();
-        RelationshipDTO result = relationshipApplicationService.createRelationship(request, operatorId);
+        RelationshipDTO result = relationshipApplicationService.createRelationship(request, request.getOperatorId());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(Result.success(result));
     }
@@ -126,10 +123,9 @@ public class RelationshipController {
     })
     public ResponseEntity<Result<RelationshipDTO>> updateRelationship(
             @Valid @RequestBody UpdateRelationshipRequest request) {
-        Long operatorId = getCurrentUserId();
         Long relationshipId = request.getRelationshipId();
         RelationshipDTO result = relationshipApplicationService.updateRelationship(
-                relationshipId, request, operatorId);
+                relationshipId, request, request.getOperatorId());
         return ResponseEntity.ok(Result.success(result));
     }
 
@@ -146,8 +142,7 @@ public class RelationshipController {
     })
     public ResponseEntity<Result<Void>> deleteRelationship(
             @Valid @RequestBody DeleteRelationshipRequest request) {
-        Long operatorId = getCurrentUserId();
-        relationshipApplicationService.deleteRelationship(request.getRelationshipId(), operatorId);
+        relationshipApplicationService.deleteRelationship(request.getRelationshipId(), request.getOperatorId());
         return ResponseEntity.ok(Result.success("关系删除成功", null));
     }
 
@@ -174,20 +169,5 @@ public class RelationshipController {
         TraverseDTO result = relationshipApplicationService.traverse(
                 request.getResourceId(), request.getMaxDepth());
         return ResponseEntity.ok(Result.success(result));
-    }
-
-    /**
-     * 获取当前用户ID
-     */
-    private Long getCurrentUserId() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.getPrincipal() != null) {
-            try {
-                return Long.parseLong(auth.getName());
-            } catch (NumberFormatException e) {
-                log.warn("无法解析用户ID: {}", auth.getName());
-            }
-        }
-        return null;
     }
 }
