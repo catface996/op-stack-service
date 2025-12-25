@@ -3,9 +3,9 @@
 Auto-generated from all feature plans. Last updated: 2025-11-21
 
 ## Active Technologies
+
 - Java 21 (LTS) + Spring Boot 3.4.1, Spring Web MVC, SpringDoc OpenAPI (024-post-only-api)
 - MySQL 8.0 (通过 MyBatis-Plus) (024-post-only-api)
-
 - Java 21 (LTS) (001-init-ddd-architecture)
 
 ## Project Structure
@@ -45,8 +45,8 @@ mvn test
 Java 21 (LTS): Follow standard conventions
 
 ## Recent Changes
-- 024-post-only-api: Added Java 21 (LTS) + Spring Boot 3.4.1, Spring Web MVC, SpringDoc OpenAPI
 
+- 024-post-only-api: Added Java 21 (LTS) + Spring Boot 3.4.1, Spring Web MVC, SpringDoc OpenAPI
 - 001-init-ddd-architecture: Added Java 21 (LTS)
 
 <!-- MANUAL ADDITIONS START -->
