@@ -1,10 +1,16 @@
 package com.catface996.aiops.application.api.service.topology;
 
 import com.catface996.aiops.application.api.dto.common.PageResult;
+import com.catface996.aiops.application.api.dto.node.NodeDTO;
 import com.catface996.aiops.application.api.dto.topology.TopologyDTO;
+import com.catface996.aiops.application.api.dto.topology.TopologyGraphDTO;
 import com.catface996.aiops.application.api.dto.topology.request.CreateTopologyRequest;
+import com.catface996.aiops.application.api.dto.topology.request.QueryMembersRequest;
 import com.catface996.aiops.application.api.dto.topology.request.QueryTopologiesRequest;
+import com.catface996.aiops.application.api.dto.topology.request.QueryTopologyGraphRequest;
 import com.catface996.aiops.application.api.dto.topology.request.UpdateTopologyRequest;
+
+import java.util.List;
 
 /**
  * 拓扑图应用服务接口
@@ -76,4 +82,46 @@ public interface TopologyApplicationService {
      * @param operatorName 操作人姓名
      */
     void deleteTopology(Long topologyId, Long operatorId, String operatorName);
+
+    // ===== 成员管理方法 =====
+
+    /**
+     * 添加成员到拓扑图
+     *
+     * @param topologyId   拓扑图ID
+     * @param nodeIds      节点ID列表
+     * @param operatorId   操作人ID
+     * @param operatorName 操作人姓名
+     */
+    void addMembers(Long topologyId, List<Long> nodeIds, Long operatorId, String operatorName);
+
+    /**
+     * 从拓扑图移除成员
+     *
+     * @param topologyId   拓扑图ID
+     * @param nodeIds      节点ID列表
+     * @param operatorId   操作人ID
+     * @param operatorName 操作人姓名
+     */
+    void removeMembers(Long topologyId, List<Long> nodeIds, Long operatorId, String operatorName);
+
+    /**
+     * 查询拓扑图成员列表
+     *
+     * @param request 查询请求
+     * @return 成员列表（分页）
+     */
+    PageResult<NodeDTO> queryMembers(QueryMembersRequest request);
+
+    // ===== 拓扑图数据查询 =====
+
+    /**
+     * 获取拓扑图数据
+     *
+     * <p>获取拓扑图的节点和边数据，用于图形渲染。</p>
+     *
+     * @param request 查询请求
+     * @return 拓扑图数据
+     */
+    TopologyGraphDTO getTopologyGraph(QueryTopologyGraphRequest request);
 }

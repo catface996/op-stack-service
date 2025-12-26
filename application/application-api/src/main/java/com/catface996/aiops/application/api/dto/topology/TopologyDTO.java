@@ -44,6 +44,9 @@ public class TopologyDTO {
     @Schema(description = "状态显示名称", example = "运行中")
     private String statusDisplay;
 
+    @Schema(description = "协调 Agent ID")
+    private Long coordinatorAgentId;
+
     @Schema(description = "扩展属性（JSON格式）", example = "{}")
     private String attributes;
 

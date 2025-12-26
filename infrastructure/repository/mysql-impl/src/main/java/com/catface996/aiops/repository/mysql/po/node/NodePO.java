@@ -1,0 +1,103 @@
+package com.catface996.aiops.repository.mysql.po.node;
+
+import com.baomidou.mybatisplus.annotation.*;
+import lombok.Data;
+
+import java.io.Serializable;
+import java.time.LocalDateTime;
+
+/**
+ * 资源节点持久化对象
+ *
+ * <p>数据库表 node 的映射对象</p>
+ *
+ * @author AI Assistant
+ * @since 2025-12-26
+ */
+@Data
+@TableName("node")
+public class NodePO implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * 主键ID
+     */
+    @TableId(value = "id", type = IdType.AUTO)
+    private Long id;
+
+    /**
+     * 节点名称
+     */
+    @TableField("name")
+    private String name;
+
+    /**
+     * 节点描述
+     */
+    @TableField("description")
+    private String description;
+
+    /**
+     * 节点类型ID
+     */
+    @TableField("node_type_id")
+    private Long nodeTypeId;
+
+    /**
+     * 状态（RUNNING, STOPPED, MAINTENANCE, OFFLINE）
+     */
+    @TableField("status")
+    private String status;
+
+    /**
+     * Agent Team ID
+     */
+    @TableField("agent_team_id")
+    private Long agentTeamId;
+
+    /**
+     * 扩展属性（JSON格式）
+     */
+    @TableField("attributes")
+    private String attributes;
+
+    /**
+     * 创建者ID
+     */
+    @TableField("created_by")
+    private Long createdBy;
+
+    /**
+     * 版本号（乐观锁）
+     */
+    @Version
+    @TableField("version")
+    private Integer version;
+
+    /**
+     * 创建时间
+     */
+    @TableField(value = "created_at", fill = FieldFill.INSERT)
+    private LocalDateTime createdAt;
+
+    /**
+     * 更新时间
+     */
+    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
+    private LocalDateTime updatedAt;
+
+    // ==================== 派生字段（不映射到数据库，用于 JOIN 查询结果）====================
+
+    /**
+     * 节点类型名称（JOIN 查询填充）
+     */
+    @TableField(exist = false)
+    private String nodeTypeName;
+
+    /**
+     * 节点类型编码（JOIN 查询填充）
+     */
+    @TableField(exist = false)
+    private String nodeTypeCode;
+}

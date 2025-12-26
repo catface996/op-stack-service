@@ -43,6 +43,9 @@ public class UpdateTopologyRequest {
     @Size(max = 500, message = "描述最长500个字符")
     private String description;
 
+    @Schema(description = "协调 Agent ID（可选，null表示不修改）")
+    private Long coordinatorAgentId;
+
     @Schema(description = "版本号（乐观锁）", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "版本号不能为空")
     private Integer version;

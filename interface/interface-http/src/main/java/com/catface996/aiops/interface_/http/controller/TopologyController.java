@@ -1,12 +1,18 @@
 package com.catface996.aiops.interface_.http.controller;
 
 import com.catface996.aiops.application.api.dto.common.PageResult;
+import com.catface996.aiops.application.api.dto.node.NodeDTO;
 import com.catface996.aiops.application.api.dto.topology.TopologyDTO;
+import com.catface996.aiops.application.api.dto.topology.request.AddMembersRequest;
 import com.catface996.aiops.application.api.dto.topology.request.CreateTopologyRequest;
 import com.catface996.aiops.application.api.dto.topology.request.DeleteTopologyRequest;
 import com.catface996.aiops.application.api.dto.topology.request.GetTopologyRequest;
+import com.catface996.aiops.application.api.dto.topology.request.QueryMembersRequest;
 import com.catface996.aiops.application.api.dto.topology.request.QueryTopologiesRequest;
+import com.catface996.aiops.application.api.dto.topology.request.QueryTopologyGraphRequest;
+import com.catface996.aiops.application.api.dto.topology.request.RemoveMembersRequest;
 import com.catface996.aiops.application.api.dto.topology.request.UpdateTopologyRequest;
+import com.catface996.aiops.application.api.dto.topology.TopologyGraphDTO;
 import com.catface996.aiops.application.api.service.topology.TopologyApplicationService;
 import com.catface996.aiops.interface_.http.response.Result;
 import io.swagger.v3.oas.annotations.Operation;
@@ -199,5 +205,114 @@ public class TopologyController {
         topologyApplicationService.deleteTopology(request.getId(), operatorId, operatorName);
 
         return ResponseEntity.ok(Result.success("拓扑图删除成功", null));
+    }
+
+    // ===== 成员管理接口 =====
+
+    /**
+     * 添加成员到拓扑图
+     *
+     * <p>向拓扑图中添加资源节点成员。</p>
+     */
+    @PostMapping("/members/add")
+    @Operation(summary = "添加成员", description = "向拓扑图中添加资源节点成员")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "添加成功"),
+            @ApiResponse(responseCode = "400", description = "参数无效"),
+            @ApiResponse(responseCode = "401", description = "未认证"),
+            @ApiResponse(responseCode = "404", description = "拓扑图或节点不存在")
+    })
+    public ResponseEntity<Result<Void>> addMembers(
+            @Valid @RequestBody AddMembersRequest request) {
+
+        log.info("添加成员到拓扑图，topologyId: {}, nodeIds: {}, operatorId: {}",
+                request.getTopologyId(), request.getNodeIds(), request.getOperatorId());
+
+        Long operatorId = request.getOperatorId();
+        String operatorName = "operator-" + operatorId;
+
+        topologyApplicationService.addMembers(
+                request.getTopologyId(), request.getNodeIds(), operatorId, operatorName);
+
+        return ResponseEntity.ok(Result.success("成员添加成功", null));
+    }
+
+    /**
+     * 从拓扑图移除成员
+     *
+     * <p>从拓扑图中移除资源节点成员。</p>
+     */
+    @PostMapping("/members/remove")
+    @Operation(summary = "移除成员", description = "从拓扑图中移除资源节点成员")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "移除成功"),
+            @ApiResponse(responseCode = "400", description = "参数无效"),
+            @ApiResponse(responseCode = "401", description = "未认证"),
+            @ApiResponse(responseCode = "404", description = "拓扑图不存在")
+    })
+    public ResponseEntity<Result<Void>> removeMembers(
+            @Valid @RequestBody RemoveMembersRequest request) {
+
+        log.info("从拓扑图移除成员，topologyId: {}, nodeIds: {}, operatorId: {}",
+                request.getTopologyId(), request.getNodeIds(), request.getOperatorId());
+
+        Long operatorId = request.getOperatorId();
+        String operatorName = "operator-" + operatorId;
+
+        topologyApplicationService.removeMembers(
+                request.getTopologyId(), request.getNodeIds(), operatorId, operatorName);
+
+        return ResponseEntity.ok(Result.success("成员移除成功", null));
+    }
+
+    /**
+     * 查询拓扑图成员列表
+     *
+     * <p>分页查询拓扑图中的资源节点成员。</p>
+     */
+    @PostMapping("/members/query")
+    @Operation(summary = "查询成员列表", description = "分页查询拓扑图中的资源节点成员")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "查询成功"),
+            @ApiResponse(responseCode = "401", description = "未认证"),
+            @ApiResponse(responseCode = "404", description = "拓扑图不存在")
+    })
+    public ResponseEntity<Result<PageResult<NodeDTO>>> queryMembers(
+            @Valid @RequestBody QueryMembersRequest request) {
+
+        log.info("查询拓扑图成员，topologyId: {}", request.getTopologyId());
+
+        PageResult<NodeDTO> result = topologyApplicationService.queryMembers(request);
+
+        return ResponseEntity.ok(Result.success(result));
+    }
+
+    // ===== 拓扑图数据接口 =====
+
+    /**
+     * 获取拓扑图数据
+     *
+     * <p>获取拓扑图的节点和边数据，用于图形渲染。</p>
+     */
+    @PostMapping("/graph/query")
+    @Operation(summary = "获取拓扑图数据", description = "获取拓扑图的节点和边数据，用于图形渲染")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "查询成功",
+                    content = @Content(schema = @Schema(implementation = TopologyGraphDTO.class))),
+            @ApiResponse(responseCode = "401", description = "未认证"),
+            @ApiResponse(responseCode = "404", description = "拓扑图不存在")
+    })
+    public ResponseEntity<Result<TopologyGraphDTO>> getTopologyGraph(
+            @Valid @RequestBody QueryTopologyGraphRequest request) {
+
+        log.info("获取拓扑图数据，topologyId: {}, depth: {}", request.getTopologyId(), request.getDepth());
+
+        TopologyGraphDTO result = topologyApplicationService.getTopologyGraph(request);
+
+        return ResponseEntity.ok(Result.success(result));
     }
 }

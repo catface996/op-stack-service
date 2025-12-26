@@ -1,0 +1,499 @@
+openapi: 3.0.3
+info:
+  title: Node API
+  description: |
+    资源节点管理 API（POST-Only）
+
+    **需求追溯**:
+    - FR-007: 资源节点 API 路径从 /api/v1/resources/* 变更为 /api/v1/nodes/*
+    - FR-008: 原 /api/v1/resources/* 路径必须保留并标记为 @Deprecated
+    - FR-009: 资源类型查询 API 路径从 /api/v1/resource-types/* 变更为 /api/v1/node-types/*
+  version: 1.0.0
+
+servers:
+  - url: /api/v1
+    description: API v1
+
+tags:
+  - name: Nodes
+    description: 资源节点管理接口
+  - name: Node Types
+    description: 节点类型管理接口
+  - name: Deprecated
+    description: 已废弃接口（将在 3 个月后移除）
+
+paths:
+  # ========== 新 API 路径 ==========
+  /nodes/create:
+    post:
+      tags: [Nodes]
+      summary: 创建资源节点
+      description: |
+        创建新的资源节点，可选指定 Agent Team ID
+
+        **注意**: 不能创建 SUBGRAPH 类型（拓扑图请使用 /topologies/create）
+      operationId: createNode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNodeRequest'
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeResponse'
+        '400':
+          description: 参数无效（类型不允许等）
+        '409':
+          description: 名称已存在
+
+  /nodes/query:
+    post:
+      tags: [Nodes]
+      summary: 查询资源节点列表
+      description: 分页查询资源节点，支持按名称、类型和状态筛选
+      operationId: queryNodes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryNodesRequest'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodePageResponse'
+
+  /nodes/get:
+    post:
+      tags: [Nodes]
+      summary: 获取资源节点详情
+      description: 根据 ID 获取资源节点详情
+      operationId: getNode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetNodeRequest'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeResponse'
+        '404':
+          description: 节点不存在
+
+  /nodes/update:
+    post:
+      tags: [Nodes]
+      summary: 更新资源节点
+      description: 更新资源节点信息，使用乐观锁
+      operationId: updateNode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateNodeRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeResponse'
+        '404':
+          description: 节点不存在
+        '409':
+          description: 版本冲突
+
+  /nodes/delete:
+    post:
+      tags: [Nodes]
+      summary: 删除资源节点
+      description: 删除资源节点，同时清理相关成员关系
+      operationId: deleteNode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteNodeRequest'
+      responses:
+        '200':
+          description: 删除成功
+        '404':
+          description: 节点不存在
+
+  # ========== 节点类型 API ==========
+  /node-types/query:
+    post:
+      tags: [Node Types]
+      summary: 查询节点类型列表
+      description: 查询所有可用的节点类型
+      operationId: queryNodeTypes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryNodeTypesRequest'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeTypesResponse'
+
+  # ========== 已废弃 API（向后兼容） ==========
+  /resources/query:
+    post:
+      tags: [Deprecated]
+      summary: 查询资源列表（已废弃）
+      deprecated: true
+      description: |
+        **已废弃**: 请使用 `/api/v1/nodes/query`
+
+        此接口将在 3 个月后移除。
+      operationId: queryResourcesDeprecated
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryNodesRequest'
+      responses:
+        '200':
+          description: 查询成功
+          headers:
+            X-Deprecated-API:
+              schema:
+                type: string
+              description: 废弃提示，值为新 API 路径
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodePageResponseWithDeprecation'
+
+  /resources/create:
+    post:
+      tags: [Deprecated]
+      summary: 创建资源（已废弃）
+      deprecated: true
+      description: |
+        **已废弃**: 请使用 `/api/v1/nodes/create`
+
+        此接口将在 3 个月后移除。
+      operationId: createResourceDeprecated
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNodeRequest'
+      responses:
+        '201':
+          description: 创建成功
+          headers:
+            X-Deprecated-API:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeResponseWithDeprecation'
+
+  /resource-types/query:
+    post:
+      tags: [Deprecated]
+      summary: 查询资源类型（已废弃）
+      deprecated: true
+      description: |
+        **已废弃**: 请使用 `/api/v1/node-types/query`
+
+        此接口将在 3 个月后移除。
+      operationId: queryResourceTypesDeprecated
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryNodeTypesRequest'
+      responses:
+        '200':
+          description: 查询成功
+          headers:
+            X-Deprecated-API:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeTypesResponseWithDeprecation'
+
+components:
+  schemas:
+    # Request DTOs
+    CreateNodeRequest:
+      type: object
+      required: [name, nodeTypeId, operatorId]
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          description: 节点名称
+        description:
+          type: string
+          description: 节点描述
+        nodeTypeId:
+          type: integer
+          format: int64
+          description: 节点类型 ID（不能是 SUBGRAPH）
+        agentTeamId:
+          type: integer
+          format: int64
+          description: Agent Team ID（可选）
+        attributes:
+          type: object
+          description: 扩展属性（JSON）
+        operatorId:
+          type: integer
+          format: int64
+          description: 操作人 ID
+
+    QueryNodesRequest:
+      type: object
+      required: [operatorId]
+      properties:
+        name:
+          type: string
+          description: 名称模糊查询
+        nodeTypeId:
+          type: integer
+          format: int64
+          description: 节点类型筛选
+        status:
+          type: string
+          enum: [RUNNING, STOPPED, MAINTENANCE, OFFLINE]
+          description: 状态筛选
+        page:
+          type: integer
+          default: 1
+          description: 页码（从1开始）
+        size:
+          type: integer
+          default: 20
+          description: 每页大小
+        operatorId:
+          type: integer
+          format: int64
+          description: 操作人 ID
+
+    GetNodeRequest:
+      type: object
+      required: [id, operatorId]
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: 节点 ID
+        operatorId:
+          type: integer
+          format: int64
+          description: 操作人 ID
+
+    UpdateNodeRequest:
+      type: object
+      required: [id, version, operatorId]
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: 节点 ID
+        name:
+          type: string
+          maxLength: 255
+          description: 新名称（可选）
+        description:
+          type: string
+          description: 新描述（可选）
+        agentTeamId:
+          type: integer
+          format: int64
+          description: Agent Team ID（可选）
+        attributes:
+          type: object
+          description: 扩展属性（JSON）
+        version:
+          type: integer
+          description: 当前版本号（乐观锁）
+        operatorId:
+          type: integer
+          format: int64
+          description: 操作人 ID
+
+    DeleteNodeRequest:
+      type: object
+      required: [id, operatorId]
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: 节点 ID
+        operatorId:
+          type: integer
+          format: int64
+          description: 操作人 ID
+
+    QueryNodeTypesRequest:
+      type: object
+      required: [operatorId]
+      properties:
+        operatorId:
+          type: integer
+          format: int64
+          description: 操作人 ID
+
+    # Response DTOs
+    NodeDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        description:
+          type: string
+        nodeTypeId:
+          type: integer
+          format: int64
+        nodeTypeName:
+          type: string
+          description: 节点类型名称
+        nodeTypeCode:
+          type: string
+          description: 节点类型编码
+        status:
+          type: string
+          enum: [RUNNING, STOPPED, MAINTENANCE, OFFLINE]
+        agentTeamId:
+          type: integer
+          format: int64
+        attributes:
+          type: object
+        createdBy:
+          type: integer
+          format: int64
+        version:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    NodeTypeDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        code:
+          type: string
+          description: 类型编码
+        name:
+          type: string
+          description: 类型名称
+        description:
+          type: string
+        icon:
+          type: string
+          description: 图标 URL
+        isSystem:
+          type: boolean
+          description: 是否系统预置
+
+    NodeResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/NodeDTO'
+
+    NodePageResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/NodeDTO'
+            total:
+              type: integer
+              format: int64
+            page:
+              type: integer
+            size:
+              type: integer
+
+    NodeTypesResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/NodeTypeDTO'
+
+    # Deprecated Response DTOs（带废弃提示）
+    NodeResponseWithDeprecation:
+      allOf:
+        - $ref: '#/components/schemas/NodeResponse'
+        - type: object
+          properties:
+            deprecationNotice:
+              type: string
+              example: "This API is deprecated. Please use /api/v1/nodes/create instead."
+
+    NodePageResponseWithDeprecation:
+      allOf:
+        - $ref: '#/components/schemas/NodePageResponse'
+        - type: object
+          properties:
+            deprecationNotice:
+              type: string
+              example: "This API is deprecated. Please use /api/v1/nodes/query instead."
+
+    NodeTypesResponseWithDeprecation:
+      allOf:
+        - $ref: '#/components/schemas/NodeTypesResponse'
+        - type: object
+          properties:
+            deprecationNotice:
+              type: string
+              example: "This API is deprecated. Please use /api/v1/node-types/query instead."

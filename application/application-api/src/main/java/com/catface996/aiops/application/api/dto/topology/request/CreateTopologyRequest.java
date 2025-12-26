@@ -40,4 +40,7 @@ public class CreateTopologyRequest {
     @Schema(description = "拓扑图描述", example = "展示电商系统整体架构和组件关系")
     @Size(max = 500, message = "描述最长500个字符")
     private String description;
+
+    @Schema(description = "协调 Agent ID（可选）")
+    private Long coordinatorAgentId;
 }

@@ -1,0 +1,432 @@
+openapi: 3.0.3
+info:
+  title: Topology API
+  description: |
+    拓扑图管理 API（POST-Only）
+
+    **需求追溯**:
+    - FR-006: 拓扑图 API（/api/v1/topologies/*）必须保持接口契约不变
+  version: 1.0.0
+
+servers:
+  - url: /api/v1
+    description: API v1
+
+tags:
+  - name: Topologies
+    description: 拓扑图管理接口
+  - name: Topology Members
+    description: 拓扑图成员管理接口
+
+paths:
+  /topologies/create:
+    post:
+      tags: [Topologies]
+      summary: 创建拓扑图
+      description: 创建新的拓扑图，可选指定协调 Agent ID
+      operationId: createTopology
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTopologyRequest'
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopologyResponse'
+        '400':
+          description: 参数无效
+        '409':
+          description: 名称已存在
+
+  /topologies/query:
+    post:
+      tags: [Topologies]
+      summary: 查询拓扑图列表
+      description: 分页查询拓扑图，支持按名称和状态筛选
+      operationId: queryTopologies
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryTopologiesRequest'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopologyPageResponse'
+
+  /topologies/get:
+    post:
+      tags: [Topologies]
+      summary: 获取拓扑图详情
+      description: 根据 ID 获取拓扑图详情，包含成员数量
+      operationId: getTopology
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetTopologyRequest'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopologyResponse'
+        '404':
+          description: 拓扑图不存在
+
+  /topologies/update:
+    post:
+      tags: [Topologies]
+      summary: 更新拓扑图
+      description: 更新拓扑图信息，使用乐观锁
+      operationId: updateTopology
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTopologyRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopologyResponse'
+        '404':
+          description: 拓扑图不存在
+        '409':
+          description: 版本冲突
+
+  /topologies/delete:
+    post:
+      tags: [Topologies]
+      summary: 删除拓扑图
+      description: 删除拓扑图及其所有成员关系
+      operationId: deleteTopology
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteTopologyRequest'
+      responses:
+        '200':
+          description: 删除成功
+        '404':
+          description: 拓扑图不存在
+
+  /topologies/members/add:
+    post:
+      tags: [Topology Members]
+      summary: 添加成员
+      description: 向拓扑图添加节点或嵌套拓扑图作为成员
+      operationId: addMembers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddMembersRequest'
+      responses:
+        '200':
+          description: 添加成功
+        '400':
+          description: 参数无效（循环引用等）
+        '404':
+          description: 拓扑图或成员不存在
+
+  /topologies/members/remove:
+    post:
+      tags: [Topology Members]
+      summary: 移除成员
+      description: 从拓扑图移除成员，不删除成员本身
+      operationId: removeMembers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoveMembersRequest'
+      responses:
+        '200':
+          description: 移除成功
+        '404':
+          description: 拓扑图不存在
+
+  /topologies/members/query:
+    post:
+      tags: [Topology Members]
+      summary: 查询成员列表
+      description: 查询拓扑图的所有成员
+      operationId: queryMembers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryMembersRequest'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MembersResponse'
+
+components:
+  schemas:
+    # Request DTOs
+    CreateTopologyRequest:
+      type: object
+      required: [name, operatorId]
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          description: 拓扑图名称
+        description:
+          type: string
+          description: 拓扑图描述
+        coordinatorAgentId:
+          type: integer
+          format: int64
+          description: 协调 Agent ID（可选）
+        operatorId:
+          type: integer
+          format: int64
+          description: 操作人 ID
+
+    QueryTopologiesRequest:
+      type: object
+      required: [operatorId]
+      properties:
+        name:
+          type: string
+          description: 名称模糊查询
+        status:
+          type: string
+          enum: [RUNNING, STOPPED, MAINTENANCE, OFFLINE]
+          description: 状态筛选
+        page:
+          type: integer
+          default: 1
+          description: 页码（从1开始）
+        size:
+          type: integer
+          default: 20
+          description: 每页大小
+        operatorId:
+          type: integer
+          format: int64
+          description: 操作人 ID
+
+    GetTopologyRequest:
+      type: object
+      required: [id, operatorId]
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: 拓扑图 ID
+        operatorId:
+          type: integer
+          format: int64
+          description: 操作人 ID
+
+    UpdateTopologyRequest:
+      type: object
+      required: [id, version, operatorId]
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: 拓扑图 ID
+        name:
+          type: string
+          maxLength: 255
+          description: 新名称（可选）
+        description:
+          type: string
+          description: 新描述（可选）
+        coordinatorAgentId:
+          type: integer
+          format: int64
+          description: 协调 Agent ID（可选）
+        version:
+          type: integer
+          description: 当前版本号（乐观锁）
+        operatorId:
+          type: integer
+          format: int64
+          description: 操作人 ID
+
+    DeleteTopologyRequest:
+      type: object
+      required: [id, operatorId]
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: 拓扑图 ID
+        operatorId:
+          type: integer
+          format: int64
+          description: 操作人 ID
+
+    AddMembersRequest:
+      type: object
+      required: [topologyId, memberIds, operatorId]
+      properties:
+        topologyId:
+          type: integer
+          format: int64
+          description: 拓扑图 ID
+        memberIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+          description: 成员 ID 列表（node.id 或 topology.id）
+        operatorId:
+          type: integer
+          format: int64
+          description: 操作人 ID
+
+    RemoveMembersRequest:
+      type: object
+      required: [topologyId, memberIds, operatorId]
+      properties:
+        topologyId:
+          type: integer
+          format: int64
+          description: 拓扑图 ID
+        memberIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+          description: 要移除的成员 ID 列表
+        operatorId:
+          type: integer
+          format: int64
+          description: 操作人 ID
+
+    QueryMembersRequest:
+      type: object
+      required: [topologyId, operatorId]
+      properties:
+        topologyId:
+          type: integer
+          format: int64
+          description: 拓扑图 ID
+        operatorId:
+          type: integer
+          format: int64
+          description: 操作人 ID
+
+    # Response DTOs
+    TopologyDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [RUNNING, STOPPED, MAINTENANCE, OFFLINE]
+        coordinatorAgentId:
+          type: integer
+          format: int64
+        memberCount:
+          type: integer
+          description: 成员数量
+        createdBy:
+          type: integer
+          format: int64
+        version:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    TopologyResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/TopologyDTO'
+
+    TopologyPageResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/TopologyDTO'
+            total:
+              type: integer
+              format: int64
+            page:
+              type: integer
+            size:
+              type: integer
+
+    MemberDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        memberType:
+          type: string
+          enum: [NODE, TOPOLOGY]
+          description: 成员类型（节点或嵌套拓扑图）
+        nodeTypeName:
+          type: string
+          description: 节点类型名称（仅当 memberType=NODE 时有值）
+        addedAt:
+          type: string
+          format: date-time
+
+    MembersResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/MemberDTO'
