@@ -1,0 +1,611 @@
+openapi: 3.0.3
+info:
+  title: 提示词模板管理 API
+  description: 提示词模板的 CRUD、版本控制和用途管理接口
+  version: 1.0.0
+
+servers:
+  - url: /api/v1
+    description: API v1
+
+tags:
+  - name: prompt-templates
+    description: 提示词模板管理
+  - name: template-usages
+    description: 模板用途管理
+
+paths:
+  # ==================== 提示词模板 ====================
+  /prompt-templates/create:
+    post:
+      tags:
+        - prompt-templates
+      summary: 创建提示词模板
+      operationId: createPromptTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePromptTemplateRequest'
+      responses:
+        '200':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromptTemplateResponse'
+        '400':
+          description: 参数错误（名称已存在、内容为空等）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /prompt-templates/list:
+    post:
+      tags:
+        - prompt-templates
+      summary: 查询提示词模板列表
+      operationId: listPromptTemplates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListPromptTemplatesRequest'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedPromptTemplateResponse'
+
+  /prompt-templates/detail:
+    post:
+      tags:
+        - prompt-templates
+      summary: 查看模板详情（含版本历史）
+      operationId: getPromptTemplateDetail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetTemplateDetailRequest'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromptTemplateDetailResponse'
+        '404':
+          description: 模板不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /prompt-templates/version/detail:
+    post:
+      tags:
+        - prompt-templates
+      summary: 查看指定版本内容
+      operationId: getTemplateVersionDetail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetVersionDetailRequest'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromptTemplateVersionResponse'
+        '404':
+          description: 模板或版本不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /prompt-templates/update:
+    post:
+      tags:
+        - prompt-templates
+      summary: 更新提示词模板（生成新版本）
+      operationId: updatePromptTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePromptTemplateRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromptTemplateResponse'
+        '400':
+          description: 参数错误（内容无变化等）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 模板不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 版本冲突，请刷新后重试
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /prompt-templates/rollback:
+    post:
+      tags:
+        - prompt-templates
+      summary: 回滚到历史版本
+      operationId: rollbackPromptTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RollbackTemplateRequest'
+      responses:
+        '200':
+          description: 回滚成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromptTemplateResponse'
+        '400':
+          description: 已是最早版本，无法回滚
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 模板或目标版本不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /prompt-templates/delete:
+    post:
+      tags:
+        - prompt-templates
+      summary: 删除提示词模板
+      operationId: deletePromptTemplate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteTemplateRequest'
+      responses:
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: 模板不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ==================== 模板用途 ====================
+  /template-usages/create:
+    post:
+      tags:
+        - template-usages
+      summary: 创建模板用途
+      operationId: createTemplateUsage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTemplateUsageRequest'
+      responses:
+        '200':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateUsageResponse'
+        '400':
+          description: 用途编码已存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /template-usages/list:
+    post:
+      tags:
+        - template-usages
+      summary: 查询模板用途列表
+      operationId: listTemplateUsages
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateUsageListResponse'
+
+  /template-usages/delete:
+    post:
+      tags:
+        - template-usages
+      summary: 删除模板用途
+      operationId: deleteTemplateUsage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteUsageRequest'
+      responses:
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: 用途正在被使用，无法删除
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    # ==================== Request DTOs ====================
+    CreatePromptTemplateRequest:
+      type: object
+      required:
+        - name
+        - content
+      properties:
+        name:
+          type: string
+          maxLength: 200
+          description: 模板名称
+          example: "故障诊断通用模板"
+        usageId:
+          type: integer
+          format: int64
+          description: 用途 ID
+          example: 1
+        content:
+          type: string
+          maxLength: 65535
+          description: 模板内容（最大 64KB）
+          example: "你是一个运维专家，请分析以下故障信息..."
+        description:
+          type: string
+          maxLength: 1000
+          description: 模板描述
+          example: "用于通用故障诊断场景"
+
+    ListPromptTemplatesRequest:
+      type: object
+      properties:
+        usageId:
+          type: integer
+          format: int64
+          description: 按用途筛选
+        keyword:
+          type: string
+          maxLength: 100
+          description: 名称关键字搜索
+        pageNum:
+          type: integer
+          default: 1
+          minimum: 1
+          description: 页码
+        pageSize:
+          type: integer
+          default: 20
+          minimum: 1
+          maximum: 100
+          description: 每页数量
+
+    GetTemplateDetailRequest:
+      type: object
+      required:
+        - templateId
+      properties:
+        templateId:
+          type: integer
+          format: int64
+          description: 模板 ID
+
+    GetVersionDetailRequest:
+      type: object
+      required:
+        - templateId
+        - versionNumber
+      properties:
+        templateId:
+          type: integer
+          format: int64
+          description: 模板 ID
+        versionNumber:
+          type: integer
+          description: 版本号
+
+    UpdatePromptTemplateRequest:
+      type: object
+      required:
+        - templateId
+      properties:
+        templateId:
+          type: integer
+          format: int64
+          description: 模板 ID
+        name:
+          type: string
+          maxLength: 200
+          description: 模板名称（可选更新）
+        usageId:
+          type: integer
+          format: int64
+          description: 用途 ID（可选更新）
+        content:
+          type: string
+          maxLength: 65535
+          description: 模板内容（可选更新）
+        description:
+          type: string
+          maxLength: 1000
+          description: 模板描述（可选更新）
+        changeNote:
+          type: string
+          maxLength: 500
+          description: 变更说明
+        expectedVersion:
+          type: integer
+          description: 期望的当前版本（乐观锁）
+
+    RollbackTemplateRequest:
+      type: object
+      required:
+        - templateId
+        - targetVersionNumber
+      properties:
+        templateId:
+          type: integer
+          format: int64
+          description: 模板 ID
+        targetVersionNumber:
+          type: integer
+          description: 目标版本号
+        changeNote:
+          type: string
+          maxLength: 500
+          description: 回滚说明
+          example: "回滚到版本 1"
+
+    DeleteTemplateRequest:
+      type: object
+      required:
+        - templateId
+      properties:
+        templateId:
+          type: integer
+          format: int64
+          description: 模板 ID
+
+    CreateTemplateUsageRequest:
+      type: object
+      required:
+        - code
+        - name
+      properties:
+        code:
+          type: string
+          maxLength: 50
+          pattern: '^[A-Z][A-Z0-9_]*$'
+          description: 用途编码
+          example: "ALERT_ANALYSIS"
+        name:
+          type: string
+          maxLength: 100
+          description: 用途名称
+          example: "告警分析"
+        description:
+          type: string
+          maxLength: 500
+          description: 用途描述
+
+    DeleteUsageRequest:
+      type: object
+      required:
+        - usageId
+      properties:
+        usageId:
+          type: integer
+          format: int64
+          description: 用途 ID
+
+    # ==================== Response DTOs ====================
+    PromptTemplateResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/PromptTemplateDTO'
+
+    PromptTemplateDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        usageId:
+          type: integer
+          format: int64
+        usageName:
+          type: string
+        description:
+          type: string
+        currentVersion:
+          type: integer
+        content:
+          type: string
+          description: 当前版本内容
+        createdBy:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PagedPromptTemplateResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            list:
+              type: array
+              items:
+                $ref: '#/components/schemas/PromptTemplateDTO'
+            total:
+              type: integer
+              format: int64
+            pageNum:
+              type: integer
+            pageSize:
+              type: integer
+
+    PromptTemplateDetailResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            template:
+              $ref: '#/components/schemas/PromptTemplateDTO'
+            versions:
+              type: array
+              items:
+                $ref: '#/components/schemas/PromptTemplateVersionDTO'
+
+    PromptTemplateVersionDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        templateId:
+          type: integer
+          format: int64
+        versionNumber:
+          type: integer
+        content:
+          type: string
+        changeNote:
+          type: string
+        createdBy:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+
+    PromptTemplateVersionResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/PromptTemplateVersionDTO'
+
+    TemplateUsageResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/TemplateUsageDTO'
+
+    TemplateUsageDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        code:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    TemplateUsageListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TemplateUsageDTO'
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "操作成功"
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        errorCode:
+          type: string
+          example: "TEMPLATE_NAME_EXISTS"
+        errorMessage:
+          type: string
+          example: "模板名称已存在"

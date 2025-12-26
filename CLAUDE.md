@@ -47,9 +47,9 @@ mvn test
 Java 21 (LTS): Follow standard conventions
 
 ## Recent Changes
+- 025-prompt-template: Added Java 21 (LTS) + Spring Boot 3.4.1, MyBatis-Plus 3.5.7, SpringDoc OpenAPI
 - 001-split-resource-model: Added Java 21 (LTS) + Spring Boot 3.4.1, MyBatis-Plus 3.5.7, SpringDoc OpenAPI
 - 001-remove-auth-features: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
-- 001-remove-llm-service: Added Java 21 (LTS) + Spring Boot 3.4.1, MyBatis-Plus 3.5.7, SpringDoc OpenAPI
 
 
 <!-- MANUAL ADDITIONS START -->
