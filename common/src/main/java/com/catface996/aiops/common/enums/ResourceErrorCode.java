@@ -52,9 +52,9 @@ public enum ResourceErrorCode implements ErrorCode {
     // ==================== 认证授权 (401/403) ====================
 
     /**
-     * 未认证
+     * 未认证（由网关统一处理认证）
      */
-    UNAUTHORIZED("AUTH_001", "用户未认证，请先登录"),
+    UNAUTHORIZED("AUTH_001", "用户未认证"),
 
     /**
      * 禁止访问（已认证但无权限）

@@ -15,14 +15,14 @@ package com.catface996.aiops.common.enums;
  * <p>使用示例：</p>
  * <pre>
  * // 定义错误码枚举
- * public enum AuthErrorCode implements ErrorCode {
- *     INVALID_CREDENTIALS("AUTH_001", "用户名或密码错误"),
- *     ACCOUNT_LOCKED("LOCKED_001", "账号已锁定，请在{0}分钟后重试");
+ * public enum ResourceErrorCode implements ErrorCode {
+ *     NOT_FOUND("NOT_FOUND_001", "资源不存在"),
+ *     ALREADY_EXISTS("CONFLICT_001", "资源已存在: {0}");
  *
  *     private final String code;
  *     private final String message;
  *
- *     AuthErrorCode(String code, String message) {
+ *     ResourceErrorCode(String code, String message) {
  *         this.code = code;
  *         this.message = message;
  *     }
@@ -39,8 +39,8 @@ package com.catface996.aiops.common.enums;
  * }
  *
  * // 使用错误码
- * throw new BusinessException(AuthErrorCode.INVALID_CREDENTIALS);
- * throw new BusinessException(AuthErrorCode.ACCOUNT_LOCKED, 30);  // 参数化消息
+ * throw new BusinessException(ResourceErrorCode.NOT_FOUND);
+ * throw new BusinessException(ResourceErrorCode.ALREADY_EXISTS, "topology-123");  // 参数化消息
  * </pre>
  *
  * @author AI Assistant

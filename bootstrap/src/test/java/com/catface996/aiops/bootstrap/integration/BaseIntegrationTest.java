@@ -16,8 +16,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
-import java.util.Set;
-
 /**
  * 集成测试基类
  *
@@ -81,17 +79,7 @@ public abstract class BaseIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // 清理 Redis 中的登录失败计数，避免测试间干扰
-        if (redisTemplate != null) {
-            try {
-                Set<String> loginFailKeys = redisTemplate.keys("login:fail:*");
-                if (loginFailKeys != null && !loginFailKeys.isEmpty()) {
-                    redisTemplate.delete(loginFailKeys);
-                }
-            } catch (Exception e) {
-                // 忽略 Redis 清理错误
-            }
-        }
+        // 测试环境初始化（认证由网关统一处理，此处无需清理登录相关数据）
     }
 
     /**

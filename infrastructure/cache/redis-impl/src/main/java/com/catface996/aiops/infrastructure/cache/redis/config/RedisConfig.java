@@ -13,21 +13,20 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 /**
  * Redis 配置类
- * 
+ *
  * <p>配置 Redis 序列化方式和连接参数：</p>
  * <ul>
  *   <li>Key: String 序列化</li>
  *   <li>Value: JSON 序列化（Jackson）</li>
  *   <li>Key 前缀：aiops:（通过application.yml配置）</li>
  * </ul>
- * 
+ *
  * <p>Key 命名规范：</p>
  * <ul>
- *   <li>登录失败计数：login:fail:{identifier}</li>
- *   <li>会话数据：session:{sessionId}</li>
- *   <li>会话互斥：session:user:{userId}</li>
+ *   <li>资源缓存：resource:{resourceId}</li>
+ *   <li>拓扑图缓存：topology:{topologyId}</li>
  * </ul>
- * 
+ *
  * @author AI Assistant
  * @since 2025-01-23
  */
