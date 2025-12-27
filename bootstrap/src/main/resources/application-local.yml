@@ -15,7 +15,7 @@ spring:
       host: localhost
       port: 6379
       database: 0
-      password: difyai123456
+      # password: difyai123456  # 本地 Redis 容器未配置密码
       
   # 数据源配置
   datasource:

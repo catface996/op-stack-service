@@ -36,19 +36,19 @@ import java.util.List;
  *
  * <p>节点 CRUD 接口：</p>
  * <ul>
- *   <li>POST /api/v1/nodes/create - 创建节点</li>
- *   <li>POST /api/v1/nodes/query - 查询节点列表</li>
- *   <li>POST /api/v1/nodes/get - 查询节点详情</li>
- *   <li>POST /api/v1/nodes/update - 更新节点</li>
- *   <li>POST /api/v1/nodes/delete - 删除节点</li>
- *   <li>POST /api/v1/nodes/types/query - 查询节点类型列表</li>
+ *   <li>POST /api/service/v1/nodes/create - 创建节点</li>
+ *   <li>POST /api/service/v1/nodes/query - 查询节点列表</li>
+ *   <li>POST /api/service/v1/nodes/get - 查询节点详情</li>
+ *   <li>POST /api/service/v1/nodes/update - 更新节点</li>
+ *   <li>POST /api/service/v1/nodes/delete - 删除节点</li>
+ *   <li>POST /api/service/v1/nodes/types/query - 查询节点类型列表</li>
  * </ul>
  *
  * <p>需求追溯：</p>
  * <ul>
  *   <li>FR-001: resource 表拆分为 topology 表和 node 表</li>
  *   <li>FR-005: 节点 API 保持接口契约不变</li>
- *   <li>FR-007: 资源节点 API 路径变更为 /api/v1/nodes/*</li>
+ *   <li>FR-007: 资源节点 API 路径变更为 /api/service/v1/nodes/*</li>
  *   <li>US2: 查询所有节点</li>
  *   <li>US4: 节点管理</li>
  * </ul>
@@ -58,7 +58,7 @@ import java.util.List;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/nodes")
+@RequestMapping("/api/service/v1/nodes")
 @RequiredArgsConstructor
 @Tag(name = "资源节点管理", description = "资源节点管理接口：创建、查询、更新、删除（POST-Only API）")
 public class NodeController {

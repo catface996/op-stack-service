@@ -37,13 +37,13 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * <p>模板管理接口：</p>
  * <ul>
- *   <li>POST /api/v1/prompt-templates/create - 创建模板</li>
- *   <li>POST /api/v1/prompt-templates/list - 查询模板列表</li>
- *   <li>POST /api/v1/prompt-templates/detail - 查询模板详情</li>
- *   <li>POST /api/v1/prompt-templates/update - 更新模板内容</li>
- *   <li>POST /api/v1/prompt-templates/rollback - 回滚到历史版本</li>
- *   <li>POST /api/v1/prompt-templates/delete - 删除模板</li>
- *   <li>POST /api/v1/prompt-templates/version/detail - 查询指定版本详情</li>
+ *   <li>POST /api/service/v1/prompt-templates/create - 创建模板</li>
+ *   <li>POST /api/service/v1/prompt-templates/list - 查询模板列表</li>
+ *   <li>POST /api/service/v1/prompt-templates/detail - 查询模板详情</li>
+ *   <li>POST /api/service/v1/prompt-templates/update - 更新模板内容</li>
+ *   <li>POST /api/service/v1/prompt-templates/rollback - 回滚到历史版本</li>
+ *   <li>POST /api/service/v1/prompt-templates/delete - 删除模板</li>
+ *   <li>POST /api/service/v1/prompt-templates/version/detail - 查询指定版本详情</li>
  * </ul>
  *
  * @author AI Assistant
@@ -51,7 +51,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/prompt-templates")
+@RequestMapping("/api/service/v1/prompt-templates")
 @RequiredArgsConstructor
 @Tag(name = "提示词模板管理", description = "提示词模板管理接口：创建、查询、更新、回滚、删除（POST-Only API）")
 public class PromptTemplateController {

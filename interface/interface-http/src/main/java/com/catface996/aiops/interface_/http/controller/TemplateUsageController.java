@@ -31,9 +31,9 @@ import java.util.List;
  *
  * <p>用途管理接口：</p>
  * <ul>
- *   <li>POST /api/v1/template-usages/create - 创建用途</li>
- *   <li>POST /api/v1/template-usages/list - 查询所有用途</li>
- *   <li>POST /api/v1/template-usages/delete - 删除用途</li>
+ *   <li>POST /api/service/v1/template-usages/create - 创建用途</li>
+ *   <li>POST /api/service/v1/template-usages/list - 查询所有用途</li>
+ *   <li>POST /api/service/v1/template-usages/delete - 删除用途</li>
  * </ul>
  *
  * @author AI Assistant
@@ -41,7 +41,7 @@ import java.util.List;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/template-usages")
+@RequestMapping("/api/service/v1/template-usages")
 @RequiredArgsConstructor
 @Tag(name = "模板用途管理", description = "模板用途管理接口：创建、查询、删除（POST-Only API）")
 public class TemplateUsageController {

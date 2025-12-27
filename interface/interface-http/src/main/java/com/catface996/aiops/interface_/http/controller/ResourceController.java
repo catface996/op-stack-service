@@ -10,27 +10,10 @@ import com.catface996.aiops.application.api.dto.resource.request.ListResourcesRe
 import com.catface996.aiops.application.api.dto.resource.request.UpdateResourceRequest;
 import com.catface996.aiops.application.api.dto.resource.request.UpdateResourceStatusRequest;
 import com.catface996.aiops.application.api.service.resource.ResourceApplicationService;
-import com.catface996.aiops.application.dto.subgraph.AddMembersCommand;
-import com.catface996.aiops.application.dto.subgraph.SubgraphAncestorsDTO;
-import com.catface996.aiops.application.dto.subgraph.SubgraphMemberDTO;
-import com.catface996.aiops.application.dto.subgraph.SubgraphMembersWithRelationsDTO;
-import com.catface996.aiops.application.dto.subgraph.TopologyGraphDTO;
-import com.catface996.aiops.application.dto.subgraph.TopologyQueryCommand;
-import com.catface996.aiops.application.service.subgraph.SubgraphMemberApplicationService;
 import com.catface996.aiops.interface_.http.request.resource.GetResourceRequest;
-import com.catface996.aiops.interface_.http.request.resource.QueryAncestorsRequest;
 import com.catface996.aiops.interface_.http.request.resource.QueryAuditLogsRequest;
-import com.catface996.aiops.interface_.http.request.resource.QueryMembersRequest;
-import com.catface996.aiops.interface_.http.request.resource.QueryMembersWithRelationsRequest;
 import com.catface996.aiops.interface_.http.request.resource.QueryResourceTypesRequest;
-import com.catface996.aiops.interface_.http.request.resource.QueryTopologyRequest;
-import com.catface996.aiops.interface_.http.request.subgraph.AddMembersRequest;
-import com.catface996.aiops.interface_.http.request.subgraph.RemoveMembersRequest;
 import com.catface996.aiops.interface_.http.response.Result;
-import com.catface996.aiops.interface_.http.response.subgraph.SubgraphAncestorsResponse;
-import com.catface996.aiops.interface_.http.response.subgraph.SubgraphMemberListResponse;
-import com.catface996.aiops.interface_.http.response.subgraph.SubgraphMembersWithRelationsResponse;
-import com.catface996.aiops.interface_.http.response.subgraph.TopologyGraphResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -46,7 +29,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * 资源管理控制器（POST-Only API）
@@ -55,30 +37,19 @@ import java.util.Map;
  *
  * <p>资源 CRUD 接口：</p>
  * <ul>
- *   <li>POST /api/v1/resources/create - 创建资源</li>
- *   <li>POST /api/v1/resources/query - 查询资源列表</li>
- *   <li>POST /api/v1/resources/get - 查询资源详情</li>
- *   <li>POST /api/v1/resources/update - 更新资源</li>
- *   <li>POST /api/v1/resources/delete - 删除资源</li>
- *   <li>POST /api/v1/resources/update-status - 更新资源状态</li>
- *   <li>POST /api/v1/resources/audit-logs/query - 查询审计日志</li>
- *   <li>POST /api/v1/resource-types/query - 查询资源类型列表</li>
- * </ul>
- *
- * <p>成员管理接口（仅适用于 SUBGRAPH 类型资源）：</p>
- * <ul>
- *   <li>POST /api/v1/resources/members/add - 添加成员</li>
- *   <li>POST /api/v1/resources/members/remove - 移除成员</li>
- *   <li>POST /api/v1/resources/members/query - 查询成员列表</li>
- *   <li>POST /api/v1/resources/members-with-relations/query - 获取成员及关系</li>
- *   <li>POST /api/v1/resources/topology/query - 获取拓扑图数据</li>
- *   <li>POST /api/v1/resources/ancestors/query - 获取祖先链</li>
+ *   <li>POST /api/service/v1/resources/create - 创建资源</li>
+ *   <li>POST /api/service/v1/resources/query - 查询资源列表</li>
+ *   <li>POST /api/service/v1/resources/get - 查询资源详情</li>
+ *   <li>POST /api/service/v1/resources/update - 更新资源</li>
+ *   <li>POST /api/service/v1/resources/delete - 删除资源</li>
+ *   <li>POST /api/service/v1/resources/update-status - 更新资源状态</li>
+ *   <li>POST /api/service/v1/resources/audit-logs/query - 查询审计日志</li>
+ *   <li>POST /api/service/v1/resource-types/query - 查询资源类型列表</li>
  * </ul>
  *
  * <p>需求追溯：</p>
  * <ul>
  *   <li>REQ-FR-001~028: 资源管理功能</li>
- *   <li>F08: 子图管理功能 v2.0（成员管理）</li>
  *   <li>F024: POST-Only API 重构</li>
  * </ul>
  *
@@ -87,13 +58,12 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping("/api/service/v1")
 @RequiredArgsConstructor
-@Tag(name = "资源管理", description = "IT资源管理接口：创建、查询、更新、删除、状态管理、审计日志、成员管理（POST-Only API）")
+@Tag(name = "资源管理", description = "IT资源管理接口：创建、查询、更新、删除、状态管理、审计日志（POST-Only API）")
 public class ResourceController {
 
     private final ResourceApplicationService resourceApplicationService;
-    private final SubgraphMemberApplicationService memberApplicationService;
 
     /**
      * 创建资源
@@ -291,190 +261,5 @@ public class ResourceController {
         List<ResourceTypeDTO> types = resourceApplicationService.getAllResourceTypes();
 
         return ResponseEntity.ok(Result.success(types));
-    }
-
-    // ==================== 成员管理接口（已废弃，请使用 /api/v1/topologies/* 接口） ====================
-
-    /**
-     * 添加成员到资源（仅适用于 SUBGRAPH 类型）
-     *
-     * @deprecated 此接口已废弃，请使用 /api/v1/topologies/members/add 接口
-     */
-    @Deprecated(since = "2025-12-25", forRemoval = true)
-    @PostMapping("/resources/members/add")
-    @Operation(summary = "[已废弃] 添加成员", description = "已废弃，请使用 /api/v1/topologies/members/add。添加资源作为成员。仅适用于 SUBGRAPH 类型资源。")
-    @SecurityRequirement(name = "bearerAuth")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "成员添加成功"),
-            @ApiResponse(responseCode = "400", description = "资源类型不支持成员管理、成员已存在、或检测到循环引用"),
-            @ApiResponse(responseCode = "401", description = "未认证"),
-            @ApiResponse(responseCode = "403", description = "无权限操作"),
-            @ApiResponse(responseCode = "404", description = "资源不存在")
-    })
-    public ResponseEntity<Result<Map<String, Object>>> addMembers(
-            @Valid @RequestBody AddMembersRequest request) {
-
-        Long id = request.getResourceId();
-        Long operatorId = request.getOperatorId();
-        String operatorName = "operator-" + operatorId;
-
-        AddMembersCommand command = new AddMembersCommand(id, request.getMemberIds(), operatorId);
-        command.setOperatorName(operatorName);
-
-        int addedCount = memberApplicationService.addMembers(command);
-
-        Map<String, Object> response = Map.of(
-                "success", true,
-                "message", String.format("成功添加 %d 个成员", addedCount),
-                "addedCount", addedCount
-        );
-
-        return ResponseEntity.ok(Result.success(response));
-    }
-
-    /**
-     * 从资源移除成员（仅适用于 SUBGRAPH 类型）
-     *
-     * @deprecated 此接口已废弃，请使用 /api/v1/topologies/members/remove 接口
-     */
-    @Deprecated(since = "2025-12-25", forRemoval = true)
-    @PostMapping("/resources/members/remove")
-    @Operation(summary = "[已废弃] 移除成员", description = "已废弃，请使用 /api/v1/topologies/members/remove。从资源中移除成员。仅适用于 SUBGRAPH 类型资源。")
-    @SecurityRequirement(name = "bearerAuth")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "成员移除成功"),
-            @ApiResponse(responseCode = "400", description = "资源类型不支持成员管理"),
-            @ApiResponse(responseCode = "401", description = "未认证"),
-            @ApiResponse(responseCode = "403", description = "无权限操作"),
-            @ApiResponse(responseCode = "404", description = "资源不存在")
-    })
-    public ResponseEntity<Result<Void>> removeMembers(
-            @Valid @RequestBody RemoveMembersRequest request) {
-
-        Long id = request.getResourceId();
-        Long operatorId = request.getOperatorId();
-
-        memberApplicationService.removeMembers(id, request.getMemberIds(), operatorId);
-
-        return ResponseEntity.ok(Result.success("成员移除成功", null));
-    }
-
-    /**
-     * 查询资源成员列表（仅适用于 SUBGRAPH 类型）
-     *
-     * @deprecated 此接口已废弃，请使用 /api/v1/topologies/members/query 接口
-     */
-    @Deprecated(since = "2025-12-25", forRemoval = true)
-    @PostMapping("/resources/members/query")
-    @Operation(summary = "[已废弃] 查询成员列表", description = "已废弃，请使用 /api/v1/topologies/members/query。获取资源的成员列表，支持分页。仅适用于 SUBGRAPH 类型资源。")
-    @SecurityRequirement(name = "bearerAuth")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "成员列表获取成功",
-                    content = @Content(schema = @Schema(implementation = SubgraphMemberListResponse.class))),
-            @ApiResponse(responseCode = "400", description = "资源类型不支持成员管理"),
-            @ApiResponse(responseCode = "401", description = "未认证"),
-            @ApiResponse(responseCode = "404", description = "资源不存在")
-    })
-    public ResponseEntity<Result<SubgraphMemberListResponse>> queryMembers(
-            @Valid @RequestBody QueryMembersRequest request) {
-
-        Long id = request.getResourceId();
-        Integer page = request.getPage();
-        Integer size = request.getSize();
-
-        if (size > 100) {
-            size = 100;
-        }
-
-        List<SubgraphMemberDTO> members = memberApplicationService.listMembers(id, page, size);
-        int totalCount = memberApplicationService.countMembers(id);
-
-        SubgraphMemberListResponse response = SubgraphMemberListResponse.of(members, page, size, totalCount);
-
-        return ResponseEntity.ok(Result.success(response));
-    }
-
-    /**
-     * 获取资源成员及其关系（仅适用于 SUBGRAPH 类型）
-     *
-     * @deprecated 此接口已废弃，请使用 /api/v1/topologies/members-with-relations/query 接口
-     */
-    @Deprecated(since = "2025-12-25", forRemoval = true)
-    @PostMapping("/resources/members-with-relations/query")
-    @Operation(summary = "[已废弃] 获取成员及关系", description = "已废弃，请使用 /api/v1/topologies/members-with-relations/query。获取成员列表及成员之间的关系，支持嵌套展开。")
-    @SecurityRequirement(name = "bearerAuth")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "成员及关系获取成功",
-                    content = @Content(schema = @Schema(implementation = SubgraphMembersWithRelationsResponse.class))),
-            @ApiResponse(responseCode = "400", description = "资源类型不支持成员管理"),
-            @ApiResponse(responseCode = "401", description = "未认证"),
-            @ApiResponse(responseCode = "404", description = "资源不存在")
-    })
-    public ResponseEntity<Result<SubgraphMembersWithRelationsResponse>> queryMembersWithRelations(
-            @Valid @RequestBody QueryMembersWithRelationsRequest request) {
-
-        TopologyQueryCommand command = new TopologyQueryCommand(
-                request.getResourceId(),
-                request.getExpandNested(),
-                request.getMaxDepth()
-        );
-        SubgraphMembersWithRelationsDTO dto = memberApplicationService.getMembersWithRelations(command);
-        SubgraphMembersWithRelationsResponse response = SubgraphMembersWithRelationsResponse.from(dto);
-
-        return ResponseEntity.ok(Result.success(response));
-    }
-
-    /**
-     * 获取资源拓扑图数据（仅适用于 SUBGRAPH 类型）
-     *
-     * @deprecated 此接口已废弃，请使用 /api/v1/topologies/graph/query 接口
-     */
-    @Deprecated(since = "2025-12-25", forRemoval = true)
-    @PostMapping("/resources/topology/query")
-    @Operation(summary = "[已废弃] 获取拓扑图数据", description = "已废弃，请使用 /api/v1/topologies/graph/query。获取用于图形渲染的拓扑数据，包含节点、边和子图边界。")
-    @SecurityRequirement(name = "bearerAuth")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "拓扑图数据获取成功",
-                    content = @Content(schema = @Schema(implementation = TopologyGraphResponse.class))),
-            @ApiResponse(responseCode = "400", description = "资源类型不支持拓扑查询"),
-            @ApiResponse(responseCode = "401", description = "未认证"),
-            @ApiResponse(responseCode = "404", description = "资源不存在")
-    })
-    public ResponseEntity<Result<TopologyGraphResponse>> queryTopology(
-            @Valid @RequestBody QueryTopologyRequest request) {
-
-        TopologyQueryCommand command = new TopologyQueryCommand(
-                request.getResourceId(),
-                request.getExpandNested()
-        );
-        TopologyGraphDTO dto = memberApplicationService.getSubgraphTopology(command);
-        TopologyGraphResponse response = TopologyGraphResponse.from(dto);
-
-        return ResponseEntity.ok(Result.success(response));
-    }
-
-    /**
-     * 获取资源祖先链（仅适用于 SUBGRAPH 类型）
-     *
-     * @deprecated 此接口已废弃，请使用 /api/v1/topologies/ancestors/query 接口
-     */
-    @Deprecated(since = "2025-12-25", forRemoval = true)
-    @PostMapping("/resources/ancestors/query")
-    @Operation(summary = "[已废弃] 获取祖先链", description = "已废弃，请使用 /api/v1/topologies/ancestors/query。获取资源的祖先链，用于导航和面包屑显示。")
-    @SecurityRequirement(name = "bearerAuth")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "祖先链获取成功",
-                    content = @Content(schema = @Schema(implementation = SubgraphAncestorsResponse.class))),
-            @ApiResponse(responseCode = "400", description = "资源类型不支持祖先查询"),
-            @ApiResponse(responseCode = "401", description = "未认证"),
-            @ApiResponse(responseCode = "404", description = "资源不存在")
-    })
-    public ResponseEntity<Result<SubgraphAncestorsResponse>> queryAncestors(
-            @Valid @RequestBody QueryAncestorsRequest request) {
-
-        SubgraphAncestorsDTO dto = memberApplicationService.getAncestors(request.getResourceId());
-        SubgraphAncestorsResponse response = SubgraphAncestorsResponse.from(dto);
-
-        return ResponseEntity.ok(Result.success(response));
     }
 }
