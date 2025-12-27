@@ -41,7 +41,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/relationships")
+@RequestMapping("/api/service/v1/relationships")
 @RequiredArgsConstructor
 @Tag(name = "资源关系管理", description = "资源关系管理接口：创建、查询、更新、删除、图遍历（POST-Only API）")
 public class RelationshipController {

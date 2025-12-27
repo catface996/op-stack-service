@@ -39,19 +39,19 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * <p>拓扑图 CRUD 接口：</p>
  * <ul>
- *   <li>POST /api/v1/topologies/create - 创建拓扑图</li>
- *   <li>POST /api/v1/topologies/query - 查询拓扑图列表</li>
- *   <li>POST /api/v1/topologies/get - 查询拓扑图详情</li>
- *   <li>POST /api/v1/topologies/update - 更新拓扑图</li>
- *   <li>POST /api/v1/topologies/delete - 删除拓扑图</li>
+ *   <li>POST /api/service/v1/topologies/create - 创建拓扑图</li>
+ *   <li>POST /api/service/v1/topologies/query - 查询拓扑图列表</li>
+ *   <li>POST /api/service/v1/topologies/get - 查询拓扑图详情</li>
+ *   <li>POST /api/service/v1/topologies/update - 更新拓扑图</li>
+ *   <li>POST /api/service/v1/topologies/delete - 删除拓扑图</li>
  * </ul>
  *
  * <p>成员管理接口：</p>
  * <ul>
- *   <li>POST /api/v1/topologies/members/add - 添加成员</li>
- *   <li>POST /api/v1/topologies/members/remove - 移除成员</li>
- *   <li>POST /api/v1/topologies/members/query - 查询成员列表</li>
- *   <li>POST /api/v1/topologies/graph/query - 获取拓扑图数据</li>
+ *   <li>POST /api/service/v1/topologies/members/add - 添加成员</li>
+ *   <li>POST /api/service/v1/topologies/members/remove - 移除成员</li>
+ *   <li>POST /api/service/v1/topologies/members/query - 查询成员列表</li>
+ *   <li>POST /api/service/v1/topologies/graph/query - 获取拓扑图数据</li>
  * </ul>
  *
  * <p>需求追溯：</p>
@@ -66,7 +66,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/topologies")
+@RequestMapping("/api/service/v1/topologies")
 @RequiredArgsConstructor
 @Tag(name = "拓扑图管理", description = "拓扑图管理接口：创建、查询、更新、删除、成员管理（POST-Only API）")
 public class TopologyController {

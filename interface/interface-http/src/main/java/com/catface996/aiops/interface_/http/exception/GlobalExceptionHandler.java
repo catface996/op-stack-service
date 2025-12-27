@@ -38,9 +38,9 @@ import java.util.List;
  *
  * <p>所有自定义异常类已移除，统一使用通用异常 + 错误码：</p>
  * <ul>
- *   <li>认证失败、会话过期等 → BusinessException(ErrorCodes.AUTH_XXX, message)</li>
- *   <li>账号不存在、锁定等 → BusinessException(ErrorCodes.XXX, message)</li>
- *   <li>参数验证失败 → ParameterException(ErrorCodes.PARAM_XXX, message, validationErrors)</li>
+ *   <li>认证失败、会话过期等 → BusinessException("AUTH_XXX", message)</li>
+ *   <li>账号不存在、锁定等 → BusinessException("XXX", message)</li>
+ *   <li>参数验证失败 → ParameterException("PARAM_XXX", message, validationErrors)</li>
  * </ul>
  *
  * <p>处理器列表（共4个）：</p>
