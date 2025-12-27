@@ -27,10 +27,10 @@ import com.catface996.aiops.common.enums.ErrorCode;
  * <p>使用示例：</p>
  * <pre>
  * // 方式1：使用枚举（默认消息）
- * throw new BusinessException(AuthErrorCode.INVALID_CREDENTIALS);
+ * throw new BusinessException(ResourceErrorCode.NOT_FOUND);
  *
  * // 方式2：使用枚举 + 自定义消息
- * throw new BusinessException(AuthErrorCode.INVALID_CREDENTIALS, "密码错误次数过多");
+ * throw new BusinessException(ResourceErrorCode.NOT_FOUND, "资源不存在");
  *
  * // 方式3：使用枚举 + 参数化消息
  * throw new BusinessException(ResourceErrorCode.ACCOUNT_LOCKED, 30);  // "账号已锁定，请在30分钟后重试"
