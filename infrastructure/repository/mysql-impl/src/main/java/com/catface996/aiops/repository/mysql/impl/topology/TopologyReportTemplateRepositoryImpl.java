@@ -51,12 +51,12 @@ public class TopologyReportTemplateRepositoryImpl implements TopologyReportTempl
 
     @Override
     public void unbind(Long topologyId, Long reportTemplateId) {
-        topologyReportTemplateMapper.batchSoftDelete(topologyId, List.of(reportTemplateId));
+        topologyReportTemplateMapper.batchDelete(topologyId, List.of(reportTemplateId));
     }
 
     @Override
     public int unbindBatch(Long topologyId, List<Long> reportTemplateIds) {
-        return topologyReportTemplateMapper.batchSoftDelete(topologyId, reportTemplateIds);
+        return topologyReportTemplateMapper.batchDelete(topologyId, reportTemplateIds);
     }
 
     @Override
