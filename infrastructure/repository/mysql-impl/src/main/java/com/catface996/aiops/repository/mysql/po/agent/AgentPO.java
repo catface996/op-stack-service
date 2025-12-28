@@ -44,6 +44,46 @@ public class AgentPO implements Serializable {
     @TableField("specialty")
     private String specialty;
 
+    // ===== LLM 配置（扁平化） =====
+
+    /**
+     * 关联的提示词模板ID
+     */
+    @TableField("prompt_template_id")
+    private Long promptTemplateId;
+
+    /**
+     * AI 模型标识
+     */
+    @TableField("model")
+    private String model;
+
+    /**
+     * 温度参数 (0.0-2.0)
+     */
+    @TableField("temperature")
+    private Double temperature;
+
+    /**
+     * Top P 参数 (0.0-1.0)
+     */
+    @TableField("top_p")
+    private Double topP;
+
+    /**
+     * 最大输出 token 数
+     */
+    @TableField("max_tokens")
+    private Integer maxTokens;
+
+    /**
+     * 最长运行时间（秒）
+     */
+    @TableField("max_runtime")
+    private Integer maxRuntime;
+
+    // ===== 统计信息 =====
+
     /**
      * 警告数量（全局累计）
      */
@@ -56,11 +96,7 @@ public class AgentPO implements Serializable {
     @TableField("critical")
     private Integer critical;
 
-    /**
-     * AI 配置（JSON格式）
-     */
-    @TableField("config")
-    private String config;
+    // ===== 审计字段 =====
 
     /**
      * 创建时间

@@ -2,11 +2,8 @@ package com.catface996.aiops.application.api.service.agent;
 
 import com.catface996.aiops.application.api.dto.agent.AgentDTO;
 import com.catface996.aiops.application.api.dto.agent.AgentStatsDTO;
-import com.catface996.aiops.application.api.dto.agent.AgentTemplateDTO;
 import com.catface996.aiops.application.api.dto.agent.request.*;
 import com.catface996.aiops.application.api.dto.common.PageResult;
-
-import java.util.List;
 
 /**
  * Agent 应用服务接口
@@ -50,20 +47,14 @@ public interface AgentApplicationService {
     AgentDTO createAgent(CreateAgentRequest request);
 
     /**
-     * 更新 Agent 信息
+     * 更新 Agent
+     *
+     * <p>更新 Agent 的基本信息和 LLM 配置，支持部分更新。</p>
      *
      * @param request 更新请求
      * @return 更新后的 Agent DTO
      */
     AgentDTO updateAgent(UpdateAgentRequest request);
-
-    /**
-     * 更新 Agent 配置
-     *
-     * @param request 配置更新请求
-     * @return 更新后的 Agent DTO
-     */
-    AgentDTO updateAgentConfig(UpdateAgentConfigRequest request);
 
     /**
      * 删除 Agent（软删除）
@@ -85,13 +76,6 @@ public interface AgentApplicationService {
      * @param request 取消分配请求
      */
     void unassignAgent(UnassignAgentRequest request);
-
-    /**
-     * 获取 Agent 模板列表
-     *
-     * @return 模板列表
-     */
-    List<AgentTemplateDTO> listAgentTemplates();
 
     /**
      * 获取 Agent 统计信息

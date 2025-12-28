@@ -2,7 +2,6 @@ package com.catface996.aiops.interface_.http.controller;
 
 import com.catface996.aiops.application.api.dto.agent.AgentDTO;
 import com.catface996.aiops.application.api.dto.agent.AgentStatsDTO;
-import com.catface996.aiops.application.api.dto.agent.AgentTemplateDTO;
 import com.catface996.aiops.application.api.dto.agent.request.*;
 import com.catface996.aiops.application.api.dto.common.PageResult;
 import com.catface996.aiops.application.api.service.agent.AgentApplicationService;
@@ -36,12 +35,10 @@ import java.util.List;
  *   <li>POST /api/service/v1/agents/list - 查询 Agent 列表</li>
  *   <li>POST /api/service/v1/agents/get - 查询 Agent 详情</li>
  *   <li>POST /api/service/v1/agents/create - 创建 Agent</li>
- *   <li>POST /api/service/v1/agents/update - 更新 Agent 信息</li>
- *   <li>POST /api/service/v1/agents/config/update - 更新 Agent 配置</li>
+ *   <li>POST /api/service/v1/agents/update - 更新 Agent（基本信息 + LLM 配置）</li>
  *   <li>POST /api/service/v1/agents/delete - 删除 Agent</li>
  *   <li>POST /api/service/v1/agents/assign - 分配 Agent 到团队</li>
  *   <li>POST /api/service/v1/agents/unassign - 取消 Agent 团队分配</li>
- *   <li>POST /api/service/v1/agents/templates/list - 查询 Agent 模板列表</li>
  *   <li>POST /api/service/v1/agents/stats - 查询 Agent 统计信息</li>
  * </ul>
  *
@@ -153,19 +150,23 @@ public class AgentController {
     }
 
     /**
-     * 更新 Agent 信息
+     * 更新 Agent
      *
-     * <p>更新 Agent 的基本信息，业务规则：</p>
+     * <p>更新 Agent 的基本信息和 LLM 配置，支持部分更新（仅更新非 null 字段）：</p>
      * <ul>
-     *   <li>只能更新名称和专业领域，角色创建后不可变</li>
+     *   <li>基本信息：name（名称）、specialty（专业领域）</li>
+     *   <li>LLM 配置：promptTemplateId（提示词模板）、model（模型）、temperature、topP、maxTokens、maxRuntime</li>
+     * </ul>
+     * <p>业务规则：</p>
+     * <ul>
+     *   <li>角色（role）创建后不可变</li>
      *   <li>新名称必须唯一，不能与其他 Agent 重复</li>
      *   <li>Agent 处于 WORKING/THINKING 状态时不能更新</li>
-     *   <li>支持部分更新，不传的字段保持原值</li>
      * </ul>
      */
     @PostMapping("/update")
-    @Operation(summary = "更新 Agent 信息",
-            description = "更新 Agent 的基本信息（名称、专业领域）。角色创建后不可变；新名称必须唯一；Agent 处于 WORKING/THINKING 状态时禁止更新")
+    @Operation(summary = "更新 Agent",
+            description = "更新 Agent 的基本信息和 LLM 配置。可更新：name、specialty、promptTemplateId、model、temperature、topP、maxTokens、maxRuntime。角色不可变；名称须唯一；工作中禁止更新")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "更新成功",
@@ -179,46 +180,11 @@ public class AgentController {
     public ResponseEntity<Result<AgentDTO>> updateAgent(
             @Valid @RequestBody UpdateAgentRequest request) {
 
-        log.info("更新 Agent 信息，id: {}, name: {}", request.getId(), request.getName());
+        log.info("更新 Agent，id: {}, name: {}, model: {}", request.getId(), request.getName(), request.getModel());
 
         AgentDTO agent = agentApplicationService.updateAgent(request);
 
         return ResponseEntity.ok(Result.success("Agent 更新成功", agent));
-    }
-
-    /**
-     * 更新 Agent 配置
-     *
-     * <p>单独更新 Agent 的 AI 配置，可更新项：</p>
-     * <ul>
-     *   <li>model: AI 模型标识（如 gemini-2.0-flash, claude-3-opus）</li>
-     *   <li>temperature: 温度参数 (0.0-1.0)，控制输出随机性</li>
-     *   <li>systemInstruction: 系统指令，定义 Agent 行为</li>
-     *   <li>defaultContext: 默认上下文信息</li>
-     * </ul>
-     * <p>Agent 处于 WORKING/THINKING 状态时禁止更新配置。</p>
-     */
-    @PostMapping("/config/update")
-    @Operation(summary = "更新 Agent 配置",
-            description = "单独更新 Agent 的 AI 配置：模型（model）、温度（temperature, 0.0-1.0）、系统指令（systemInstruction）、默认上下文（defaultContext）。Agent 正在工作时禁止更新")
-    @SecurityRequirement(name = "bearerAuth")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "更新成功",
-                    content = @Content(schema = @Schema(implementation = AgentDTO.class))),
-            @ApiResponse(responseCode = "400", description = "参数无效（如温度超出范围）"),
-            @ApiResponse(responseCode = "401", description = "未认证"),
-            @ApiResponse(responseCode = "404", description = "Agent 不存在"),
-            @ApiResponse(responseCode = "423", description = "Agent 正在工作中，无法更新")
-    })
-    public ResponseEntity<Result<AgentDTO>> updateAgentConfig(
-            @Valid @RequestBody UpdateAgentConfigRequest request) {
-
-        log.info("更新 Agent 配置，id: {}, model: {}, temperature: {}",
-                request.getId(), request.getModel(), request.getTemperature());
-
-        AgentDTO agent = agentApplicationService.updateAgentConfig(request);
-
-        return ResponseEntity.ok(Result.success("Agent 配置更新成功", agent));
     }
 
     /**
@@ -312,35 +278,6 @@ public class AgentController {
         agentApplicationService.unassignAgent(request);
 
         return ResponseEntity.ok(Result.success("Agent 取消分配成功", null));
-    }
-
-    /**
-     * 查询 Agent 模板列表
-     *
-     * <p>获取预定义的 Agent 配置模板，系统内置模板：</p>
-     * <ul>
-     *   <li>Standard Coordinator: 标准协调者，适用于 TEAM_SUPERVISOR</li>
-     *   <li>Strict Security Auditor: 严格安全审计，专注安全漏洞检测</li>
-     *   <li>Performance Optimizer: 性能优化专家，专注性能分析</li>
-     *   <li>Root Cause Analyst: 根因分析专家，专注故障排查</li>
-     *   <li>Concise Reporter: 简洁报告生成器，专注报告撰写</li>
-     * </ul>
-     */
-    @PostMapping("/templates/list")
-    @Operation(summary = "查询 Agent 模板列表",
-            description = "获取预定义的 Agent 配置模板。包含：Standard Coordinator、Strict Security Auditor、Performance Optimizer、Root Cause Analyst、Concise Reporter")
-    @SecurityRequirement(name = "bearerAuth")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "查询成功"),
-            @ApiResponse(responseCode = "401", description = "未认证")
-    })
-    public ResponseEntity<Result<List<AgentTemplateDTO>>> listAgentTemplates() {
-
-        log.info("查询 Agent 模板列表");
-
-        List<AgentTemplateDTO> templates = agentApplicationService.listAgentTemplates();
-
-        return ResponseEntity.ok(Result.success(templates));
     }
 
     /**

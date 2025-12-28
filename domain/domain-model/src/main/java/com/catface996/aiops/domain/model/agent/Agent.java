@@ -8,7 +8,7 @@ import java.util.List;
  * Agent 领域模型
  *
  * <p>AI Agent 实体，用于执行自动化诊断、监控和分析任务。</p>
- * <p>注意：status 字段已移至 AgentTeamRelation，按 Team 区分。</p>
+ * <p>配置采用扁平化设计，通过 promptTemplateId 关联提示词模板。</p>
  *
  * @author AI Assistant
  * @since 2025-12-28
@@ -35,20 +35,63 @@ public class Agent {
      */
     private String specialty;
 
-    /**
-     * 发现统计（全局累计）
-     */
-    private AgentFindings findings;
+    // ===== LLM 配置（扁平化） =====
 
     /**
-     * AI 配置
+     * 关联的提示词模板ID
      */
-    private AgentConfig config;
+    private Long promptTemplateId;
+
+    /**
+     * 提示词模板名称（关联查询，非持久化）
+     */
+    private String promptTemplateName;
+
+    /**
+     * AI 模型标识（如 claude-3-opus, gemini-2.0-flash）
+     */
+    private String model;
+
+    /**
+     * 温度参数 (0.0-2.0)，控制输出随机性
+     */
+    private Double temperature;
+
+    /**
+     * Top P 参数 (0.0-1.0)，核采样阈值
+     */
+    private Double topP;
+
+    /**
+     * 最大输出 token 数
+     */
+    private Integer maxTokens;
+
+    /**
+     * 最长运行时间（秒）
+     */
+    private Integer maxRuntime;
+
+    // ===== 统计信息 =====
+
+    /**
+     * 警告数量（全局累计）
+     */
+    private Integer warnings;
+
+    /**
+     * 严重问题数量（全局累计）
+     */
+    private Integer critical;
+
+    // ===== 关联信息 =====
 
     /**
      * 关联的团队 ID 列表
      */
     private List<Long> teamIds;
+
+    // ===== 审计字段 =====
 
     /**
      * 创建时间
@@ -65,29 +108,52 @@ public class Agent {
      */
     private Boolean deleted;
 
+    // ===== 默认值常量 =====
+
+    public static final String DEFAULT_MODEL = "gemini-2.0-flash";
+    public static final double DEFAULT_TEMPERATURE = 0.3;
+    public static final double DEFAULT_TOP_P = 0.9;
+    public static final int DEFAULT_MAX_TOKENS = 4096;
+    public static final int DEFAULT_MAX_RUNTIME = 300;
+
     public Agent() {
         this.deleted = false;
         this.teamIds = new ArrayList<>();
+        this.warnings = 0;
+        this.critical = 0;
+        // 设置默认值
+        this.temperature = DEFAULT_TEMPERATURE;
+        this.topP = DEFAULT_TOP_P;
+        this.maxTokens = DEFAULT_MAX_TOKENS;
+        this.maxRuntime = DEFAULT_MAX_RUNTIME;
     }
 
-    // 工厂方法
+    // ===== 工厂方法 =====
 
     /**
      * 创建新 Agent 的工厂方法
      *
-     * @param name      Agent 名称
-     * @param role      Agent 角色
-     * @param specialty 专业领域
-     * @param config    AI 配置（可选，为 null 时使用默认配置）
+     * @param name             Agent 名称
+     * @param role             Agent 角色
+     * @param specialty        专业领域
+     * @param promptTemplateId 提示词模板ID（可选）
+     * @param model            模型标识（可选）
      * @return 新创建的 Agent 实例
      */
-    public static Agent create(String name, AgentRole role, String specialty, AgentConfig config) {
+    public static Agent create(String name, AgentRole role, String specialty,
+                               Long promptTemplateId, String model) {
         Agent agent = new Agent();
         agent.setName(name);
         agent.setRole(role);
         agent.setSpecialty(specialty);
-        agent.setConfig(config != null ? config : AgentConfig.defaults());
-        agent.setFindings(AgentFindings.empty());
+        agent.setPromptTemplateId(promptTemplateId);
+        agent.setModel(model != null ? model : DEFAULT_MODEL);
+        agent.setTemperature(DEFAULT_TEMPERATURE);
+        agent.setTopP(DEFAULT_TOP_P);
+        agent.setMaxTokens(DEFAULT_MAX_TOKENS);
+        agent.setMaxRuntime(DEFAULT_MAX_RUNTIME);
+        agent.setWarnings(0);
+        agent.setCritical(0);
         agent.setTeamIds(new ArrayList<>());
         agent.setDeleted(false);
         agent.setCreatedAt(LocalDateTime.now());
@@ -95,7 +161,7 @@ public class Agent {
         return agent;
     }
 
-    // 业务方法
+    // ===== 业务方法 =====
 
     /**
      * 更新 Agent 基本信息
@@ -103,7 +169,7 @@ public class Agent {
      * @param name      新名称（为 null 时不更新）
      * @param specialty 新专业领域（为 null 时不更新）
      */
-    public void update(String name, String specialty) {
+    public void updateBasicInfo(String name, String specialty) {
         if (name != null) {
             this.name = name;
         }
@@ -114,35 +180,50 @@ public class Agent {
     }
 
     /**
-     * 更新 AI 配置
+     * 更新 LLM 配置
      *
-     * @param config 新配置
+     * @param promptTemplateId 提示词模板ID（为 null 时不更新）
+     * @param model            模型标识（为 null 时不更新）
+     * @param temperature      温度参数（为 null 时不更新）
+     * @param topP             Top P 参数（为 null 时不更新）
+     * @param maxTokens        最大 token 数（为 null 时不更新）
+     * @param maxRuntime       最长运行时间（为 null 时不更新）
      */
-    public void updateConfig(AgentConfig config) {
-        if (config != null) {
-            this.config = config;
-            this.updatedAt = LocalDateTime.now();
+    public void updateLlmConfig(Long promptTemplateId, String model, Double temperature,
+                                Double topP, Integer maxTokens, Integer maxRuntime) {
+        if (promptTemplateId != null) {
+            this.promptTemplateId = promptTemplateId;
         }
+        if (model != null) {
+            this.model = model;
+        }
+        if (temperature != null) {
+            this.temperature = temperature;
+        }
+        if (topP != null) {
+            this.topP = topP;
+        }
+        if (maxTokens != null) {
+            this.maxTokens = maxTokens;
+        }
+        if (maxRuntime != null) {
+            this.maxRuntime = maxRuntime;
+        }
+        this.updatedAt = LocalDateTime.now();
     }
 
     /**
      * 增加警告数量
      */
     public void incrementWarnings() {
-        if (this.findings == null) {
-            this.findings = AgentFindings.empty();
-        }
-        this.findings.incrementWarnings();
+        this.warnings = (this.warnings == null) ? 1 : this.warnings + 1;
     }
 
     /**
      * 增加严重问题数量
      */
     public void incrementCritical() {
-        if (this.findings == null) {
-            this.findings = AgentFindings.empty();
-        }
-        this.findings.incrementCritical();
+        this.critical = (this.critical == null) ? 1 : this.critical + 1;
     }
 
     /**
@@ -162,7 +243,7 @@ public class Agent {
         return Boolean.TRUE.equals(this.deleted);
     }
 
-    // 验证方法
+    // ===== 验证方法 =====
 
     /**
      * 检查 Agent 是否可以被删除
@@ -191,7 +272,7 @@ public class Agent {
         return role == AgentRole.TEAM_SUPERVISOR;
     }
 
-    // Getters and Setters
+    // ===== Getters and Setters =====
 
     public Long getId() {
         return id;
@@ -225,20 +306,76 @@ public class Agent {
         this.specialty = specialty;
     }
 
-    public AgentFindings getFindings() {
-        return findings;
+    public Long getPromptTemplateId() {
+        return promptTemplateId;
     }
 
-    public void setFindings(AgentFindings findings) {
-        this.findings = findings;
+    public void setPromptTemplateId(Long promptTemplateId) {
+        this.promptTemplateId = promptTemplateId;
     }
 
-    public AgentConfig getConfig() {
-        return config;
+    public String getPromptTemplateName() {
+        return promptTemplateName;
     }
 
-    public void setConfig(AgentConfig config) {
-        this.config = config;
+    public void setPromptTemplateName(String promptTemplateName) {
+        this.promptTemplateName = promptTemplateName;
+    }
+
+    public String getModel() {
+        return model;
+    }
+
+    public void setModel(String model) {
+        this.model = model;
+    }
+
+    public Double getTemperature() {
+        return temperature;
+    }
+
+    public void setTemperature(Double temperature) {
+        this.temperature = temperature;
+    }
+
+    public Double getTopP() {
+        return topP;
+    }
+
+    public void setTopP(Double topP) {
+        this.topP = topP;
+    }
+
+    public Integer getMaxTokens() {
+        return maxTokens;
+    }
+
+    public void setMaxTokens(Integer maxTokens) {
+        this.maxTokens = maxTokens;
+    }
+
+    public Integer getMaxRuntime() {
+        return maxRuntime;
+    }
+
+    public void setMaxRuntime(Integer maxRuntime) {
+        this.maxRuntime = maxRuntime;
+    }
+
+    public Integer getWarnings() {
+        return warnings;
+    }
+
+    public void setWarnings(Integer warnings) {
+        this.warnings = warnings;
+    }
+
+    public Integer getCritical() {
+        return critical;
+    }
+
+    public void setCritical(Integer critical) {
+        this.critical = critical;
     }
 
     public List<Long> getTeamIds() {
@@ -280,6 +417,8 @@ public class Agent {
                 ", name='" + name + '\'' +
                 ", role=" + role +
                 ", specialty='" + specialty + '\'' +
+                ", promptTemplateId=" + promptTemplateId +
+                ", model='" + model + '\'' +
                 ", deleted=" + deleted +
                 '}';
     }

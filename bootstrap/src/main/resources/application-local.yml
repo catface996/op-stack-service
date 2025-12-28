@@ -1,6 +1,10 @@
 # Local Development Environment Configuration
 # 本地开发环境配置
 
+# 服务端口 (开发环境固定 8081，禁止修改)
+server:
+  port: 8081
+
 # 说明:
 # - 日志输出到控制台，彩色格式 (在 logback-spring.xml 中配置)
 # - 日志级别: 项目包 DEBUG，框架包 WARN

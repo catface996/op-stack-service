@@ -1,9 +1,7 @@
 package com.catface996.aiops.application.impl.service.agent;
 
-import com.catface996.aiops.application.api.dto.agent.AgentConfigDTO;
 import com.catface996.aiops.application.api.dto.agent.AgentDTO;
 import com.catface996.aiops.application.api.dto.agent.AgentStatsDTO;
-import com.catface996.aiops.application.api.dto.agent.AgentTemplateDTO;
 import com.catface996.aiops.application.api.dto.agent.request.*;
 import com.catface996.aiops.application.api.dto.common.PageResult;
 import com.catface996.aiops.application.api.service.agent.AgentApplicationService;
@@ -17,7 +15,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -97,12 +94,29 @@ public class AgentApplicationServiceImpl implements AgentApplicationService {
             throw new BusinessException(AgentErrorCode.AGENT_NAME_EXISTS, request.getName());
         }
 
-        AgentConfig config = null;
-        if (request.getConfig() != null) {
-            config = toConfig(request.getConfig());
+        // 使用工厂方法创建 Agent，传入 LLM 配置参数
+        Agent agent = Agent.create(
+                request.getName(),
+                role,
+                request.getSpecialty(),
+                request.getPromptTemplateId(),
+                request.getModel()
+        );
+
+        // 设置其他 LLM 配置（如果提供）
+        if (request.getTemperature() != null) {
+            agent.setTemperature(request.getTemperature());
+        }
+        if (request.getTopP() != null) {
+            agent.setTopP(request.getTopP());
+        }
+        if (request.getMaxTokens() != null) {
+            agent.setMaxTokens(request.getMaxTokens());
+        }
+        if (request.getMaxRuntime() != null) {
+            agent.setMaxRuntime(request.getMaxRuntime());
         }
 
-        Agent agent = Agent.create(request.getName(), role, request.getSpecialty(), config);
         agent = agentRepository.save(agent);
 
         return toDTO(agent);
@@ -111,8 +125,8 @@ public class AgentApplicationServiceImpl implements AgentApplicationService {
     @Override
     @Transactional
     public AgentDTO updateAgent(UpdateAgentRequest request) {
-        logger.info("更新 Agent 信息，id: {}, name: {}, specialty: {}",
-                request.getId(), request.getName(), request.getSpecialty());
+        logger.info("更新 Agent，id: {}, name: {}, model: {}",
+                request.getId(), request.getName(), request.getModel());
 
         Agent agent = agentRepository.findById(request.getId())
                 .orElseThrow(() -> new BusinessException(AgentErrorCode.AGENT_NOT_FOUND, request.getId()));
@@ -121,6 +135,7 @@ public class AgentApplicationServiceImpl implements AgentApplicationService {
             throw new BusinessException(AgentErrorCode.AGENT_IS_BUSY, "WORKING/THINKING");
         }
 
+        // 更新基本信息
         if (request.getName() != null && !request.getName().equals(agent.getName())) {
             if (agentRepository.existsByName(request.getName(), request.getId())) {
                 throw new BusinessException(AgentErrorCode.AGENT_NAME_EXISTS, request.getName());
@@ -132,37 +147,16 @@ public class AgentApplicationServiceImpl implements AgentApplicationService {
             agent.setSpecialty(request.getSpecialty());
         }
 
-        agent = agentRepository.update(agent);
-
-        return toDTO(agent);
-    }
-
-    @Override
-    @Transactional
-    public AgentDTO updateAgentConfig(UpdateAgentConfigRequest request) {
-        logger.info("更新 Agent 配置，id: {}, model: {}, temperature: {}",
-                request.getId(), request.getModel(), request.getTemperature());
-
-        Agent agent = agentRepository.findById(request.getId())
-                .orElseThrow(() -> new BusinessException(AgentErrorCode.AGENT_NOT_FOUND, request.getId()));
-
-        if (relationRepository.isAgentBusyInAnyTeam(request.getId())) {
-            throw new BusinessException(AgentErrorCode.AGENT_IS_BUSY, "WORKING/THINKING");
-        }
-
-        AgentConfig currentConfig = agent.getConfig();
-        if (currentConfig == null) {
-            currentConfig = AgentConfig.defaults();
-        }
-
-        AgentConfig newConfig = new AgentConfig(
-                request.getModel() != null ? request.getModel() : currentConfig.getModel(),
-                request.getTemperature() != null ? request.getTemperature() : currentConfig.getTemperature(),
-                request.getSystemInstruction() != null ? request.getSystemInstruction() : currentConfig.getSystemInstruction(),
-                request.getDefaultContext() != null ? request.getDefaultContext() : currentConfig.getDefaultContext()
+        // 更新 LLM 配置（支持部分更新）
+        agent.updateLlmConfig(
+                request.getPromptTemplateId(),
+                request.getModel(),
+                request.getTemperature(),
+                request.getTopP(),
+                request.getMaxTokens(),
+                request.getMaxRuntime()
         );
 
-        agent.setConfig(newConfig);
         agent = agentRepository.update(agent);
 
         return toDTO(agent);
@@ -247,15 +241,6 @@ public class AgentApplicationServiceImpl implements AgentApplicationService {
     }
 
     @Override
-    public List<AgentTemplateDTO> listAgentTemplates() {
-        logger.info("查询 Agent 模板列表");
-
-        return Arrays.stream(AgentTemplate.values())
-                .map(this::toTemplateDTO)
-                .collect(Collectors.toList());
-    }
-
-    @Override
     public AgentStatsDTO getAgentStats(AgentStatsRequest request) {
         logger.info("查询 Agent 统计信息，agentId: {}", request.getAgentId());
 
@@ -302,49 +287,22 @@ public class AgentApplicationServiceImpl implements AgentApplicationService {
                 .name(agent.getName())
                 .role(agent.getRole() != null ? agent.getRole().name() : null)
                 .specialty(agent.getSpecialty())
-                .warnings(agent.getFindings() != null ? agent.getFindings().getWarnings() : 0)
-                .critical(agent.getFindings() != null ? agent.getFindings().getCritical() : 0)
-                .config(toConfigDTO(agent.getConfig()))
+                // LLM 配置（扁平化）
+                .promptTemplateId(agent.getPromptTemplateId())
+                .promptTemplateName(agent.getPromptTemplateName())
+                .model(agent.getModel())
+                .temperature(agent.getTemperature())
+                .topP(agent.getTopP())
+                .maxTokens(agent.getMaxTokens())
+                .maxRuntime(agent.getMaxRuntime())
+                // 统计信息
+                .warnings(agent.getWarnings() != null ? agent.getWarnings() : 0)
+                .critical(agent.getCritical() != null ? agent.getCritical() : 0)
+                // 关联信息
                 .teamIds(agent.getTeamIds())
+                // 审计字段
                 .createdAt(agent.getCreatedAt())
                 .updatedAt(agent.getUpdatedAt())
-                .build();
-    }
-
-    private AgentConfigDTO toConfigDTO(AgentConfig config) {
-        if (config == null) {
-            return null;
-        }
-
-        return AgentConfigDTO.builder()
-                .model(config.getModel())
-                .temperature(config.getTemperature())
-                .systemInstruction(config.getSystemInstruction())
-                .defaultContext(config.getDefaultContext())
-                .build();
-    }
-
-    private AgentConfig toConfig(AgentConfigDTO dto) {
-        if (dto == null) {
-            return null;
-        }
-
-        return new AgentConfig(
-                dto.getModel(),
-                dto.getTemperature(),
-                dto.getSystemInstruction(),
-                dto.getDefaultContext()
-        );
-    }
-
-    private AgentTemplateDTO toTemplateDTO(AgentTemplate template) {
-        return AgentTemplateDTO.builder()
-                .name(template.getName())
-                .description(template.getDescription())
-                .recommendedRole(template.getRecommendedRole().name())
-                .systemInstruction(template.getSystemInstruction())
-                .recommendedModel(template.getRecommendedModel())
-                .recommendedTemperature(template.getRecommendedTemperature())
                 .build();
     }
 }

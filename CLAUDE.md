@@ -55,4 +55,11 @@ Java 21 (LTS): Follow standard conventions
 
 
 <!-- MANUAL ADDITIONS START -->
+## Constitution (项目宪法)
+
+以下规则为项目强制性约束，禁止修改：
+
+### 端口配置
+- **开发环境端口必须是 8081**，禁止修改
+- local profile 服务端口: `server.port=8081`
 <!-- MANUAL ADDITIONS END -->

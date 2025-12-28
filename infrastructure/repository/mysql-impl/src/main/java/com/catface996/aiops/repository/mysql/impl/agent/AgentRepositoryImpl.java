@@ -2,13 +2,12 @@ package com.catface996.aiops.repository.mysql.impl.agent;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.catface996.aiops.domain.model.agent.*;
+import com.catface996.aiops.domain.model.agent.Agent;
+import com.catface996.aiops.domain.model.agent.AgentRole;
 import com.catface996.aiops.repository.agent.AgentRepository;
 import com.catface996.aiops.repository.mysql.mapper.agent.AgentMapper;
 import com.catface996.aiops.repository.mysql.mapper.agent.AgentTeamRelationMapper;
 import com.catface996.aiops.repository.mysql.po.agent.AgentPO;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -18,6 +17,8 @@ import java.util.stream.Collectors;
 /**
  * Agent 仓储实现
  *
+ * <p>负责 Agent 的持久化操作，包含领域对象与持久化对象之间的转换。</p>
+ *
  * @author AI Assistant
  * @since 2025-12-28
  */
@@ -26,14 +27,11 @@ public class AgentRepositoryImpl implements AgentRepository {
 
     private final AgentMapper agentMapper;
     private final AgentTeamRelationMapper relationMapper;
-    private final ObjectMapper objectMapper;
 
     public AgentRepositoryImpl(AgentMapper agentMapper,
-                               AgentTeamRelationMapper relationMapper,
-                               ObjectMapper objectMapper) {
+                               AgentTeamRelationMapper relationMapper) {
         this.agentMapper = agentMapper;
         this.relationMapper = relationMapper;
-        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -167,12 +165,27 @@ public class AgentRepositoryImpl implements AgentRepository {
         agent.setName(po.getName());
         agent.setRole(AgentRole.fromName(po.getRole()));
         agent.setSpecialty(po.getSpecialty());
-        agent.setFindings(new AgentFindings(po.getWarnings(), po.getCritical()));
-        agent.setConfig(parseConfig(po.getConfig()));
+
+        // LLM 配置（扁平化）
+        agent.setPromptTemplateId(po.getPromptTemplateId());
+        agent.setModel(po.getModel());
+        agent.setTemperature(po.getTemperature());
+        agent.setTopP(po.getTopP());
+        agent.setMaxTokens(po.getMaxTokens());
+        agent.setMaxRuntime(po.getMaxRuntime());
+
+        // 统计信息
+        agent.setWarnings(po.getWarnings());
+        agent.setCritical(po.getCritical());
+
+        // 关联信息
         agent.setTeamIds(relationMapper.selectTeamIdsByAgentId(po.getId()));
+
+        // 审计字段
         agent.setCreatedAt(po.getCreatedAt());
         agent.setUpdatedAt(po.getUpdatedAt());
         agent.setDeleted(po.getDeleted() != null && po.getDeleted() == 1);
+
         return agent;
     }
 
@@ -185,39 +198,24 @@ public class AgentRepositoryImpl implements AgentRepository {
         po.setName(domain.getName());
         po.setRole(domain.getRole() != null ? domain.getRole().name() : null);
         po.setSpecialty(domain.getSpecialty());
-        if (domain.getFindings() != null) {
-            po.setWarnings(domain.getFindings().getWarnings());
-            po.setCritical(domain.getFindings().getCritical());
-        } else {
-            po.setWarnings(0);
-            po.setCritical(0);
-        }
-        po.setConfig(serializeConfig(domain.getConfig()));
+
+        // LLM 配置（扁平化）
+        po.setPromptTemplateId(domain.getPromptTemplateId());
+        po.setModel(domain.getModel());
+        po.setTemperature(domain.getTemperature());
+        po.setTopP(domain.getTopP());
+        po.setMaxTokens(domain.getMaxTokens());
+        po.setMaxRuntime(domain.getMaxRuntime());
+
+        // 统计信息
+        po.setWarnings(domain.getWarnings() != null ? domain.getWarnings() : 0);
+        po.setCritical(domain.getCritical() != null ? domain.getCritical() : 0);
+
+        // 审计字段
         po.setCreatedAt(domain.getCreatedAt());
         po.setUpdatedAt(domain.getUpdatedAt());
         po.setDeleted(Boolean.TRUE.equals(domain.getDeleted()) ? 1 : 0);
+
         return po;
-    }
-
-    private AgentConfig parseConfig(String configJson) {
-        if (configJson == null || configJson.isEmpty()) {
-            return AgentConfig.defaults();
-        }
-        try {
-            return objectMapper.readValue(configJson, AgentConfig.class);
-        } catch (JsonProcessingException e) {
-            return AgentConfig.defaults();
-        }
-    }
-
-    private String serializeConfig(AgentConfig config) {
-        if (config == null) {
-            return null;
-        }
-        try {
-            return objectMapper.writeValueAsString(config);
-        } catch (JsonProcessingException e) {
-            return null;
-        }
     }
 }
