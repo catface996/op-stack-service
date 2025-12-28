@@ -64,20 +64,6 @@ public interface AgentApplicationService {
     void deleteAgent(DeleteAgentRequest request);
 
     /**
-     * 分配 Agent 到团队
-     *
-     * @param request 分配请求
-     */
-    void assignAgent(AssignAgentRequest request);
-
-    /**
-     * 取消 Agent 团队分配
-     *
-     * @param request 取消分配请求
-     */
-    void unassignAgent(UnassignAgentRequest request);
-
-    /**
      * 获取 Agent 统计信息
      *
      * @param request 统计请求

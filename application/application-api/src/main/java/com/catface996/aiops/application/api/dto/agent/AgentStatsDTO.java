@@ -27,9 +27,6 @@ public class AgentStatsDTO {
     @Schema(description = "按角色分布", example = "{\"WORKER\": 20, \"TEAM_SUPERVISOR\": 4, \"GLOBAL_SUPERVISOR\": 1}")
     private Map<String, Long> byRole;
 
-    @Schema(description = "按状态分布", example = "{\"IDLE\": 15, \"WORKING\": 8, \"THINKING\": 2}")
-    private Map<String, Long> byStatus;
-
     @Schema(description = "总警告数", example = "42")
     private Long totalWarnings;
 

@@ -25,56 +25,46 @@ public interface AgentMapper extends BaseMapper<AgentPO> {
      *
      * @param page    分页参数
      * @param role    角色筛选（可选）
-     * @param teamId  团队筛选（可选）
      * @param keyword 关键词搜索（可选）
      * @return 分页结果
      */
     @Select("<script>" +
-            "SELECT DISTINCT a.* FROM agent a " +
-            "<if test='teamId != null'>" +
-            "INNER JOIN agent_2_team r ON a.id = r.agent_id AND r.deleted = 0 AND r.team_id = #{teamId} " +
-            "</if>" +
+            "SELECT * FROM agent " +
             "<where>" +
-            "a.deleted = 0 " +
+            "deleted = 0 " +
             "<if test='role != null and role != \"\"'>" +
-            "AND a.role = #{role} " +
+            "AND role = #{role} " +
             "</if>" +
             "<if test='keyword != null and keyword != \"\"'>" +
-            "AND (a.name LIKE CONCAT('%', #{keyword}, '%') OR a.specialty LIKE CONCAT('%', #{keyword}, '%')) " +
+            "AND (name LIKE CONCAT('%', #{keyword}, '%') OR specialty LIKE CONCAT('%', #{keyword}, '%')) " +
             "</if>" +
             "</where>" +
-            "ORDER BY a.created_at DESC" +
+            "ORDER BY created_at DESC" +
             "</script>")
     IPage<AgentPO> selectPageByCondition(Page<AgentPO> page,
                                           @Param("role") String role,
-                                          @Param("teamId") Long teamId,
                                           @Param("keyword") String keyword);
 
     /**
      * 按条件统计 Agent 数量
      *
      * @param role    角色筛选（可选）
-     * @param teamId  团队筛选（可选）
      * @param keyword 关键词搜索（可选）
      * @return Agent 数量
      */
     @Select("<script>" +
-            "SELECT COUNT(DISTINCT a.id) FROM agent a " +
-            "<if test='teamId != null'>" +
-            "INNER JOIN agent_2_team r ON a.id = r.agent_id AND r.deleted = 0 AND r.team_id = #{teamId} " +
-            "</if>" +
+            "SELECT COUNT(*) FROM agent " +
             "<where>" +
-            "a.deleted = 0 " +
+            "deleted = 0 " +
             "<if test='role != null and role != \"\"'>" +
-            "AND a.role = #{role} " +
+            "AND role = #{role} " +
             "</if>" +
             "<if test='keyword != null and keyword != \"\"'>" +
-            "AND (a.name LIKE CONCAT('%', #{keyword}, '%') OR a.specialty LIKE CONCAT('%', #{keyword}, '%')) " +
+            "AND (name LIKE CONCAT('%', #{keyword}, '%') OR specialty LIKE CONCAT('%', #{keyword}, '%')) " +
             "</if>" +
             "</where>" +
             "</script>")
     long countByCondition(@Param("role") String role,
-                          @Param("teamId") Long teamId,
                           @Param("keyword") String keyword);
 
     /**

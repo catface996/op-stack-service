@@ -6,7 +6,6 @@ import com.catface996.aiops.domain.model.agent.Agent;
 import com.catface996.aiops.domain.model.agent.AgentRole;
 import com.catface996.aiops.repository.agent.AgentRepository;
 import com.catface996.aiops.repository.mysql.mapper.agent.AgentMapper;
-import com.catface996.aiops.repository.mysql.mapper.agent.AgentTeamRelationMapper;
 import com.catface996.aiops.repository.mysql.po.agent.AgentPO;
 import org.springframework.stereotype.Repository;
 
@@ -26,12 +25,9 @@ import java.util.stream.Collectors;
 public class AgentRepositoryImpl implements AgentRepository {
 
     private final AgentMapper agentMapper;
-    private final AgentTeamRelationMapper relationMapper;
 
-    public AgentRepositoryImpl(AgentMapper agentMapper,
-                               AgentTeamRelationMapper relationMapper) {
+    public AgentRepositoryImpl(AgentMapper agentMapper) {
         this.agentMapper = agentMapper;
-        this.relationMapper = relationMapper;
     }
 
     @Override
@@ -44,11 +40,11 @@ public class AgentRepositoryImpl implements AgentRepository {
     }
 
     @Override
-    public List<Agent> findByCondition(AgentRole role, Long teamId, String keyword, int page, int size) {
+    public List<Agent> findByCondition(AgentRole role, String keyword, int page, int size) {
         Page<AgentPO> pageParam = new Page<>(page, size);
         String roleStr = role != null ? role.name() : null;
 
-        return agentMapper.selectPageByCondition(pageParam, roleStr, teamId, keyword)
+        return agentMapper.selectPageByCondition(pageParam, roleStr, keyword)
                 .getRecords()
                 .stream()
                 .map(this::toDomain)
@@ -56,9 +52,9 @@ public class AgentRepositoryImpl implements AgentRepository {
     }
 
     @Override
-    public long countByCondition(AgentRole role, Long teamId, String keyword) {
+    public long countByCondition(AgentRole role, String keyword) {
         String roleStr = role != null ? role.name() : null;
-        return agentMapper.countByCondition(roleStr, teamId, keyword);
+        return agentMapper.countByCondition(roleStr, keyword);
     }
 
     @Override
@@ -177,9 +173,6 @@ public class AgentRepositoryImpl implements AgentRepository {
         // 统计信息
         agent.setWarnings(po.getWarnings());
         agent.setCritical(po.getCritical());
-
-        // 关联信息
-        agent.setTeamIds(relationMapper.selectTeamIdsByAgentId(po.getId()));
 
         // 审计字段
         agent.setCreatedAt(po.getCreatedAt());

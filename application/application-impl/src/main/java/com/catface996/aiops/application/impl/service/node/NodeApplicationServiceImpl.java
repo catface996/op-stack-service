@@ -324,7 +324,6 @@ public class NodeApplicationServiceImpl implements NodeApplicationService {
                 .maxRuntime(agent.getMaxRuntime())
                 .warnings(agent.getWarnings())
                 .critical(agent.getCritical())
-                .teamIds(agent.getTeamIds())
                 .createdAt(agent.getCreatedAt())
                 .updatedAt(agent.getUpdatedAt())
                 .build();

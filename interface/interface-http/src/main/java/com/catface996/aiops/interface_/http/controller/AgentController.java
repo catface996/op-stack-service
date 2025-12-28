@@ -37,8 +37,6 @@ import java.util.List;
  *   <li>POST /api/service/v1/agents/create - 创建 Agent</li>
  *   <li>POST /api/service/v1/agents/update - 更新 Agent（基本信息 + LLM 配置）</li>
  *   <li>POST /api/service/v1/agents/delete - 删除 Agent</li>
- *   <li>POST /api/service/v1/agents/assign - 分配 Agent 到团队</li>
- *   <li>POST /api/service/v1/agents/unassign - 取消 Agent 团队分配</li>
  *   <li>POST /api/service/v1/agents/stats - 查询 Agent 统计信息</li>
  * </ul>
  *
@@ -49,7 +47,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/service/v1/agents")
 @RequiredArgsConstructor
-@Tag(name = "Agent 管理", description = "Agent 管理接口：查询、创建、更新、删除、配置、团队分配、模板和统计（POST-Only API）")
+@Tag(name = "Agent 管理", description = "Agent 管理接口：查询、创建、更新、删除、配置、统计（POST-Only API）")
 public class AgentController {
 
     private final AgentApplicationService agentApplicationService;
@@ -60,13 +58,12 @@ public class AgentController {
      * <p>分页查询 Agent 列表，支持多维度筛选：</p>
      * <ul>
      *   <li>按角色筛选：GLOBAL_SUPERVISOR, TEAM_SUPERVISOR, WORKER, SCOUTER</li>
-     *   <li>按团队筛选：指定 teamId 查询该团队的 Agent</li>
      *   <li>关键词搜索：模糊匹配名称和专业领域</li>
      * </ul>
      */
     @PostMapping("/list")
     @Operation(summary = "查询 Agent 列表",
-            description = "分页查询 Agent 列表，支持按角色（GLOBAL_SUPERVISOR/TEAM_SUPERVISOR/WORKER/SCOUTER）、团队筛选和关键词搜索（模糊匹配名称、专业领域）")
+            description = "分页查询 Agent 列表，支持按角色（GLOBAL_SUPERVISOR/TEAM_SUPERVISOR/WORKER/SCOUTER）筛选和关键词搜索（模糊匹配名称、专业领域）")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "查询成功",
@@ -76,8 +73,8 @@ public class AgentController {
     public ResponseEntity<Result<PageResult<AgentDTO>>> listAgents(
             @Valid @RequestBody ListAgentsRequest request) {
 
-        log.info("查询 Agent 列表，role: {}, teamId: {}, keyword: {}, page: {}, size: {}",
-                request.getRole(), request.getTeamId(), request.getKeyword(),
+        log.info("查询 Agent 列表，role: {}, keyword: {}, page: {}, size: {}",
+                request.getRole(), request.getKeyword(),
                 request.getPage(), request.getSize());
 
         PageResult<AgentDTO> result = agentApplicationService.listAgents(request);
@@ -217,67 +214,6 @@ public class AgentController {
         agentApplicationService.deleteAgent(request);
 
         return ResponseEntity.ok(Result.success("Agent 删除成功", null));
-    }
-
-    /**
-     * 分配 Agent 到团队
-     *
-     * <p>将 Agent 分配到指定团队，业务规则：</p>
-     * <ul>
-     *   <li>Agent 和 Team 必须存在</li>
-     *   <li>同一 Agent 可以分配到多个团队</li>
-     *   <li>不能重复分配到同一团队</li>
-     *   <li>分配后 Agent 初始状态为 IDLE</li>
-     * </ul>
-     */
-    @PostMapping("/assign")
-    @Operation(summary = "分配 Agent 到团队",
-            description = "将 Agent 分配到指定团队。同一 Agent 可分配到多个团队；不能重复分配；分配后初始状态为 IDLE")
-    @SecurityRequirement(name = "bearerAuth")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "分配成功"),
-            @ApiResponse(responseCode = "401", description = "未认证"),
-            @ApiResponse(responseCode = "404", description = "Agent 或 Team 不存在"),
-            @ApiResponse(responseCode = "409", description = "Agent 已分配到该团队")
-    })
-    public ResponseEntity<Result<Void>> assignAgent(
-            @Valid @RequestBody AssignAgentRequest request) {
-
-        log.info("分配 Agent 到团队，agentId: {}, teamId: {}", request.getAgentId(), request.getTeamId());
-
-        agentApplicationService.assignAgent(request);
-
-        return ResponseEntity.ok(Result.success("Agent 分配成功", null));
-    }
-
-    /**
-     * 取消 Agent 团队分配
-     *
-     * <p>将 Agent 从指定团队中移除，业务规则：</p>
-     * <ul>
-     *   <li>TEAM_SUPERVISOR 不能取消分配（需通过删除操作）</li>
-     *   <li>Agent 必须已分配到该团队</li>
-     *   <li>取消分配后，该团队中的 Agent 状态记录会被清除</li>
-     * </ul>
-     */
-    @PostMapping("/unassign")
-    @Operation(summary = "取消 Agent 团队分配",
-            description = "将 Agent 从团队中移除。TEAM_SUPERVISOR 禁止取消分配；Agent 必须已分配到该团队；取消后清除该团队的状态记录")
-    @SecurityRequirement(name = "bearerAuth")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "取消分配成功"),
-            @ApiResponse(responseCode = "400", description = "TEAM_SUPERVISOR 不能取消分配"),
-            @ApiResponse(responseCode = "401", description = "未认证"),
-            @ApiResponse(responseCode = "404", description = "Agent 不存在或未分配到该团队")
-    })
-    public ResponseEntity<Result<Void>> unassignAgent(
-            @Valid @RequestBody UnassignAgentRequest request) {
-
-        log.info("取消 Agent 团队分配，agentId: {}, teamId: {}", request.getAgentId(), request.getTeamId());
-
-        agentApplicationService.unassignAgent(request);
-
-        return ResponseEntity.ok(Result.success("Agent 取消分配成功", null));
     }
 
     /**

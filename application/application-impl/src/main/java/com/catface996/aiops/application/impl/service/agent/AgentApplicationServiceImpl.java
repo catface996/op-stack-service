@@ -7,12 +7,9 @@ import com.catface996.aiops.application.api.dto.common.PageResult;
 import com.catface996.aiops.application.api.service.agent.AgentApplicationService;
 import com.catface996.aiops.domain.model.agent.Agent;
 import com.catface996.aiops.domain.model.agent.AgentRole;
-import com.catface996.aiops.domain.model.agent.AgentStatus;
-import com.catface996.aiops.domain.model.agent.AgentTeamRelation;
 import com.catface996.aiops.common.enums.AgentErrorCode;
 import com.catface996.aiops.common.exception.BusinessException;
 import com.catface996.aiops.repository.agent.AgentRepository;
-import com.catface996.aiops.repository.agent.AgentTeamRelationRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -36,31 +33,27 @@ public class AgentApplicationServiceImpl implements AgentApplicationService {
     private static final Logger logger = LoggerFactory.getLogger(AgentApplicationServiceImpl.class);
 
     private final AgentRepository agentRepository;
-    private final AgentTeamRelationRepository relationRepository;
 
-    public AgentApplicationServiceImpl(AgentRepository agentRepository,
-                                       AgentTeamRelationRepository relationRepository) {
+    public AgentApplicationServiceImpl(AgentRepository agentRepository) {
         this.agentRepository = agentRepository;
-        this.relationRepository = relationRepository;
     }
 
     @Override
     public PageResult<AgentDTO> listAgents(ListAgentsRequest request) {
-        logger.info("查询 Agent 列表，role: {}, teamId: {}, keyword: {}, page: {}, size: {}",
-                request.getRole(), request.getTeamId(), request.getKeyword(),
+        logger.info("查询 Agent 列表，role: {}, keyword: {}, page: {}, size: {}",
+                request.getRole(), request.getKeyword(),
                 request.getPage(), request.getSize());
 
         AgentRole role = AgentRole.fromName(request.getRole());
 
         List<Agent> agents = agentRepository.findByCondition(
                 role,
-                request.getTeamId(),
                 request.getKeyword(),
                 request.getPage(),
                 request.getSize()
         );
 
-        long total = agentRepository.countByCondition(role, request.getTeamId(), request.getKeyword());
+        long total = agentRepository.countByCondition(role, request.getKeyword());
 
         List<AgentDTO> dtos = agents.stream()
                 .map(this::toDTO)
@@ -134,10 +127,6 @@ public class AgentApplicationServiceImpl implements AgentApplicationService {
         Agent agent = agentRepository.findById(request.getId())
                 .orElseThrow(() -> new BusinessException(AgentErrorCode.AGENT_NOT_FOUND, request.getId()));
 
-        if (relationRepository.isAgentBusyInAnyTeam(request.getId())) {
-            throw new BusinessException(AgentErrorCode.AGENT_IS_BUSY, "WORKING/THINKING");
-        }
-
         // 更新基本信息
         if (request.getName() != null && !request.getName().equals(agent.getName())) {
             if (agentRepository.existsByName(request.getName(), request.getId())) {
@@ -178,69 +167,8 @@ public class AgentApplicationServiceImpl implements AgentApplicationService {
             throw new BusinessException(AgentErrorCode.CANNOT_DELETE_GLOBAL_SUPERVISOR);
         }
 
-        // TEAM_SUPERVISOR 有成员时不能删除
-        if (agent.getRole() == AgentRole.TEAM_SUPERVISOR) {
-            List<Long> teamIds = relationRepository.findTeamIdsByAgentId(request.getId());
-            for (Long teamId : teamIds) {
-                if (relationRepository.countByTeamId(teamId) > 1) {
-                    throw new BusinessException(AgentErrorCode.CANNOT_DELETE_SUPERVISOR_WITH_MEMBERS, request.getId());
-                }
-            }
-        }
-
-        // 检查是否正在工作中
-        if (relationRepository.isAgentBusyInAnyTeam(request.getId())) {
-            throw new BusinessException(AgentErrorCode.AGENT_IS_BUSY, "WORKING/THINKING");
-        }
-
-        // 删除所有团队关联
-        relationRepository.deleteByAgentId(request.getId());
-
         // 软删除 Agent
         agentRepository.deleteById(request.getId());
-    }
-
-    @Override
-    @Transactional
-    public void assignAgent(AssignAgentRequest request) {
-        logger.info("分配 Agent 到团队，agentId: {}, teamId: {}", request.getAgentId(), request.getTeamId());
-
-        // 验证 Agent 存在
-        if (!agentRepository.existsById(request.getAgentId())) {
-            throw new BusinessException(AgentErrorCode.AGENT_NOT_FOUND, request.getAgentId());
-        }
-
-        // 验证是否已分配
-        if (relationRepository.existsByAgentIdAndTeamId(request.getAgentId(), request.getTeamId())) {
-            throw new BusinessException(AgentErrorCode.AGENT_ALREADY_ASSIGNED, request.getAgentId(), request.getTeamId());
-        }
-
-        // 创建关联
-        AgentTeamRelation relation = AgentTeamRelation.create(request.getAgentId(), request.getTeamId());
-        relationRepository.save(relation);
-    }
-
-    @Override
-    @Transactional
-    public void unassignAgent(UnassignAgentRequest request) {
-        logger.info("取消 Agent 团队分配，agentId: {}, teamId: {}", request.getAgentId(), request.getTeamId());
-
-        // 验证 Agent 存在
-        Agent agent = agentRepository.findById(request.getAgentId())
-                .orElseThrow(() -> new BusinessException(AgentErrorCode.AGENT_NOT_FOUND, request.getAgentId()));
-
-        // TEAM_SUPERVISOR 不能取消分配
-        if (agent.getRole() == AgentRole.TEAM_SUPERVISOR) {
-            throw new BusinessException(AgentErrorCode.SUPERVISOR_CANNOT_UNASSIGN);
-        }
-
-        // 验证关联存在
-        if (!relationRepository.existsByAgentIdAndTeamId(request.getAgentId(), request.getTeamId())) {
-            throw new BusinessException(AgentErrorCode.AGENT_TEAM_RELATION_NOT_FOUND, request.getAgentId(), request.getTeamId());
-        }
-
-        // 删除关联
-        relationRepository.deleteByAgentIdAndTeamId(request.getAgentId(), request.getTeamId());
     }
 
     @Override
@@ -259,20 +187,16 @@ public class AgentApplicationServiceImpl implements AgentApplicationService {
 
         // 整体统计
         Map<AgentRole, Long> byRole = agentRepository.countByRole();
-        Map<AgentStatus, Long> byStatus = relationRepository.countByStatus();
         long[] findings = agentRepository.sumFindings();
 
         long totalAgents = byRole.values().stream().mapToLong(Long::longValue).sum();
 
         Map<String, Long> byRoleStr = byRole.entrySet().stream()
                 .collect(Collectors.toMap(e -> e.getKey().name(), Map.Entry::getValue));
-        Map<String, Long> byStatusStr = byStatus.entrySet().stream()
-                .collect(Collectors.toMap(e -> e.getKey().name(), Map.Entry::getValue));
 
         return AgentStatsDTO.builder()
                 .totalAgents(totalAgents)
                 .byRole(byRoleStr)
-                .byStatus(byStatusStr)
                 .totalWarnings(findings[0])
                 .totalCritical(findings[1])
                 .build();
@@ -301,8 +225,6 @@ public class AgentApplicationServiceImpl implements AgentApplicationService {
                 // 统计信息
                 .warnings(agent.getWarnings() != null ? agent.getWarnings() : 0)
                 .critical(agent.getCritical() != null ? agent.getCritical() : 0)
-                // 关联信息
-                .teamIds(agent.getTeamIds())
                 // 审计字段
                 .createdAt(agent.getCreatedAt())
                 .updatedAt(agent.getUpdatedAt())

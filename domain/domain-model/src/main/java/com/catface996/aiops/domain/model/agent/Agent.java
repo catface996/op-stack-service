@@ -1,8 +1,6 @@
 package com.catface996.aiops.domain.model.agent;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Agent 领域模型
@@ -84,13 +82,6 @@ public class Agent {
      */
     private Integer critical;
 
-    // ===== 关联信息 =====
-
-    /**
-     * 关联的团队 ID 列表
-     */
-    private List<Long> teamIds;
-
     // ===== 审计字段 =====
 
     /**
@@ -118,7 +109,6 @@ public class Agent {
 
     public Agent() {
         this.deleted = false;
-        this.teamIds = new ArrayList<>();
         this.warnings = 0;
         this.critical = 0;
         // 设置默认值
@@ -154,7 +144,6 @@ public class Agent {
         agent.setMaxRuntime(DEFAULT_MAX_RUNTIME);
         agent.setWarnings(0);
         agent.setCritical(0);
-        agent.setTeamIds(new ArrayList<>());
         agent.setDeleted(false);
         agent.setCreatedAt(LocalDateTime.now());
         agent.setUpdatedAt(LocalDateTime.now());
@@ -376,14 +365,6 @@ public class Agent {
 
     public void setCritical(Integer critical) {
         this.critical = critical;
-    }
-
-    public List<Long> getTeamIds() {
-        return teamIds;
-    }
-
-    public void setTeamIds(List<Long> teamIds) {
-        this.teamIds = teamIds != null ? teamIds : new ArrayList<>();
     }
 
     public LocalDateTime getCreatedAt() {

@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 /**
  * 查询 Agent 列表请求
  *
- * <p>支持分页查询，可按角色、团队筛选和关键词搜索。</p>
+ * <p>支持分页查询，可按角色筛选和关键词搜索。</p>
  *
  * @author AI Assistant
  * @since 2025-12-28
@@ -23,9 +23,6 @@ public class ListAgentsRequest {
 
     @Schema(description = "角色筛选（可选）: GLOBAL_SUPERVISOR, TEAM_SUPERVISOR, WORKER, SCOUTER", example = "WORKER")
     private String role;
-
-    @Schema(description = "团队 ID 筛选（可选）", example = "1")
-    private Long teamId;
 
     @Schema(description = "关键词搜索（模糊匹配名称、专业领域）", example = "性能")
     private String keyword;

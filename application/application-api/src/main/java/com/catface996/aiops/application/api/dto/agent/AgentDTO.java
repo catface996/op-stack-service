@@ -7,7 +7,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 /**
  * Agent DTO
@@ -66,11 +65,6 @@ public class AgentDTO {
 
     @Schema(description = "严重问题数量", example = "2")
     private Integer critical;
-
-    // ===== 关联信息 =====
-
-    @Schema(description = "所属团队 ID 列表")
-    private List<Long> teamIds;
 
     // ===== 审计字段 =====
 

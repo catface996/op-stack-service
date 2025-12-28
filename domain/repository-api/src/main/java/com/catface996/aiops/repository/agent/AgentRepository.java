@@ -2,7 +2,6 @@ package com.catface996.aiops.repository.agent;
 
 import com.catface996.aiops.domain.model.agent.Agent;
 import com.catface996.aiops.domain.model.agent.AgentRole;
-import com.catface996.aiops.domain.model.agent.AgentStatus;
 
 import java.util.List;
 import java.util.Map;
@@ -30,23 +29,21 @@ public interface AgentRepository {
      * 分页查询 Agent 列表
      *
      * @param role    角色筛选（可选）
-     * @param teamId  团队筛选（可选）
      * @param keyword 关键词搜索（可选，搜索 name, specialty）
      * @param page    页码（从1开始）
      * @param size    每页大小
      * @return Agent 列表
      */
-    List<Agent> findByCondition(AgentRole role, Long teamId, String keyword, int page, int size);
+    List<Agent> findByCondition(AgentRole role, String keyword, int page, int size);
 
     /**
      * 按条件统计 Agent 数量
      *
      * @param role    角色筛选（可选）
-     * @param teamId  团队筛选（可选）
      * @param keyword 关键词搜索（可选）
      * @return Agent 数量
      */
-    long countByCondition(AgentRole role, Long teamId, String keyword);
+    long countByCondition(AgentRole role, String keyword);
 
     /**
      * 根据名称查询 Agent
