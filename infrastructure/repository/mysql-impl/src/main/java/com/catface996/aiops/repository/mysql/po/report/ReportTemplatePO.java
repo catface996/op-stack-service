@@ -9,13 +9,13 @@ import java.time.LocalDateTime;
 /**
  * 报告模板持久化对象
  *
- * <p>数据库表 report_templates 的映射对象</p>
+ * <p>数据库表 report_template 的映射对象</p>
  *
  * @author AI Assistant
  * @since 2025-12-28
  */
 @Data
-@TableName("report_templates")
+@TableName("report_template")
 public class ReportTemplatePO implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -57,6 +57,12 @@ public class ReportTemplatePO implements Serializable {
     private String tags;
 
     /**
+     * 创建人ID
+     */
+    @TableField(value = "created_by", fill = FieldFill.INSERT)
+    private Long createdBy;
+
+    /**
      * 乐观锁版本号
      */
     @Version
@@ -75,6 +81,12 @@ public class ReportTemplatePO implements Serializable {
      */
     @TableField(value = "created_at", fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
+
+    /**
+     * 修改人ID
+     */
+    @TableField(value = "updated_by", fill = FieldFill.INSERT_UPDATE)
+    private Long updatedBy;
 
     /**
      * 更新时间

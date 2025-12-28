@@ -29,7 +29,7 @@ public interface ReportMapper extends BaseMapper<ReportPO> {
      * @return 分页结果
      */
     @Select("<script>" +
-            "SELECT * FROM reports " +
+            "SELECT * FROM report " +
             "<where>" +
             "deleted = 0 " +
             "<if test='type != null and type != \"\"'>" +
@@ -79,7 +79,7 @@ public interface ReportMapper extends BaseMapper<ReportPO> {
      * @return 报告数量
      */
     @Select("<script>" +
-            "SELECT COUNT(*) FROM reports " +
+            "SELECT COUNT(*) FROM report " +
             "<where>" +
             "deleted = 0 " +
             "<if test='type != null and type != \"\"'>" +

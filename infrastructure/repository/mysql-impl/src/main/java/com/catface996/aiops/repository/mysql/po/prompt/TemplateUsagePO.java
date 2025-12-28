@@ -45,6 +45,12 @@ public class TemplateUsagePO implements Serializable {
     private String description;
 
     /**
+     * 创建人ID
+     */
+    @TableField(value = "created_by", fill = FieldFill.INSERT)
+    private Long createdBy;
+
+    /**
      * 逻辑删除标记
      */
     @TableField("deleted")
@@ -56,6 +62,12 @@ public class TemplateUsagePO implements Serializable {
      */
     @TableField(value = "created_at", fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
+
+    /**
+     * 修改人ID
+     */
+    @TableField(value = "updated_by", fill = FieldFill.INSERT_UPDATE)
+    private Long updatedBy;
 
     /**
      * 更新时间

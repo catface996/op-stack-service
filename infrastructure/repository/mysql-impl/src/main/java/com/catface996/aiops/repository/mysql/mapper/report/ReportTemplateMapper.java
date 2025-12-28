@@ -23,7 +23,7 @@ public interface ReportTemplateMapper extends BaseMapper<ReportTemplatePO> {
      * @param name 模板名称
      * @return 模板信息
      */
-    @Select("SELECT * FROM report_templates WHERE name = #{name} AND deleted = 0")
+    @Select("SELECT * FROM report_template WHERE name = #{name} AND deleted = 0")
     ReportTemplatePO selectByName(@Param("name") String name);
 
     /**
@@ -35,7 +35,7 @@ public interface ReportTemplateMapper extends BaseMapper<ReportTemplatePO> {
      * @return 分页结果
      */
     @Select("<script>" +
-            "SELECT * FROM report_templates " +
+            "SELECT * FROM report_template " +
             "<where>" +
             "deleted = 0 " +
             "<if test='category != null and category != \"\"'>" +
@@ -59,7 +59,7 @@ public interface ReportTemplateMapper extends BaseMapper<ReportTemplatePO> {
      * @return 模板数量
      */
     @Select("<script>" +
-            "SELECT COUNT(*) FROM report_templates " +
+            "SELECT COUNT(*) FROM report_template " +
             "<where>" +
             "deleted = 0 " +
             "<if test='category != null and category != \"\"'>" +

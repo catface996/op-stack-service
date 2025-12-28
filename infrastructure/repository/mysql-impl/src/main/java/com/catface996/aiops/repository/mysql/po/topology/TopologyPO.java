@@ -59,7 +59,7 @@ public class TopologyPO implements Serializable {
     /**
      * 创建者ID
      */
-    @TableField("created_by")
+    @TableField(value = "created_by", fill = FieldFill.INSERT)
     private Long createdBy;
 
     /**
@@ -70,10 +70,23 @@ public class TopologyPO implements Serializable {
     private Integer version;
 
     /**
+     * 软删除标记: 0-未删除, 1-已删除
+     */
+    @TableField("deleted")
+    @TableLogic
+    private Integer deleted;
+
+    /**
      * 创建时间
      */
     @TableField(value = "created_at", fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
+
+    /**
+     * 修改人ID
+     */
+    @TableField(value = "updated_by", fill = FieldFill.INSERT_UPDATE)
+    private Long updatedBy;
 
     /**
      * 更新时间

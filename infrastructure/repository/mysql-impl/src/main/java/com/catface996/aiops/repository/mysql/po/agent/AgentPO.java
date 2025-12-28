@@ -99,10 +99,22 @@ public class AgentPO implements Serializable {
     // ===== 审计字段 =====
 
     /**
+     * 创建人ID
+     */
+    @TableField(value = "created_by", fill = FieldFill.INSERT)
+    private Long createdBy;
+
+    /**
      * 创建时间
      */
     @TableField(value = "created_at", fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
+
+    /**
+     * 修改人ID
+     */
+    @TableField(value = "updated_by", fill = FieldFill.INSERT_UPDATE)
+    private Long updatedBy;
 
     /**
      * 更新时间

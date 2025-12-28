@@ -62,6 +62,13 @@ public class Topology2NodePO implements Serializable {
     @TableField("added_by")
     private Long addedBy;
 
+    /**
+     * 软删除标记: 0-未删除, 1-已删除
+     */
+    @TableField("deleted")
+    @TableLogic
+    private Integer deleted;
+
     // ==================== 派生字段（不映射到数据库，用于 JOIN 查询结果）====================
 
     /**

@@ -1,12 +1,12 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.0.0 → 1.1.0 (MINOR: Added Pagination Protocol principle)
+Version change: 1.1.0 → 1.2.0 (MINOR: Added Database Design Standards principle)
 
 Modified principles: None
 
 Added sections:
-- VI. Pagination Protocol (新增分页协议规范)
+- VII. Database Design Standards (新增数据库设计规范)
 
 Removed sections: None
 
@@ -127,6 +127,155 @@ Follow-up TODOs: None
 - `totalPages` MUST 根据 `totalElements` 和 `size` 自动计算
 - `first` 和 `last` MUST 正确标识边界状态
 
+### VII. Database Design Standards
+
+所有数据库表设计 MUST 遵循以下规范：
+
+#### 命名规范
+
+| 类型 | 规则 | 示例 |
+|------|------|------|
+| 表名 | 小写蛇形，单数形式 | `node`, `agent`, `prompt_template` |
+| 关联表 | `{主表}_2_{从表}` | `node_2_agent`, `topology_2_node` |
+| 字段名 | 小写蛇形 | `created_at`, `node_type_id` |
+| 主键 | 统一使用 `id` | `id BIGINT` |
+| 外键字段 | `{关联表单数}_id` | `node_id`, `agent_id` |
+| 布尔字段 | `is_` 前缀或动词过去式 | `is_system`, `deleted` |
+| 时间字段 | `_at` 后缀 | `created_at`, `updated_at` |
+| 外键约束 | `fk_{表}_{字段}` | `fk_node_type` |
+| 唯一约束 | `uk_{字段}` | `uk_code`, `uk_type_name` |
+| 普通索引 | `idx_{字段}` | `idx_status`, `idx_created_at` |
+
+#### 通用字段定义
+
+所有业务表 MUST 包含以下通用字段：
+
+```sql
+-- 主键（必须）
+id              BIGINT          NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+
+-- 审计字段（推荐）
+created_by      BIGINT          COMMENT '创建人ID',
+created_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+updated_by      BIGINT          COMMENT '修改人ID',
+updated_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+
+-- 版本控制（按需）
+version         INT             NOT NULL DEFAULT 0 COMMENT '乐观锁版本号',
+
+-- 软删除（业务表必须）
+deleted         TINYINT         NOT NULL DEFAULT 0 COMMENT '软删除标记: 0-未删除, 1-已删除',
+```
+
+#### 字段类型规范
+
+| 场景 | 类型 | 长度建议 |
+|------|------|----------|
+| 主键/外键 | `BIGINT` | - |
+| 编码/标识 | `VARCHAR` | 20-50 |
+| 名称 | `VARCHAR` | 100-255 |
+| 描述 | `VARCHAR` / `TEXT` | 500-1000 / 无限 |
+| 状态/枚举 | `VARCHAR` | 20-32 |
+| 布尔值 | `TINYINT(1)` | - |
+| 时间 | `DATETIME` | - |
+| 扩展属性 | `JSON` | - |
+
+#### COMMENT 规范
+
+所有字段 MUST 添加 COMMENT，枚举字段 MUST 列出所有可选值：
+
+```sql
+-- 普通字段
+name            VARCHAR(100)    NOT NULL COMMENT '名称',
+
+-- 枚举字段（MUST 列出所有可选值）
+status          VARCHAR(20)     NOT NULL DEFAULT 'RUNNING' COMMENT '状态: RUNNING, STOPPED, MAINTENANCE, OFFLINE',
+role            VARCHAR(32)     NOT NULL COMMENT '角色: GLOBAL_SUPERVISOR, TEAM_SUPERVISOR, WORKER, SCOUTER',
+
+-- 布尔字段（MUST 说明 0/1 含义）
+deleted         TINYINT         NOT NULL DEFAULT 0 COMMENT '软删除标记: 0-未删除, 1-已删除',
+is_system       TINYINT(1)      DEFAULT 1 COMMENT '是否系统预置: 0-否, 1-是',
+
+-- 范围字段（MUST 说明取值范围）
+temperature     DECIMAL(3,2)    DEFAULT 0.30 COMMENT '温度参数 (0.0-2.0)',
+
+-- 单位字段（MUST 说明单位）
+max_runtime     INT             DEFAULT 300 COMMENT '最长运行时间（秒）',
+```
+
+#### 表属性规范
+
+所有表 MUST 使用以下属性：
+
+```sql
+ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='表的中文描述';
+```
+
+#### 业务主表模板
+
+```sql
+CREATE TABLE {table_name} (
+    -- 主键
+    id              BIGINT          NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+
+    -- 业务字段
+    name            VARCHAR(100)    NOT NULL COMMENT '名称',
+    code            VARCHAR(50)     NOT NULL COMMENT '编码',
+    description     VARCHAR(500)    DEFAULT NULL COMMENT '描述',
+    status          VARCHAR(20)     NOT NULL DEFAULT 'ACTIVE' COMMENT '状态: ACTIVE, INACTIVE, PENDING',
+    attributes      JSON            DEFAULT NULL COMMENT '扩展属性（JSON格式）',
+
+    -- 审计字段
+    created_by      BIGINT          COMMENT '创建人ID',
+    created_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_by      BIGINT          COMMENT '修改人ID',
+    updated_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+
+    -- 版本控制
+    version         INT             NOT NULL DEFAULT 0 COMMENT '乐观锁版本号',
+    deleted         TINYINT         NOT NULL DEFAULT 0 COMMENT '软删除标记: 0-未删除, 1-已删除',
+
+    -- 约束
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_code (code),
+    INDEX idx_name (name),
+    INDEX idx_status (status),
+    INDEX idx_created_at (created_at DESC)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='表注释';
+```
+
+#### 关联表模板
+
+```sql
+CREATE TABLE {tableA}_2_{tableB} (
+    id              BIGINT          NOT NULL AUTO_INCREMENT COMMENT '关联ID',
+    {tableA}_id     BIGINT          NOT NULL COMMENT '{TableA} ID',
+    {tableB}_id     BIGINT          NOT NULL COMMENT '{TableB} ID',
+
+    -- 审计字段
+    created_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    deleted         TINYINT         NOT NULL DEFAULT 0 COMMENT '软删除标记: 0-未删除, 1-已删除',
+
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_{tableA}_{tableB} ({tableA}_id, {tableB}_id, deleted),
+    INDEX idx_{tableA}_id ({tableA}_id),
+    INDEX idx_{tableB}_id ({tableB}_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='{TableA}-{TableB}关联表';
+```
+
+#### 字段顺序规范
+
+字段 MUST 按以下顺序排列：
+
+1. 主键字段 (`id`)
+2. 业务核心字段 (`name`, `code`, `type`, `status` ...)
+3. 业务扩展字段 (`description`, `attributes`, `config` ...)
+4. 关联外键字段 (`xxx_id`)
+5. 创建审计字段 (`created_by`, `created_at`)
+6. 修改审计字段 (`updated_by`, `updated_at`)
+7. 版本控制字段 (`version`)
+8. 软删除字段 (`deleted`)
+
 ## API Design Standards
 
 ### Request/Response 规范
@@ -199,5 +348,6 @@ mvn test
 - 新功能 MUST 遵循 API URL Convention
 - 数据库变更 MUST 遵循 Database Migration 原则
 - 分页接口 MUST 遵循 Pagination Protocol
+- 数据库表设计 MUST 遵循 Database Design Standards
 
-**Version**: 1.1.0 | **Ratified**: 2025-12-27 | **Last Amended**: 2025-12-27
+**Version**: 1.2.0 | **Ratified**: 2025-12-27 | **Last Amended**: 2025-12-28

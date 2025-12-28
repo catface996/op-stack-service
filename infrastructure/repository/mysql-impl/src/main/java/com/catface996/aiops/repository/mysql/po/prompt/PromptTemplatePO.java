@@ -67,7 +67,7 @@ public class PromptTemplatePO implements Serializable {
     /**
      * 创建人ID
      */
-    @TableField("created_by")
+    @TableField(value = "created_by", fill = FieldFill.INSERT)
     private Long createdBy;
 
     /**
@@ -75,6 +75,12 @@ public class PromptTemplatePO implements Serializable {
      */
     @TableField(value = "created_at", fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
+
+    /**
+     * 修改人ID
+     */
+    @TableField(value = "updated_by", fill = FieldFill.INSERT_UPDATE)
+    private Long updatedBy;
 
     /**
      * 更新时间

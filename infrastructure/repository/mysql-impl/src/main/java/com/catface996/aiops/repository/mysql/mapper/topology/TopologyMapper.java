@@ -27,9 +27,10 @@ public interface TopologyMapper extends BaseMapper<TopologyPO> {
      */
     @Select("<script>" +
             "SELECT t.*, " +
-            "(SELECT COUNT(*) FROM topology_2_node t2n WHERE t2n.topology_id = t.id) AS member_count " +
+            "(SELECT COUNT(*) FROM topology_2_node t2n WHERE t2n.topology_id = t.id AND t2n.deleted = 0) AS member_count " +
             "FROM topology t " +
             "<where>" +
+            "t.deleted = 0 " +
             "<if test='name != null and name != \"\"'>" +
             "AND t.name LIKE CONCAT('%', #{name}, '%') " +
             "</if>" +
@@ -50,9 +51,9 @@ public interface TopologyMapper extends BaseMapper<TopologyPO> {
      * @return 拓扑图信息
      */
     @Select("SELECT t.*, " +
-            "(SELECT COUNT(*) FROM topology_2_node t2n WHERE t2n.topology_id = t.id) AS member_count " +
+            "(SELECT COUNT(*) FROM topology_2_node t2n WHERE t2n.topology_id = t.id AND t2n.deleted = 0) AS member_count " +
             "FROM topology t " +
-            "WHERE t.id = #{id}")
+            "WHERE t.id = #{id} AND t.deleted = 0")
     TopologyPO selectByIdWithMemberCount(@Param("id") Long id);
 
     /**
@@ -61,6 +62,6 @@ public interface TopologyMapper extends BaseMapper<TopologyPO> {
      * @param name 拓扑图名称
      * @return 拓扑图信息
      */
-    @Select("SELECT * FROM topology WHERE name = #{name}")
+    @Select("SELECT * FROM topology WHERE name = #{name} AND deleted = 0")
     TopologyPO selectByName(@Param("name") String name);
 }

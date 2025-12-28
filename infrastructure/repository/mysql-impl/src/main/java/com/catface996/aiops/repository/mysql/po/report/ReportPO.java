@@ -9,13 +9,13 @@ import java.time.LocalDateTime;
 /**
  * 报告持久化对象
  *
- * <p>数据库表 reports 的映射对象</p>
+ * <p>数据库表 report 的映射对象</p>
  *
  * @author AI Assistant
  * @since 2025-12-28
  */
 @Data
-@TableName("reports")
+@TableName("report")
 public class ReportPO implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -75,6 +75,12 @@ public class ReportPO implements Serializable {
     private Long topologyId;
 
     /**
+     * 创建人ID
+     */
+    @TableField(value = "created_by", fill = FieldFill.INSERT)
+    private Long createdBy;
+
+    /**
      * 逻辑删除标记
      */
     @TableField("deleted")
@@ -82,8 +88,20 @@ public class ReportPO implements Serializable {
     private Boolean deleted;
 
     /**
+     * 修改人ID
+     */
+    @TableField(value = "updated_by", fill = FieldFill.INSERT_UPDATE)
+    private Long updatedBy;
+
+    /**
      * 创建时间
      */
     @TableField(value = "created_at", fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
+
+    /**
+     * 更新时间
+     */
+    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
+    private LocalDateTime updatedAt;
 }
