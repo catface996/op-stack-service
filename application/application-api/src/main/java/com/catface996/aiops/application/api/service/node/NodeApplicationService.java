@@ -1,6 +1,8 @@
 package com.catface996.aiops.application.api.service.node;
 
+import com.catface996.aiops.application.api.dto.agent.AgentDTO;
 import com.catface996.aiops.application.api.dto.common.PageResult;
+import com.catface996.aiops.application.api.dto.node.NodeAgentRelationDTO;
 import com.catface996.aiops.application.api.dto.node.NodeDTO;
 import com.catface996.aiops.application.api.dto.node.NodeTypeDTO;
 import com.catface996.aiops.application.api.dto.node.request.CreateNodeRequest;
@@ -86,4 +88,47 @@ public interface NodeApplicationService {
      * @return 节点类型列表
      */
     List<NodeTypeDTO> listNodeTypes();
+
+    // ==================== Node-Agent 绑定相关方法 ====================
+
+    /**
+     * 绑定 Agent 到节点
+     *
+     * <p>需求追溯：FR-002, US1</p>
+     *
+     * @param nodeId  节点ID
+     * @param agentId Agent ID
+     * @return 绑定关系 DTO
+     */
+    NodeAgentRelationDTO bindAgent(Long nodeId, Long agentId);
+
+    /**
+     * 解绑 Agent 与节点的关系
+     *
+     * <p>需求追溯：FR-003, US4</p>
+     *
+     * @param nodeId  节点ID
+     * @param agentId Agent ID
+     */
+    void unbindAgent(Long nodeId, Long agentId);
+
+    /**
+     * 查询节点关联的 Agent 列表
+     *
+     * <p>需求追溯：FR-004, US2</p>
+     *
+     * @param nodeId 节点ID
+     * @return Agent DTO 列表
+     */
+    List<AgentDTO> listAgentsByNode(Long nodeId);
+
+    /**
+     * 查询 Agent 关联的节点列表
+     *
+     * <p>需求追溯：FR-005, US3</p>
+     *
+     * @param agentId Agent ID
+     * @return 节点 DTO 列表
+     */
+    List<NodeDTO> listNodesByAgent(Long agentId);
 }

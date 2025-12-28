@@ -1,21 +1,29 @@
 package com.catface996.aiops.application.impl.service.node;
 
+import com.catface996.aiops.application.api.dto.agent.AgentDTO;
 import com.catface996.aiops.application.api.dto.common.PageResult;
+import com.catface996.aiops.application.api.dto.node.NodeAgentRelationDTO;
 import com.catface996.aiops.application.api.dto.node.NodeDTO;
 import com.catface996.aiops.application.api.dto.node.NodeTypeDTO;
 import com.catface996.aiops.application.api.dto.node.request.CreateNodeRequest;
 import com.catface996.aiops.application.api.dto.node.request.QueryNodesRequest;
 import com.catface996.aiops.application.api.dto.node.request.UpdateNodeRequest;
 import com.catface996.aiops.application.api.service.node.NodeApplicationService;
+import com.catface996.aiops.domain.model.agent.Agent;
 import com.catface996.aiops.domain.model.node.Node;
+import com.catface996.aiops.domain.model.node.NodeAgentRelation;
 import com.catface996.aiops.domain.model.node.NodeStatus;
 import com.catface996.aiops.domain.model.node.NodeType;
 import com.catface996.aiops.domain.service.node.NodeDomainService;
+import com.catface996.aiops.repository.agent.AgentRepository;
+import com.catface996.aiops.repository.node.NodeAgentRelationRepository;
 import com.catface996.aiops.repository.node.NodeTypeRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -42,11 +50,17 @@ public class NodeApplicationServiceImpl implements NodeApplicationService {
 
     private final NodeDomainService nodeDomainService;
     private final NodeTypeRepository nodeTypeRepository;
+    private final NodeAgentRelationRepository nodeAgentRelationRepository;
+    private final AgentRepository agentRepository;
 
     public NodeApplicationServiceImpl(NodeDomainService nodeDomainService,
-                                      NodeTypeRepository nodeTypeRepository) {
+                                      NodeTypeRepository nodeTypeRepository,
+                                      NodeAgentRelationRepository nodeAgentRelationRepository,
+                                      AgentRepository agentRepository) {
         this.nodeDomainService = nodeDomainService;
         this.nodeTypeRepository = nodeTypeRepository;
+        this.nodeAgentRelationRepository = nodeAgentRelationRepository;
+        this.agentRepository = agentRepository;
     }
 
     @Override
@@ -193,5 +207,126 @@ public class NodeApplicationServiceImpl implements NodeApplicationService {
             logger.warn("无效的节点状态: {}", status);
             return null;
         }
+    }
+
+    // ==================== Node-Agent 绑定相关方法实现 ====================
+
+    @Override
+    @Transactional
+    public NodeAgentRelationDTO bindAgent(Long nodeId, Long agentId) {
+        logger.info("绑定 Agent 到节点，nodeId: {}, agentId: {}", nodeId, agentId);
+
+        // 验证节点是否存在
+        if (nodeDomainService.getNodeById(nodeId).isEmpty()) {
+            throw new IllegalArgumentException("节点不存在");
+        }
+
+        // 验证 Agent 是否存在
+        if (!agentRepository.existsById(agentId)) {
+            throw new IllegalArgumentException("Agent不存在");
+        }
+
+        // 检查是否已绑定
+        if (nodeAgentRelationRepository.existsByNodeIdAndAgentId(nodeId, agentId)) {
+            throw new IllegalStateException("该节点与Agent已绑定");
+        }
+
+        // 创建绑定关系
+        NodeAgentRelation relation = NodeAgentRelation.create(nodeId, agentId);
+        nodeAgentRelationRepository.save(relation);
+
+        logger.info("绑定成功，relationId: {}", relation.getId());
+        return toRelationDTO(relation);
+    }
+
+    @Override
+    @Transactional
+    public void unbindAgent(Long nodeId, Long agentId) {
+        logger.info("解绑 Agent 与节点，nodeId: {}, agentId: {}", nodeId, agentId);
+
+        // 查找绑定关系
+        NodeAgentRelation relation = nodeAgentRelationRepository
+                .findByNodeIdAndAgentId(nodeId, agentId)
+                .orElseThrow(() -> new IllegalArgumentException("绑定关系不存在"));
+
+        // 软删除
+        nodeAgentRelationRepository.softDelete(relation.getId());
+        logger.info("解绑成功，relationId: {}", relation.getId());
+    }
+
+    @Override
+    public List<AgentDTO> listAgentsByNode(Long nodeId) {
+        logger.info("查询节点关联的 Agent 列表，nodeId: {}", nodeId);
+
+        // 查询关联的 Agent ID 列表
+        List<Long> agentIds = nodeAgentRelationRepository.findAgentIdsByNodeId(nodeId);
+        if (agentIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 查询 Agent 详情
+        List<AgentDTO> agents = new ArrayList<>();
+        for (Long agentId : agentIds) {
+            agentRepository.findById(agentId).ifPresent(agent -> agents.add(toAgentDTO(agent)));
+        }
+
+        return agents;
+    }
+
+    @Override
+    public List<NodeDTO> listNodesByAgent(Long agentId) {
+        logger.info("查询 Agent 关联的节点列表，agentId: {}", agentId);
+
+        // 查询关联的 Node ID 列表
+        List<Long> nodeIds = nodeAgentRelationRepository.findNodeIdsByAgentId(agentId);
+        if (nodeIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 查询 Node 详情
+        List<NodeDTO> nodes = new ArrayList<>();
+        for (Long nodeId : nodeIds) {
+            nodeDomainService.getNodeById(nodeId).ifPresent(node -> nodes.add(toDTO(node)));
+        }
+
+        return nodes;
+    }
+
+    // ===== Node-Agent 绑定 DTO 转换方法 =====
+
+    private NodeAgentRelationDTO toRelationDTO(NodeAgentRelation relation) {
+        if (relation == null) {
+            return null;
+        }
+        NodeAgentRelationDTO dto = new NodeAgentRelationDTO();
+        dto.setId(relation.getId());
+        dto.setNodeId(relation.getNodeId());
+        dto.setAgentId(relation.getAgentId());
+        dto.setCreatedAt(relation.getCreatedAt());
+        return dto;
+    }
+
+    private AgentDTO toAgentDTO(Agent agent) {
+        if (agent == null) {
+            return null;
+        }
+        return AgentDTO.builder()
+                .id(agent.getId())
+                .name(agent.getName())
+                .role(agent.getRole() != null ? agent.getRole().name() : null)
+                .specialty(agent.getSpecialty())
+                .promptTemplateId(agent.getPromptTemplateId())
+                .promptTemplateName(agent.getPromptTemplateName())
+                .model(agent.getModel())
+                .temperature(agent.getTemperature())
+                .topP(agent.getTopP())
+                .maxTokens(agent.getMaxTokens())
+                .maxRuntime(agent.getMaxRuntime())
+                .warnings(agent.getWarnings())
+                .critical(agent.getCritical())
+                .teamIds(agent.getTeamIds())
+                .createdAt(agent.getCreatedAt())
+                .updatedAt(agent.getUpdatedAt())
+                .build();
     }
 }
