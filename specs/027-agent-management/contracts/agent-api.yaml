@@ -1,0 +1,636 @@
+openapi: 3.0.3
+info:
+  title: Agent Management API
+  description: AI Agent 管理接口（POST-Only API）
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8081
+    description: Local development server
+
+tags:
+  - name: Agent 管理
+    description: Agent 增删改查接口
+  - name: Agent 配置
+    description: Agent 配置管理接口
+  - name: Agent 团队
+    description: Agent 团队分配接口
+  - name: Agent 模板
+    description: Agent 配置模板接口
+  - name: Agent 统计
+    description: Agent 统计信息接口
+
+paths:
+  /api/service/v1/agents/list:
+    post:
+      tags:
+        - Agent 管理
+      summary: 查询 Agent 列表
+      description: 分页查询 Agent 列表，支持按角色、状态、团队筛选和关键词搜索
+      operationId: listAgents
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListAgentsRequest'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentPageResponse'
+
+  /api/service/v1/agents/get:
+    post:
+      tags:
+        - Agent 管理
+      summary: 获取 Agent 详情
+      description: 根据 ID 获取 Agent 完整信息
+      operationId: getAgent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetAgentRequest'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentResponse'
+        '404':
+          description: Agent 不存在
+
+  /api/service/v1/agents/create:
+    post:
+      tags:
+        - Agent 管理
+      summary: 创建 Agent
+      description: 创建新的 Agent
+      operationId: createAgent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAgentRequest'
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentResponse'
+        '400':
+          description: 参数无效
+        '409':
+          description: 名称冲突或 GLOBAL_SUPERVISOR 已存在
+
+  /api/service/v1/agents/update:
+    post:
+      tags:
+        - Agent 管理
+      summary: 更新 Agent 信息
+      description: 更新 Agent 的基本信息（名称、专业领域、状态）
+      operationId: updateAgent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAgentRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentResponse'
+        '404':
+          description: Agent 不存在
+        '409':
+          description: 名称冲突
+        '423':
+          description: Agent 正在工作中，无法更新
+
+  /api/service/v1/agents/delete:
+    post:
+      tags:
+        - Agent 管理
+      summary: 删除 Agent
+      description: 软删除指定 Agent
+      operationId: deleteAgent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteAgentRequest'
+      responses:
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VoidResponse'
+        '400':
+          description: 无法删除（GLOBAL_SUPERVISOR 或有成员的 TEAM_SUPERVISOR）
+        '404':
+          description: Agent 不存在
+        '423':
+          description: Agent 正在工作中，无法删除
+
+  /api/service/v1/agents/config/update:
+    post:
+      tags:
+        - Agent 配置
+      summary: 更新 Agent 配置
+      description: 更新 Agent 的 AI 配置（模型、温度、系统指令、默认上下文）
+      operationId: updateAgentConfig
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAgentConfigRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentResponse'
+        '400':
+          description: 参数无效（如 temperature 超出范围）
+        '404':
+          description: Agent 不存在
+        '423':
+          description: Agent 正在工作中，无法更新
+
+  /api/service/v1/agents/assign:
+    post:
+      tags:
+        - Agent 团队
+      summary: 分配 Agent 到团队
+      description: 将 Agent 分配到指定团队
+      operationId: assignAgent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignAgentRequest'
+      responses:
+        '200':
+          description: 分配成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentResponse'
+        '404':
+          description: Agent 或团队不存在
+
+  /api/service/v1/agents/unassign:
+    post:
+      tags:
+        - Agent 团队
+      summary: 取消 Agent 团队分配
+      description: 将 Agent 从团队中移除
+      operationId: unassignAgent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnassignAgentRequest'
+      responses:
+        '200':
+          description: 取消分配成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentResponse'
+        '400':
+          description: TEAM_SUPERVISOR 不能取消分配
+        '404':
+          description: Agent 不存在
+
+  /api/service/v1/agents/templates/list:
+    post:
+      tags:
+        - Agent 模板
+      summary: 查询 Agent 模板列表
+      description: 获取所有预定义的 Agent 配置模板
+      operationId: listAgentTemplates
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentTemplateListResponse'
+
+  /api/service/v1/agents/stats:
+    post:
+      tags:
+        - Agent 统计
+      summary: 查询 Agent 统计信息
+      description: 获取 Agent 统计信息（数量分布、发现统计等）
+      operationId: getAgentStats
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentStatsRequest'
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentStatsResponse'
+
+components:
+  schemas:
+    # Request DTOs
+    ListAgentsRequest:
+      type: object
+      properties:
+        page:
+          type: integer
+          minimum: 1
+          default: 1
+          description: 页码（从 1 开始）
+        size:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+          description: 每页大小
+        role:
+          type: string
+          enum: [GLOBAL_SUPERVISOR, TEAM_SUPERVISOR, WORKER, SCOUTER]
+          description: 按角色筛选
+        status:
+          type: string
+          enum: [IDLE, THINKING, WORKING, COMPLETED, WAITING, ERROR]
+          description: 按状态筛选
+        teamId:
+          type: integer
+          format: int64
+          description: 按团队筛选
+        keyword:
+          type: string
+          description: 关键词搜索（名称或专业领域）
+
+    GetAgentRequest:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Agent ID
+
+    CreateAgentRequest:
+      type: object
+      required:
+        - name
+        - role
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Agent 名称
+        role:
+          type: string
+          enum: [GLOBAL_SUPERVISOR, TEAM_SUPERVISOR, WORKER, SCOUTER]
+          description: Agent 角色
+        specialty:
+          type: string
+          maxLength: 200
+          description: 专业领域
+        teamId:
+          type: integer
+          format: int64
+          description: 所属团队 ID
+        config:
+          $ref: '#/components/schemas/AgentConfigInput'
+
+    UpdateAgentRequest:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Agent ID
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Agent 名称
+        specialty:
+          type: string
+          maxLength: 200
+          description: 专业领域
+        status:
+          type: string
+          enum: [IDLE, THINKING, WORKING, COMPLETED, WAITING, ERROR]
+          description: Agent 状态
+
+    UpdateAgentConfigRequest:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Agent ID
+        config:
+          $ref: '#/components/schemas/AgentConfigInput'
+
+    DeleteAgentRequest:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Agent ID
+
+    AssignAgentRequest:
+      type: object
+      required:
+        - agentId
+        - teamId
+      properties:
+        agentId:
+          type: integer
+          format: int64
+          description: Agent ID
+        teamId:
+          type: integer
+          format: int64
+          description: 目标团队 ID
+
+    UnassignAgentRequest:
+      type: object
+      required:
+        - agentId
+      properties:
+        agentId:
+          type: integer
+          format: int64
+          description: Agent ID
+
+    AgentStatsRequest:
+      type: object
+      properties:
+        agentId:
+          type: integer
+          format: int64
+          description: 指定 Agent ID（可选）
+        startTime:
+          type: string
+          format: date-time
+          description: 开始时间
+        endTime:
+          type: string
+          format: date-time
+          description: 结束时间
+
+    # Value Objects
+    AgentConfigInput:
+      type: object
+      properties:
+        model:
+          type: string
+          maxLength: 100
+          description: AI 模型标识符
+        temperature:
+          type: number
+          format: double
+          minimum: 0.0
+          maximum: 1.0
+          description: 创造性参数
+        systemInstruction:
+          type: string
+          maxLength: 10000
+          description: 系统指令
+        defaultContext:
+          type: string
+          maxLength: 10000
+          description: 默认上下文
+
+    AgentConfig:
+      type: object
+      properties:
+        model:
+          type: string
+          description: AI 模型标识符
+        temperature:
+          type: number
+          format: double
+          description: 创造性参数
+        systemInstruction:
+          type: string
+          description: 系统指令
+        defaultContext:
+          type: string
+          description: 默认上下文
+
+    AgentFindings:
+      type: object
+      properties:
+        warnings:
+          type: integer
+          description: 警告数量
+        critical:
+          type: integer
+          description: 严重问题数量
+
+    # Response DTOs
+    AgentDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        role:
+          type: string
+        specialty:
+          type: string
+        status:
+          type: string
+        currentTask:
+          type: string
+        findings:
+          $ref: '#/components/schemas/AgentFindings'
+        config:
+          $ref: '#/components/schemas/AgentConfig'
+        teamId:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AgentTemplateDTO:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        systemInstruction:
+          type: string
+        defaultContext:
+          type: string
+        recommendedModel:
+          type: string
+        recommendedTemperature:
+          type: number
+          format: double
+
+    AgentStats:
+      type: object
+      properties:
+        totalAgents:
+          type: integer
+        byRole:
+          type: object
+          additionalProperties:
+            type: integer
+        byStatus:
+          type: object
+          additionalProperties:
+            type: integer
+        totalExecutions:
+          type: integer
+          description: 总执行次数（暂返回 0）
+        successRate:
+          type: number
+          format: double
+          description: 成功率（暂返回 0）
+        avgExecutionTime:
+          type: integer
+          format: int64
+          description: 平均执行时间（暂返回 0）
+        totalWarnings:
+          type: integer
+        totalCritical:
+          type: integer
+
+    # Standard Response Wrappers
+    AgentResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: success
+        data:
+          $ref: '#/components/schemas/AgentDTO'
+
+    AgentPageResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: success
+        data:
+          type: object
+          properties:
+            content:
+              type: array
+              items:
+                $ref: '#/components/schemas/AgentDTO'
+            page:
+              type: integer
+            size:
+              type: integer
+            totalElements:
+              type: integer
+              format: int64
+            totalPages:
+              type: integer
+            first:
+              type: boolean
+            last:
+              type: boolean
+
+    AgentTemplateListResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgentTemplateDTO'
+
+    AgentStatsResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/AgentStats'
+
+    VoidResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        data:
+          type: object
+          nullable: true
