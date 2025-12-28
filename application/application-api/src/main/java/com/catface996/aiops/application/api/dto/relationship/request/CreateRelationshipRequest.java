@@ -48,6 +48,10 @@ public class CreateRelationshipRequest {
             example = "STRONG", required = true)
     private String strength;
 
+    @NotNull(message = "拓扑ID不能为空")
+    @Schema(description = "拓扑ID", example = "1", required = true)
+    private Long topologyId;
+
     @Size(max = 500, message = "描述不能超过500个字符")
     @Schema(description = "关系描述", example = "Web应用依赖MySQL数据库")
     private String description;

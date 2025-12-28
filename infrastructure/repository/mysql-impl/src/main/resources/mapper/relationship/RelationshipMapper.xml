@@ -2,32 +2,64 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.catface996.aiops.repository.mysql.mapper.relationship.RelationshipMapper">
 
+    <!-- 插入关系记录 -->
+    <insert id="insert" parameterType="com.catface996.aiops.repository.mysql.po.relationship.RelationshipPO" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO node_2_node (source_id, target_id, relationship_type, direction, strength, status, description, created_at, updated_at)
+        VALUES (#{sourceResourceId}, #{targetResourceId}, #{relationshipType}, #{direction}, #{strength}, #{status}, #{description}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <!-- 根据ID查询关系 -->
+    <select id="selectById" resultType="com.catface996.aiops.repository.mysql.po.relationship.RelationshipPO">
+        SELECT id, source_id, target_id, relationship_type, direction, strength, status, description, created_at, updated_at
+        FROM node_2_node
+        WHERE id = #{id}
+    </select>
+
+    <!-- 根据ID更新关系 -->
+    <update id="updateById" parameterType="com.catface996.aiops.repository.mysql.po.relationship.RelationshipPO">
+        UPDATE node_2_node
+        SET source_id = #{sourceResourceId},
+            target_id = #{targetResourceId},
+            relationship_type = #{relationshipType},
+            direction = #{direction},
+            strength = #{strength},
+            status = #{status},
+            description = #{description},
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据ID删除关系 -->
+    <delete id="deleteById">
+        DELETE FROM node_2_node WHERE id = #{id}
+    </delete>
+
     <!-- 根据源资源ID查询关系（下游依赖查询） -->
     <select id="selectBySourceResourceId" resultType="com.catface996.aiops.repository.mysql.po.relationship.RelationshipPO">
-        SELECT id, source_resource_id, target_resource_id, relationship_type, direction, strength, status, description, created_at, updated_at
-        FROM resource_relationship
-        WHERE source_resource_id = #{sourceResourceId}
+        SELECT id, source_id, target_id, relationship_type, direction, strength, status, description, created_at, updated_at
+        FROM node_2_node
+        WHERE source_id = #{sourceResourceId}
         ORDER BY created_at DESC
     </select>
 
     <!-- 根据目标资源ID查询关系（上游依赖查询） -->
     <select id="selectByTargetResourceId" resultType="com.catface996.aiops.repository.mysql.po.relationship.RelationshipPO">
-        SELECT id, source_resource_id, target_resource_id, relationship_type, direction, strength, status, description, created_at, updated_at
-        FROM resource_relationship
-        WHERE target_resource_id = #{targetResourceId}
+        SELECT id, source_id, target_id, relationship_type, direction, strength, status, description, created_at, updated_at
+        FROM node_2_node
+        WHERE target_id = #{targetResourceId}
         ORDER BY created_at DESC
     </select>
 
     <!-- 分页查询关系列表（支持多条件筛选） -->
     <select id="selectByConditions" resultType="com.catface996.aiops.repository.mysql.po.relationship.RelationshipPO">
-        SELECT id, source_resource_id, target_resource_id, relationship_type, direction, strength, status, description, created_at, updated_at
-        FROM resource_relationship
+        SELECT id, source_id, target_id, relationship_type, direction, strength, status, description, created_at, updated_at
+        FROM node_2_node
         <where>
             <if test="sourceResourceId != null">
-                AND source_resource_id = #{sourceResourceId}
+                AND source_id = #{sourceResourceId}
             </if>
             <if test="targetResourceId != null">
-                AND target_resource_id = #{targetResourceId}
+                AND target_id = #{targetResourceId}
             </if>
             <if test="relationshipType != null and relationshipType != ''">
                 AND relationship_type = #{relationshipType}
@@ -43,13 +75,13 @@
     <!-- 按条件统计关系数量 -->
     <select id="countByConditions" resultType="long">
         SELECT COUNT(*)
-        FROM resource_relationship
+        FROM node_2_node
         <where>
             <if test="sourceResourceId != null">
-                AND source_resource_id = #{sourceResourceId}
+                AND source_id = #{sourceResourceId}
             </if>
             <if test="targetResourceId != null">
-                AND target_resource_id = #{targetResourceId}
+                AND target_id = #{targetResourceId}
             </if>
             <if test="relationshipType != null and relationshipType != ''">
                 AND relationship_type = #{relationshipType}
@@ -63,37 +95,37 @@
     <!-- 检查关系是否已存在 -->
     <select id="existsBySourceAndTargetAndType" resultType="int">
         SELECT COUNT(*)
-        FROM resource_relationship
-        WHERE source_resource_id = #{sourceResourceId}
-          AND target_resource_id = #{targetResourceId}
+        FROM node_2_node
+        WHERE source_id = #{sourceResourceId}
+          AND target_id = #{targetResourceId}
           AND relationship_type = #{relationshipType}
         LIMIT 1
     </select>
 
     <!-- 根据源资源ID、目标资源ID和类型删除关系 -->
     <delete id="deleteBySourceAndTargetAndType">
-        DELETE FROM resource_relationship
-        WHERE source_resource_id = #{sourceResourceId}
-          AND target_resource_id = #{targetResourceId}
+        DELETE FROM node_2_node
+        WHERE source_id = #{sourceResourceId}
+          AND target_id = #{targetResourceId}
           AND relationship_type = #{relationshipType}
     </delete>
 
     <!-- 删除与指定资源关联的所有关系（级联删除） -->
     <delete id="deleteByResourceId">
-        DELETE FROM resource_relationship
-        WHERE source_resource_id = #{resourceId}
-           OR target_resource_id = #{resourceId}
+        DELETE FROM node_2_node
+        WHERE source_id = #{resourceId}
+           OR target_id = #{resourceId}
     </delete>
 
     <!-- 批量查询多个资源的下游关系（用于图遍历优化） -->
     <select id="selectBySourceResourceIds" resultType="com.catface996.aiops.repository.mysql.po.relationship.RelationshipPO">
-        SELECT id, source_resource_id, target_resource_id, relationship_type, direction, strength, status, description, created_at, updated_at
-        FROM resource_relationship
-        WHERE source_resource_id IN
+        SELECT id, source_id, target_id, relationship_type, direction, strength, status, description, created_at, updated_at
+        FROM node_2_node
+        WHERE source_id IN
         <foreach collection="sourceResourceIds" item="id" open="(" separator="," close=")">
             #{id}
         </foreach>
-        ORDER BY source_resource_id, created_at DESC
+        ORDER BY source_id, created_at DESC
     </select>
 
 </mapper>

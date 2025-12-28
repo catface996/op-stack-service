@@ -8,10 +8,10 @@ import com.catface996.aiops.application.api.service.relationship.RelationshipApp
 import com.catface996.aiops.common.enums.RelationshipErrorCode;
 import com.catface996.aiops.common.enums.ResourceErrorCode;
 import com.catface996.aiops.common.exception.BusinessException;
+import com.catface996.aiops.domain.model.node.Node;
 import com.catface996.aiops.domain.model.relationship.*;
-import com.catface996.aiops.domain.model.resource.Resource;
 import com.catface996.aiops.domain.service.relationship.RelationshipDomainService;
-import com.catface996.aiops.repository.resource.ResourceRepository;
+import com.catface996.aiops.repository.node.NodeRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,12 +29,12 @@ import java.util.stream.Collectors;
 public class RelationshipApplicationServiceImpl implements RelationshipApplicationService {
 
     private final RelationshipDomainService relationshipDomainService;
-    private final ResourceRepository resourceRepository;
+    private final NodeRepository nodeRepository;
 
     public RelationshipApplicationServiceImpl(RelationshipDomainService relationshipDomainService,
-                                               ResourceRepository resourceRepository) {
+                                               NodeRepository nodeRepository) {
         this.relationshipDomainService = relationshipDomainService;
-        this.resourceRepository = resourceRepository;
+        this.nodeRepository = nodeRepository;
     }
 
     @Override
@@ -67,6 +67,7 @@ public class RelationshipApplicationServiceImpl implements RelationshipApplicati
                 direction,
                 strength,
                 request.getDescription(),
+                request.getTopologyId(),
                 operatorId);
 
         return toDTO(relationship);
@@ -94,8 +95,8 @@ public class RelationshipApplicationServiceImpl implements RelationshipApplicati
 
     @Override
     public ResourceRelationshipsDTO getResourceRelationships(Long resourceId) {
-        // 获取资源信息
-        Resource resource = resourceRepository.findById(resourceId)
+        // 获取节点信息
+        Node node = nodeRepository.findById(resourceId)
                 .orElseThrow(() -> new BusinessException(ResourceErrorCode.RESOURCE_NOT_FOUND, "资源不存在: " + resourceId));
 
         // 获取上游和下游依赖
@@ -114,7 +115,7 @@ public class RelationshipApplicationServiceImpl implements RelationshipApplicati
 
         return ResourceRelationshipsDTO.builder()
                 .resourceId(resourceId)
-                .resourceName(resource.getName())
+                .resourceName(node.getName())
                 .upstreamDependencies(upstreamDTOs)
                 .downstreamDependencies(downstreamDTOs)
                 .upstreamByType(upstreamByType)

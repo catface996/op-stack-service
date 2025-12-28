@@ -2,10 +2,10 @@ package com.catface996.aiops.domain.impl.service.relationship;
 
 import com.catface996.aiops.common.enums.RelationshipErrorCode;
 import com.catface996.aiops.common.exception.BusinessException;
+import com.catface996.aiops.domain.model.node.Node;
 import com.catface996.aiops.domain.model.relationship.*;
-import com.catface996.aiops.domain.model.resource.Resource;
+import com.catface996.aiops.repository.node.NodeRepository;
 import com.catface996.aiops.repository.relationship.RelationshipRepository;
-import com.catface996.aiops.repository.resource.ResourceRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -30,14 +30,14 @@ class RelationshipDomainServiceImplTest {
 
     private RelationshipDomainServiceImpl relationshipDomainService;
     private RelationshipRepository relationshipRepository;
-    private ResourceRepository resourceRepository;
+    private NodeRepository nodeRepository;
 
     @BeforeEach
     void setUp() {
         relationshipRepository = mock(RelationshipRepository.class);
-        resourceRepository = mock(ResourceRepository.class);
+        nodeRepository = mock(NodeRepository.class);
         relationshipDomainService = new RelationshipDomainServiceImpl(
-                relationshipRepository, resourceRepository);
+                relationshipRepository, nodeRepository);
     }
 
     @Nested
@@ -52,18 +52,14 @@ class RelationshipDomainServiceImplTest {
             Long targetId = 2L;
             Long operatorId = 100L;
 
-            Resource sourceResource = new Resource();
-            sourceResource.setId(sourceId);
-            sourceResource.setName("order-service");
-            sourceResource.setCreatedBy(operatorId);
+            Node sourceNode = createNode(sourceId, "order-service");
+            sourceNode.setCreatedBy(operatorId);
 
-            Resource targetResource = new Resource();
-            targetResource.setId(targetId);
-            targetResource.setName("order-db");
-            targetResource.setCreatedBy(operatorId);
+            Node targetNode = createNode(targetId, "order-db");
+            targetNode.setCreatedBy(operatorId);
 
-            when(resourceRepository.findById(sourceId)).thenReturn(Optional.of(sourceResource));
-            when(resourceRepository.findById(targetId)).thenReturn(Optional.of(targetResource));
+            when(nodeRepository.findById(sourceId)).thenReturn(Optional.of(sourceNode));
+            when(nodeRepository.findById(targetId)).thenReturn(Optional.of(targetNode));
             when(relationshipRepository.existsBySourceAndTargetAndType(sourceId, targetId, RelationshipType.DEPENDENCY))
                     .thenReturn(false);
             when(relationshipRepository.save(any(Relationship.class))).thenAnswer(invocation -> {
@@ -102,7 +98,7 @@ class RelationshipDomainServiceImplTest {
         @DisplayName("源资源不存在时应该抛出异常")
         void shouldThrowExceptionWhenSourceNotFound() {
             // Given
-            when(resourceRepository.findById(1L)).thenReturn(Optional.empty());
+            when(nodeRepository.findById(1L)).thenReturn(Optional.empty());
 
             // When & Then
             BusinessException ex = assertThrows(BusinessException.class, () ->
@@ -120,16 +116,14 @@ class RelationshipDomainServiceImplTest {
             Long sourceId = 1L;
             Long targetId = 2L;
 
-            Resource sourceResource = new Resource();
-            sourceResource.setId(sourceId);
-            sourceResource.setCreatedBy(100L);
+            Node sourceNode = createNode(sourceId, "source");
+            sourceNode.setCreatedBy(100L);
 
-            Resource targetResource = new Resource();
-            targetResource.setId(targetId);
-            targetResource.setCreatedBy(100L);
+            Node targetNode = createNode(targetId, "target");
+            targetNode.setCreatedBy(100L);
 
-            when(resourceRepository.findById(sourceId)).thenReturn(Optional.of(sourceResource));
-            when(resourceRepository.findById(targetId)).thenReturn(Optional.of(targetResource));
+            when(nodeRepository.findById(sourceId)).thenReturn(Optional.of(sourceNode));
+            when(nodeRepository.findById(targetId)).thenReturn(Optional.of(targetNode));
             when(relationshipRepository.existsBySourceAndTargetAndType(sourceId, targetId, RelationshipType.DEPENDENCY))
                     .thenReturn(true);
 
@@ -157,8 +151,8 @@ class RelationshipDomainServiceImplTest {
 
             when(relationshipRepository.findByConditions(null, null, null, null, 1, 20))
                     .thenReturn(Collections.singletonList(rel1));
-            when(resourceRepository.findById(1L)).thenReturn(Optional.of(createResource(1L, "source")));
-            when(resourceRepository.findById(2L)).thenReturn(Optional.of(createResource(2L, "target")));
+            when(nodeRepository.findById(1L)).thenReturn(Optional.of(createNode(1L, "source")));
+            when(nodeRepository.findById(2L)).thenReturn(Optional.of(createNode(2L, "target")));
 
             // When
             List<Relationship> result = relationshipDomainService.listRelationships(null, null, null, null, 1, 20);
@@ -178,8 +172,8 @@ class RelationshipDomainServiceImplTest {
             rel.setId(1L);
 
             when(relationshipRepository.findById(1L)).thenReturn(Optional.of(rel));
-            when(resourceRepository.findById(1L)).thenReturn(Optional.of(createResource(1L, "source")));
-            when(resourceRepository.findById(2L)).thenReturn(Optional.of(createResource(2L, "target")));
+            when(nodeRepository.findById(1L)).thenReturn(Optional.of(createNode(1L, "source")));
+            when(nodeRepository.findById(2L)).thenReturn(Optional.of(createNode(2L, "target")));
 
             // When
             Optional<Relationship> result = relationshipDomainService.getRelationshipById(1L);
@@ -202,13 +196,13 @@ class RelationshipDomainServiceImplTest {
                     RelationshipDirection.UNIDIRECTIONAL, RelationshipStrength.STRONG, "old desc");
             existingRel.setId(1L);
 
-            Resource sourceResource = createResource(1L, "source");
-            sourceResource.setCreatedBy(100L);
-            Resource targetResource = createResource(2L, "target");
+            Node sourceNode = createNode(1L, "source");
+            sourceNode.setCreatedBy(100L);
+            Node targetNode = createNode(2L, "target");
 
             when(relationshipRepository.findById(1L)).thenReturn(Optional.of(existingRel));
-            when(resourceRepository.findById(1L)).thenReturn(Optional.of(sourceResource));
-            when(resourceRepository.findById(2L)).thenReturn(Optional.of(targetResource));
+            when(nodeRepository.findById(1L)).thenReturn(Optional.of(sourceNode));
+            when(nodeRepository.findById(2L)).thenReturn(Optional.of(targetNode));
             when(relationshipRepository.update(any(Relationship.class))).thenReturn(existingRel);
 
             // When
@@ -245,12 +239,12 @@ class RelationshipDomainServiceImplTest {
                     RelationshipDirection.UNIDIRECTIONAL, RelationshipStrength.STRONG, "desc");
             existingRel.setId(1L);
 
-            Resource sourceResource = createResource(1L, "source");
-            sourceResource.setCreatedBy(100L);
+            Node sourceNode = createNode(1L, "source");
+            sourceNode.setCreatedBy(100L);
 
             when(relationshipRepository.findById(1L)).thenReturn(Optional.of(existingRel));
-            when(resourceRepository.findById(1L)).thenReturn(Optional.of(sourceResource));
-            when(resourceRepository.findById(2L)).thenReturn(Optional.of(createResource(2L, "target")));
+            when(nodeRepository.findById(1L)).thenReturn(Optional.of(sourceNode));
+            when(nodeRepository.findById(2L)).thenReturn(Optional.of(createNode(2L, "target")));
 
             // When
             relationshipDomainService.deleteRelationship(1L, 100L);
@@ -331,11 +325,11 @@ class RelationshipDomainServiceImplTest {
     }
 
     // Helper methods
-    private Resource createResource(Long id, String name) {
-        Resource r = new Resource();
-        r.setId(id);
-        r.setName(name);
-        return r;
+    private Node createNode(Long id, String name) {
+        Node n = new Node();
+        n.setId(id);
+        n.setName(name);
+        return n;
     }
 
     private Relationship createRelWithTarget(Long targetId) {

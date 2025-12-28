@@ -3,11 +3,13 @@ package com.catface996.aiops.domain.impl.service.relationship;
 import com.catface996.aiops.common.enums.RelationshipErrorCode;
 import com.catface996.aiops.common.enums.ResourceErrorCode;
 import com.catface996.aiops.common.exception.BusinessException;
+import com.catface996.aiops.domain.model.node.Node;
 import com.catface996.aiops.domain.model.relationship.*;
-import com.catface996.aiops.domain.model.resource.Resource;
 import com.catface996.aiops.domain.service.relationship.RelationshipDomainService;
+import com.catface996.aiops.repository.node.NodeRepository;
+import com.catface996.aiops.domain.model.topology.Topology;
 import com.catface996.aiops.repository.relationship.RelationshipRepository;
-import com.catface996.aiops.repository.resource.ResourceRepository;
+import com.catface996.aiops.repository.topology2.TopologyRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -31,12 +33,15 @@ public class RelationshipDomainServiceImpl implements RelationshipDomainService 
     private static final int MAX_TRAVERSE_NODES = 1000;
 
     private final RelationshipRepository relationshipRepository;
-    private final ResourceRepository resourceRepository;
+    private final NodeRepository nodeRepository;
+    private final TopologyRepository topologyRepository;
 
     public RelationshipDomainServiceImpl(RelationshipRepository relationshipRepository,
-                                          ResourceRepository resourceRepository) {
+                                          NodeRepository nodeRepository,
+                                          TopologyRepository topologyRepository) {
         this.relationshipRepository = relationshipRepository;
-        this.resourceRepository = resourceRepository;
+        this.nodeRepository = nodeRepository;
+        this.topologyRepository = topologyRepository;
     }
 
     @Override
@@ -44,7 +49,7 @@ public class RelationshipDomainServiceImpl implements RelationshipDomainService 
     public Relationship createRelationship(Long sourceResourceId, Long targetResourceId,
                                             RelationshipType type, RelationshipDirection direction,
                                             RelationshipStrength strength, String description,
-                                            Long operatorId) {
+                                            Long topologyId, Long operatorId) {
         // 1. 参数验证
         if (sourceResourceId == null || targetResourceId == null) {
             throw new BusinessException(RelationshipErrorCode.SOURCE_RESOURCE_NOT_FOUND, "源资源ID和目标资源ID不能为空");
@@ -56,17 +61,19 @@ public class RelationshipDomainServiceImpl implements RelationshipDomainService 
             throw new BusinessException(RelationshipErrorCode.INVALID_RELATIONSHIP_TYPE, "关系类型、方向和强度不能为空");
         }
 
-        // 2. 验证源资源存在
-        Resource sourceResource = resourceRepository.findById(sourceResourceId)
+        // 2. 验证源节点存在
+        Node sourceNode = nodeRepository.findById(sourceResourceId)
                 .orElseThrow(() -> new BusinessException(RelationshipErrorCode.SOURCE_RESOURCE_NOT_FOUND, sourceResourceId));
 
-        // 3. 验证目标资源存在
-        Resource targetResource = resourceRepository.findById(targetResourceId)
+        // 3. 验证目标节点存在
+        Node targetNode = nodeRepository.findById(targetResourceId)
                 .orElseThrow(() -> new BusinessException(RelationshipErrorCode.TARGET_RESOURCE_NOT_FOUND, targetResourceId));
 
-        // 4. 验证用户权限（用户只需要对源资源有权限即可创建关系）
-        // 业务场景：用户维护的应用系统可以依赖其他人维护的数据库
-        if (!sourceResource.isOwner(operatorId)) {
+        // 4. 验证拓扑存在和用户权限（只需要检查拓扑的所有者权限）
+        Topology topology = topologyRepository.findById(topologyId)
+                .orElseThrow(() -> new BusinessException(ResourceErrorCode.RESOURCE_NOT_FOUND, "拓扑不存在: " + topologyId));
+        
+        if (!topology.isOwner(operatorId)) {
             throw new BusinessException(ResourceErrorCode.FORBIDDEN);
         }
 
@@ -93,8 +100,8 @@ public class RelationshipDomainServiceImpl implements RelationshipDomainService 
         }
 
         // 设置资源名称用于返回
-        relationship.setSourceResourceName(sourceResource.getName());
-        relationship.setTargetResourceName(targetResource.getName());
+        relationship.setSourceResourceName(sourceNode.getName());
+        relationship.setTargetResourceName(targetNode.getName());
 
         return relationship;
     }
@@ -107,7 +114,7 @@ public class RelationshipDomainServiceImpl implements RelationshipDomainService 
                 sourceResourceId, targetResourceId, type, status, pageNum, pageSize);
 
         // 填充资源名称
-        enrichRelationshipsWithResourceNames(relationships);
+        enrichRelationshipsWithNodeNames(relationships);
 
         return relationships;
     }
@@ -121,7 +128,7 @@ public class RelationshipDomainServiceImpl implements RelationshipDomainService 
     @Override
     public Optional<Relationship> getRelationshipById(Long relationshipId) {
         Optional<Relationship> relationshipOpt = relationshipRepository.findById(relationshipId);
-        relationshipOpt.ifPresent(r -> enrichRelationshipsWithResourceNames(Collections.singletonList(r)));
+        relationshipOpt.ifPresent(r -> enrichRelationshipsWithNodeNames(Collections.singletonList(r)));
         return relationshipOpt;
     }
 
@@ -131,7 +138,7 @@ public class RelationshipDomainServiceImpl implements RelationshipDomainService 
             throw new IllegalArgumentException("资源ID不能为空");
         }
         List<Relationship> relationships = relationshipRepository.findByTargetResourceId(resourceId);
-        enrichRelationshipsWithResourceNames(relationships);
+        enrichRelationshipsWithNodeNames(relationships);
         return relationships;
     }
 
@@ -141,7 +148,7 @@ public class RelationshipDomainServiceImpl implements RelationshipDomainService 
             throw new IllegalArgumentException("资源ID不能为空");
         }
         List<Relationship> relationships = relationshipRepository.findBySourceResourceId(resourceId);
-        enrichRelationshipsWithResourceNames(relationships);
+        enrichRelationshipsWithNodeNames(relationships);
         return relationships;
     }
 
@@ -154,10 +161,10 @@ public class RelationshipDomainServiceImpl implements RelationshipDomainService 
         Relationship relationship = relationshipRepository.findById(relationshipId)
                 .orElseThrow(() -> new BusinessException(RelationshipErrorCode.RELATIONSHIP_NOT_FOUND, relationshipId));
 
-        // 2. 验证用户权限（只需要源资源的权限）
-        Resource sourceResource = resourceRepository.findById(relationship.getSourceResourceId())
+        // 2. 验证用户权限（只需要源节点的权限）
+        Node sourceNode = nodeRepository.findById(relationship.getSourceResourceId())
                 .orElse(null);
-        if (sourceResource == null || !sourceResource.isOwner(operatorId)) {
+        if (sourceNode == null || !sourceNode.isOwner(operatorId)) {
             throw new BusinessException(ResourceErrorCode.FORBIDDEN);
         }
 
@@ -168,11 +175,11 @@ public class RelationshipDomainServiceImpl implements RelationshipDomainService 
         log.info("关系更新成功: {}", relationshipId);
 
         // 设置资源名称
-        relationship.setSourceResourceName(sourceResource.getName());
-        Resource targetResource = resourceRepository.findById(relationship.getTargetResourceId())
+        relationship.setSourceResourceName(sourceNode.getName());
+        Node targetNode = nodeRepository.findById(relationship.getTargetResourceId())
                 .orElse(null);
-        if (targetResource != null) {
-            relationship.setTargetResourceName(targetResource.getName());
+        if (targetNode != null) {
+            relationship.setTargetResourceName(targetNode.getName());
         }
 
         return relationship;
@@ -185,10 +192,10 @@ public class RelationshipDomainServiceImpl implements RelationshipDomainService 
         Relationship relationship = relationshipRepository.findById(relationshipId)
                 .orElseThrow(() -> new BusinessException(RelationshipErrorCode.RELATIONSHIP_NOT_FOUND, relationshipId));
 
-        // 2. 验证用户权限（只需要源资源的权限）
-        Resource sourceResource = resourceRepository.findById(relationship.getSourceResourceId())
+        // 2. 验证用户权限（只需要源节点的权限）
+        Node sourceNode = nodeRepository.findById(relationship.getSourceResourceId())
                 .orElse(null);
-        if (sourceResource == null || !sourceResource.isOwner(operatorId)) {
+        if (sourceNode == null || !sourceNode.isOwner(operatorId)) {
             throw new BusinessException(ResourceErrorCode.FORBIDDEN);
         }
 
@@ -310,31 +317,31 @@ public class RelationshipDomainServiceImpl implements RelationshipDomainService 
     }
 
     /**
-     * 为关系列表填充资源名称
+     * 为关系列表填充节点名称
      */
-    private void enrichRelationshipsWithResourceNames(List<Relationship> relationships) {
+    private void enrichRelationshipsWithNodeNames(List<Relationship> relationships) {
         if (relationships == null || relationships.isEmpty()) {
             return;
         }
 
         // 收集所有资源ID
-        Set<Long> resourceIds = new HashSet<>();
+        Set<Long> nodeIds = new HashSet<>();
         for (Relationship rel : relationships) {
-            resourceIds.add(rel.getSourceResourceId());
-            resourceIds.add(rel.getTargetResourceId());
+            nodeIds.add(rel.getSourceResourceId());
+            nodeIds.add(rel.getTargetResourceId());
         }
 
-        // 查询资源名称
-        Map<Long, String> resourceNameMap = new HashMap<>();
-        for (Long id : resourceIds) {
-            resourceRepository.findById(id)
-                    .ifPresent(r -> resourceNameMap.put(id, r.getName()));
+        // 查询节点名称
+        Map<Long, String> nodeNameMap = new HashMap<>();
+        for (Long id : nodeIds) {
+            nodeRepository.findById(id)
+                    .ifPresent(n -> nodeNameMap.put(id, n.getName()));
         }
 
         // 填充名称
         for (Relationship rel : relationships) {
-            rel.setSourceResourceName(resourceNameMap.get(rel.getSourceResourceId()));
-            rel.setTargetResourceName(resourceNameMap.get(rel.getTargetResourceId()));
+            rel.setSourceResourceName(nodeNameMap.get(rel.getSourceResourceId()));
+            rel.setTargetResourceName(nodeNameMap.get(rel.getTargetResourceId()));
         }
     }
 }

@@ -6,6 +6,7 @@ import com.catface996.aiops.application.api.dto.node.NodeAgentRelationDTO;
 import com.catface996.aiops.application.api.dto.node.NodeDTO;
 import com.catface996.aiops.application.api.dto.node.NodeTypeDTO;
 import com.catface996.aiops.application.api.dto.node.request.CreateNodeRequest;
+import com.catface996.aiops.application.api.dto.node.request.ListUnboundAgentsRequest;
 import com.catface996.aiops.application.api.dto.node.request.QueryNodesRequest;
 import com.catface996.aiops.application.api.dto.node.request.UpdateNodeRequest;
 
@@ -131,4 +132,14 @@ public interface NodeApplicationService {
      * @return 节点 DTO 列表
      */
     List<NodeDTO> listNodesByAgent(Long agentId);
+
+    /**
+     * 查询未绑定到指定节点的 Agent 列表
+     *
+     * <p>查询未与指定资源节点绑定的 Agent，支持分页和关键词过滤。</p>
+     *
+     * @param request 查询请求（包含 nodeId、keyword、page、size）
+     * @return Agent DTO 分页结果
+     */
+    PageResult<AgentDTO> listUnboundAgents(ListUnboundAgentsRequest request);
 }

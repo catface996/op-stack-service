@@ -1,7 +1,7 @@
 package com.catface996.aiops.domain.service.topology;
 
-import com.catface996.aiops.domain.model.resource.Resource;
-import com.catface996.aiops.domain.model.resource.ResourceStatus;
+import com.catface996.aiops.domain.model.topology.Topology;
+import com.catface996.aiops.domain.model.topology.TopologyStatus;
 
 import java.util.List;
 import java.util.Optional;
@@ -45,10 +45,10 @@ public interface TopologyDomainService {
      * @param description 拓扑图描述（可选，最长500字符）
      * @param operatorId 操作人ID
      * @param operatorName 操作人姓名
-     * @return 创建的拓扑图资源实体
+     * @return 创建的拓扑图实体
      * @throws IllegalArgumentException 如果名称为空或过长
      */
-    Resource createTopology(String name, String description, Long operatorId, String operatorName);
+    Topology createTopology(String name, String description, Long operatorId, String operatorName);
 
     /**
      * 分页查询拓扑图列表
@@ -61,7 +61,7 @@ public interface TopologyDomainService {
      * @param size 每页大小
      * @return 拓扑图列表
      */
-    List<Resource> listTopologies(String name, ResourceStatus status, int page, int size);
+    List<Topology> listTopologies(String name, TopologyStatus status, int page, int size);
 
     /**
      * 统计拓扑图数量
@@ -70,15 +70,15 @@ public interface TopologyDomainService {
      * @param status 状态筛选（可选）
      * @return 拓扑图数量
      */
-    long countTopologies(String name, ResourceStatus status);
+    long countTopologies(String name, TopologyStatus status);
 
     /**
      * 根据ID获取拓扑图详情
      *
      * @param topologyId 拓扑图ID
-     * @return 拓扑图实体（如果存在且为 SUBGRAPH 类型）
+     * @return 拓扑图实体（如果存在）
      */
-    Optional<Resource> getTopologyById(Long topologyId);
+    Optional<Topology> getTopologyById(Long topologyId);
 
     /**
      * 更新拓扑图
@@ -92,7 +92,7 @@ public interface TopologyDomainService {
      * @return 更新后的拓扑图实体
      * @throws RuntimeException 如果拓扑图不存在或版本冲突
      */
-    Resource updateTopology(Long topologyId, String name, String description,
+    Topology updateTopology(Long topologyId, String name, String description,
                             Integer version, Long operatorId, String operatorName);
 
     /**

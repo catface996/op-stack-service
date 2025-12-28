@@ -145,7 +145,7 @@ public class RelationshipRepositoryImpl implements RelationshipRepository {
 
     @Override
     public long count() {
-        return relationshipMapper.selectCount(null);
+        return relationshipMapper.countByConditions(null, null, null, null);
     }
 
     @Override

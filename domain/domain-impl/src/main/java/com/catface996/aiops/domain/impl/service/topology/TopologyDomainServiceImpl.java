@@ -2,14 +2,11 @@ package com.catface996.aiops.domain.impl.service.topology;
 
 import com.catface996.aiops.common.enums.ResourceErrorCode;
 import com.catface996.aiops.common.exception.BusinessException;
-import com.catface996.aiops.domain.constant.ResourceTypeConstants;
-import com.catface996.aiops.domain.model.resource.Resource;
-import com.catface996.aiops.domain.model.resource.ResourceStatus;
-import com.catface996.aiops.domain.model.resource.ResourceType;
+import com.catface996.aiops.domain.model.topology.Topology;
+import com.catface996.aiops.domain.model.topology.TopologyStatus;
 import com.catface996.aiops.domain.service.topology.TopologyDomainService;
-import com.catface996.aiops.repository.resource.ResourceRepository;
-import com.catface996.aiops.repository.resource.ResourceTypeRepository;
 import com.catface996.aiops.repository.topology2.Topology2NodeRepository;
+import com.catface996.aiops.repository.topology2.TopologyRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -27,7 +24,6 @@ import java.util.Optional;
  * <p>核心职责：</p>
  * <ul>
  *   <li>拓扑图 CRUD 操作</li>
- *   <li>自动识别和设置 SUBGRAPH 类型</li>
  *   <li>审计日志记录</li>
  * </ul>
  *
@@ -47,86 +43,64 @@ public class TopologyDomainServiceImpl implements TopologyDomainService {
     private static final int MAX_NAME_LENGTH = 100;
     private static final int MAX_DESCRIPTION_LENGTH = 500;
 
-    private final ResourceRepository resourceRepository;
-    private final ResourceTypeRepository resourceTypeRepository;
+    private final TopologyRepository topologyRepository;
     private final Topology2NodeRepository topology2NodeRepository;
 
-    // 缓存 SUBGRAPH 类型ID，避免重复查询
-    private Long subgraphTypeIdCache;
-
     public TopologyDomainServiceImpl(
-            ResourceRepository resourceRepository,
-            ResourceTypeRepository resourceTypeRepository,
+            TopologyRepository topologyRepository,
             Topology2NodeRepository topology2NodeRepository) {
-        this.resourceRepository = resourceRepository;
-        this.resourceTypeRepository = resourceTypeRepository;
+        this.topologyRepository = topologyRepository;
         this.topology2NodeRepository = topology2NodeRepository;
     }
 
     @Override
     @Transactional
-    public Resource createTopology(String name, String description, Long operatorId, String operatorName) {
+    public Topology createTopology(String name, String description, Long operatorId, String operatorName) {
         logger.info("创建拓扑图，name: {}, operatorId: {}", name, operatorId);
 
         // 1. 参数验证
         validateTopologyName(name);
         validateDescription(description);
 
-        // 2. 获取 SUBGRAPH 类型ID
-        Long subgraphTypeId = getSubgraphTypeId();
-
-        // 3. 创建资源实体
-        Resource topology = new Resource();
-        topology.setName(name.trim());
-        topology.setDescription(description);
-        topology.setResourceTypeId(subgraphTypeId);
-        topology.setStatus(ResourceStatus.RUNNING);
-        topology.setAttributes("{}");
-        topology.setCreatedBy(operatorId);
-        topology.setCreatedAt(LocalDateTime.now());
-        topology.setUpdatedAt(LocalDateTime.now());
-        topology.setVersion(1);
-
-        // 4. 保存拓扑图
-        resourceRepository.insert(topology);
-        logger.info("拓扑图创建成功，id: {}, name: {}", topology.getId(), topology.getName());
-
-        return topology;
-    }
-
-    @Override
-    public List<Resource> listTopologies(String name, ResourceStatus status, int page, int size) {
-        Long subgraphTypeId = getSubgraphTypeId();
-        return resourceRepository.findByTypeIdAndConditions(
-                subgraphTypeId,
-                status,
-                name,
-                page,
-                size
+        // 2. 创建拓扑图实体
+        Topology topology = Topology.create(
+                name.trim(),
+                description,
+                null, // coordinatorAgentId
+                "{}", // attributes
+                operatorId
         );
+
+        // 3. 保存拓扑图
+        Topology saved = topologyRepository.save(topology);
+        logger.info("拓扑图创建成功，id: {}, name: {}", saved.getId(), saved.getName());
+
+        return saved;
     }
 
     @Override
-    public long countTopologies(String name, ResourceStatus status) {
-        Long subgraphTypeId = getSubgraphTypeId();
-        return resourceRepository.countByTypeIdAndConditions(subgraphTypeId, status, name);
+    public List<Topology> listTopologies(String name, TopologyStatus status, int page, int size) {
+        return topologyRepository.findByCondition(name, status, page, size);
     }
 
     @Override
-    public Optional<Resource> getTopologyById(Long topologyId) {
-        Long subgraphTypeId = getSubgraphTypeId();
-        return resourceRepository.findById(topologyId)
-                .filter(resource -> subgraphTypeId.equals(resource.getResourceTypeId()));
+    public long countTopologies(String name, TopologyStatus status) {
+        return topologyRepository.countByCondition(name, status);
+    }
+
+    @Override
+    public Optional<Topology> getTopologyById(Long topologyId) {
+        return topologyRepository.findById(topologyId);
     }
 
     @Override
     @Transactional
-    public Resource updateTopology(Long topologyId, String name, String description,
+    public Topology updateTopology(Long topologyId, String name, String description,
                                    Integer version, Long operatorId, String operatorName) {
         logger.info("更新拓扑图，topologyId: {}, operatorId: {}", topologyId, operatorId);
 
         // 1. 验证拓扑图存在
-        Resource topology = getTopologyById(topologyId)
+        Topology topology = getTopologyById(topologyId)
                 .orElseThrow(() -> new BusinessException(ResourceErrorCode.RESOURCE_NOT_FOUND, "拓扑图不存在"));
 
         // 2. 验证版本号（乐观锁）
@@ -134,10 +108,7 @@ public class TopologyDomainServiceImpl implements TopologyDomainService {
             throw new BusinessException(ResourceErrorCode.VERSION_CONFLICT, "数据已被修改，请刷新后重试");
         }
 
-        // 3. 记录旧值
-        String oldValue = topology.toString();
-
-        // 4. 更新字段
+        // 3. 更新字段
         if (name != null) {
             validateTopologyName(name);
             topology.setName(name.trim());
@@ -147,10 +118,10 @@ public class TopologyDomainServiceImpl implements TopologyDomainService {
             topology.setDescription(description);
         }
         topology.setUpdatedAt(LocalDateTime.now());
-        topology.setVersion(topology.getVersion() + 1);
+        topology.incrementVersion();
 
-        // 5. 保存更新
-        resourceRepository.updateById(topology);
+        // 4. 保存更新
+        topologyRepository.update(topology);
         logger.info("拓扑图更新成功，id: {}", topologyId);
 
         return topology;
@@ -162,7 +133,7 @@ public class TopologyDomainServiceImpl implements TopologyDomainService {
         logger.info("删除拓扑图，topologyId: {}, operatorId: {}", topologyId, operatorId);
 
         // 1. 验证拓扑图存在
-        Resource topology = getTopologyById(topologyId)
+        Topology topology = getTopologyById(topologyId)
                 .orElseThrow(() -> new BusinessException(ResourceErrorCode.RESOURCE_NOT_FOUND, "拓扑图不存在"));
 
         // 2. 解除与所有成员的关联关系
@@ -170,7 +141,7 @@ public class TopologyDomainServiceImpl implements TopologyDomainService {
         logger.info("已解除拓扑图 {} 的所有成员关联", topologyId);
 
         // 3. 删除拓扑图
-        resourceRepository.deleteById(topologyId);
+        topologyRepository.deleteById(topologyId);
         logger.info("拓扑图删除成功，id: {}", topologyId);
     }
 
@@ -181,18 +152,9 @@ public class TopologyDomainServiceImpl implements TopologyDomainService {
 
     @Override
     public Long getSubgraphTypeId() {
-        if (subgraphTypeIdCache != null) {
-            return subgraphTypeIdCache;
-        }
-
-        Optional<ResourceType> subgraphType = resourceTypeRepository.findByCode(ResourceTypeConstants.SUBGRAPH_CODE);
-        if (subgraphType.isEmpty()) {
-            throw new BusinessException(ResourceErrorCode.RESOURCE_TYPE_NOT_FOUND,
-                    "系统配置错误：SUBGRAPH 资源类型不存在");
-        }
-
-        subgraphTypeIdCache = subgraphType.get().getId();
-        return subgraphTypeIdCache;
+        // 不再需要，拓扑图已有独立表
+        // 保留方法以保持接口兼容性，返回固定值
+        return 0L;
     }
 
     // ===== 私有方法 =====

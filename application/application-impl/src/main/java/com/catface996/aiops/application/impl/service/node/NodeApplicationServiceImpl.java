@@ -6,6 +6,7 @@ import com.catface996.aiops.application.api.dto.node.NodeAgentRelationDTO;
 import com.catface996.aiops.application.api.dto.node.NodeDTO;
 import com.catface996.aiops.application.api.dto.node.NodeTypeDTO;
 import com.catface996.aiops.application.api.dto.node.request.CreateNodeRequest;
+import com.catface996.aiops.application.api.dto.node.request.ListUnboundAgentsRequest;
 import com.catface996.aiops.application.api.dto.node.request.QueryNodesRequest;
 import com.catface996.aiops.application.api.dto.node.request.UpdateNodeRequest;
 import com.catface996.aiops.application.api.service.node.NodeApplicationService;
@@ -327,5 +328,36 @@ public class NodeApplicationServiceImpl implements NodeApplicationService {
                 .createdAt(agent.getCreatedAt())
                 .updatedAt(agent.getUpdatedAt())
                 .build();
+    }
+
+    @Override
+    public PageResult<AgentDTO> listUnboundAgents(ListUnboundAgentsRequest request) {
+        logger.info("查询未绑定到节点的 Agent 列表，nodeId: {}, keyword: {}", request.getNodeId(), request.getKeyword());
+
+        // 1. 获取已绑定到该节点的 Agent ID 列表
+        List<Long> boundAgentIds = nodeAgentRelationRepository.findAgentIdsByNodeId(request.getNodeId());
+
+        // 2. 查询未绑定的 Agent（排除已绑定的）
+        List<Agent> unboundAgents = agentRepository.findUnboundByNodeId(
+                request.getNodeId(),
+                boundAgentIds,
+                request.getKeyword(),
+                request.getPage(),
+                request.getSize()
+        );
+
+        // 3. 统计未绑定的 Agent 总数
+        long total = agentRepository.countUnboundByNodeId(
+                request.getNodeId(),
+                boundAgentIds,
+                request.getKeyword()
+        );
+
+        // 4. 转换为 DTO
+        List<AgentDTO> dtos = unboundAgents.stream()
+                .map(this::toAgentDTO)
+                .collect(Collectors.toList());
+
+        return PageResult.of(dtos, request.getPage(), request.getSize(), total);
     }
 }

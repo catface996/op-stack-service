@@ -122,4 +122,26 @@ public interface AgentRepository {
      * @return [warnings, critical]
      */
     long[] sumFindingsById(Long agentId);
+
+    /**
+     * 查询未绑定到指定节点的 Agent 列表
+     *
+     * @param nodeId         节点ID
+     * @param excludeAgentIds 要排除的 Agent ID 列表（已绑定的）
+     * @param keyword        关键词搜索（可选，搜索 name, specialty）
+     * @param page           页码（从1开始）
+     * @param size           每页大小
+     * @return Agent 列表
+     */
+    List<Agent> findUnboundByNodeId(Long nodeId, List<Long> excludeAgentIds, String keyword, int page, int size);
+
+    /**
+     * 统计未绑定到指定节点的 Agent 数量
+     *
+     * @param nodeId         节点ID
+     * @param excludeAgentIds 要排除的 Agent ID 列表（已绑定的）
+     * @param keyword        关键词搜索（可选）
+     * @return Agent 数量
+     */
+    long countUnboundByNodeId(Long nodeId, List<Long> excludeAgentIds, String keyword);
 }

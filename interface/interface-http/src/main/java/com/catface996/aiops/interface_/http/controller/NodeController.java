@@ -11,6 +11,7 @@ import com.catface996.aiops.application.api.dto.node.request.DeleteNodeRequest;
 import com.catface996.aiops.application.api.dto.node.request.GetNodeRequest;
 import com.catface996.aiops.application.api.dto.node.request.ListAgentsByNodeRequest;
 import com.catface996.aiops.application.api.dto.node.request.ListNodesByAgentRequest;
+import com.catface996.aiops.application.api.dto.node.request.ListUnboundAgentsRequest;
 import com.catface996.aiops.application.api.dto.node.request.QueryNodesRequest;
 import com.catface996.aiops.application.api.dto.node.request.UnbindAgentRequest;
 import com.catface996.aiops.application.api.dto.node.request.UpdateNodeRequest;
@@ -56,6 +57,7 @@ import java.util.List;
  *   <li>POST /api/service/v1/nodes/unbindAgent - 解绑 Agent 与节点</li>
  *   <li>POST /api/service/v1/nodes/listAgents - 查询节点关联的 Agent 列表</li>
  *   <li>POST /api/service/v1/nodes/listNodesByAgent - 查询 Agent 关联的节点列表</li>
+ *   <li>POST /api/service/v1/nodes/listUnboundAgents - 查询未绑定到指定节点的 Agent 列表</li>
  * </ul>
  *
  * <p>需求追溯：</p>
@@ -361,5 +363,28 @@ public class NodeController {
         List<NodeDTO> nodes = nodeApplicationService.listNodesByAgent(request.getAgentId());
 
         return ResponseEntity.ok(Result.success(nodes));
+    }
+
+    /**
+     * 查询未绑定到指定节点的 Agent 列表
+     *
+     * <p>查询未与指定资源节点绑定的 Agent，支持分页和关键词过滤。</p>
+     */
+    @PostMapping("/listUnboundAgents")
+    @Operation(summary = "查询未绑定到指定节点的 Agent 列表", description = "查询未与指定资源节点绑定的 Agent，支持分页和关键词过滤")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "查询成功"),
+            @ApiResponse(responseCode = "400", description = "参数无效"),
+            @ApiResponse(responseCode = "401", description = "未认证")
+    })
+    public ResponseEntity<Result<PageResult<AgentDTO>>> listUnboundAgents(
+            @Valid @RequestBody ListUnboundAgentsRequest request) {
+
+        log.info("查询未绑定到节点的 Agent 列表，nodeId: {}, keyword: {}", request.getNodeId(), request.getKeyword());
+
+        PageResult<AgentDTO> result = nodeApplicationService.listUnboundAgents(request);
+
+        return ResponseEntity.ok(Result.success(result));
     }
 }

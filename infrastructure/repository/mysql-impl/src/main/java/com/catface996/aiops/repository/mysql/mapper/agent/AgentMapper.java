@@ -123,4 +123,57 @@ public interface AgentMapper extends BaseMapper<AgentPO> {
      */
     @Select("SELECT COALESCE(warnings, 0) as warnings, COALESCE(critical, 0) as critical FROM agent WHERE id = #{agentId} AND deleted = 0")
     Map<String, Object> sumFindingsById(@Param("agentId") Long agentId);
+
+    /**
+     * 分页查询未绑定到指定节点的 Agent 列表
+     *
+     * @param page           分页参数
+     * @param excludeAgentIds 要排除的 Agent ID 列表（已绑定的）
+     * @param keyword        关键词搜索（可选）
+     * @return 分页结果
+     */
+    @Select("<script>" +
+            "SELECT * FROM agent " +
+            "<where>" +
+            "deleted = 0 " +
+            "<if test='excludeAgentIds != null and excludeAgentIds.size() > 0'>" +
+            "AND id NOT IN " +
+            "<foreach collection='excludeAgentIds' item='id' open='(' separator=',' close=')'>" +
+            "#{id}" +
+            "</foreach> " +
+            "</if>" +
+            "<if test='keyword != null and keyword != \"\"'>" +
+            "AND (name LIKE CONCAT('%', #{keyword}, '%') OR specialty LIKE CONCAT('%', #{keyword}, '%')) " +
+            "</if>" +
+            "</where>" +
+            "ORDER BY created_at DESC" +
+            "</script>")
+    IPage<AgentPO> selectPageUnbound(Page<AgentPO> page,
+                                      @Param("excludeAgentIds") List<Long> excludeAgentIds,
+                                      @Param("keyword") String keyword);
+
+    /**
+     * 统计未绑定到指定节点的 Agent 数量
+     *
+     * @param excludeAgentIds 要排除的 Agent ID 列表（已绑定的）
+     * @param keyword        关键词搜索（可选）
+     * @return Agent 数量
+     */
+    @Select("<script>" +
+            "SELECT COUNT(*) FROM agent " +
+            "<where>" +
+            "deleted = 0 " +
+            "<if test='excludeAgentIds != null and excludeAgentIds.size() > 0'>" +
+            "AND id NOT IN " +
+            "<foreach collection='excludeAgentIds' item='id' open='(' separator=',' close=')'>" +
+            "#{id}" +
+            "</foreach> " +
+            "</if>" +
+            "<if test='keyword != null and keyword != \"\"'>" +
+            "AND (name LIKE CONCAT('%', #{keyword}, '%') OR specialty LIKE CONCAT('%', #{keyword}, '%')) " +
+            "</if>" +
+            "</where>" +
+            "</script>")
+    long countUnbound(@Param("excludeAgentIds") List<Long> excludeAgentIds,
+                      @Param("keyword") String keyword);
 }

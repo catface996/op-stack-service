@@ -49,9 +49,9 @@ mvn test
 Java 21 (LTS): Follow standard conventions
 
 ## Recent Changes
+- 001-remove-resource-api: Added Java 21 (LTS) + Spring Boot 3.4.x, MyBatis-Plus 3.5.x, SpringDoc OpenAPI
 - 027-agent-management: Added Java 21 (LTS) + Spring Boot 3.4.x, MyBatis-Plus 3.5.x, SpringDoc OpenAPI
 - 026-report-management: Added Java 21 (LTS) + Spring Boot 3.4.x, MyBatis-Plus 3.5.x, SpringDoc OpenAPI
-- 025-prompt-template: Added Java 21 (LTS) + Spring Boot 3.4.1, MyBatis-Plus 3.5.7, SpringDoc OpenAPI
 
 
 <!-- MANUAL ADDITIONS START -->

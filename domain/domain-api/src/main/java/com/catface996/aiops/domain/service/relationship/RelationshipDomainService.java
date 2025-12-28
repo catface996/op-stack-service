@@ -48,7 +48,7 @@ public interface RelationshipDomainService {
     Relationship createRelationship(Long sourceResourceId, Long targetResourceId,
                                      RelationshipType type, RelationshipDirection direction,
                                      RelationshipStrength strength, String description,
-                                     Long operatorId);
+                                     Long topologyId, Long operatorId);
 
     /**
      * 分页查询关系列表

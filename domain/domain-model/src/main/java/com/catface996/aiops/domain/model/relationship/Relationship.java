@@ -1,7 +1,5 @@
 package com.catface996.aiops.domain.model.relationship;
 
-import com.catface996.aiops.domain.model.resource.Resource;
-
 import java.time.LocalDateTime;
 
 /**
@@ -140,34 +138,34 @@ public class Relationship {
 
     /**
      * 判断用户是否有权限操作此关系
-     * 用户必须是源资源或目标资源的Owner
+     * 用户必须是源节点或目标节点的Owner
      *
      * @param userId 用户ID
-     * @param sourceResource 源资源
-     * @param targetResource 目标资源
-     * @return true if user is owner of source or target resource
+     * @param sourceCreatedBy 源节点创建者ID
+     * @param targetCreatedBy 目标节点创建者ID
+     * @return true if user is owner of source or target node
      */
-    public boolean isOwner(Long userId, Resource sourceResource, Resource targetResource) {
+    public boolean isOwner(Long userId, Long sourceCreatedBy, Long targetCreatedBy) {
         if (userId == null) {
             return false;
         }
-        boolean isSourceOwner = sourceResource != null && sourceResource.isOwner(userId);
-        boolean isTargetOwner = targetResource != null && targetResource.isOwner(userId);
+        boolean isSourceOwner = sourceCreatedBy != null && sourceCreatedBy.equals(userId);
+        boolean isTargetOwner = targetCreatedBy != null && targetCreatedBy.equals(userId);
         return isSourceOwner || isTargetOwner;
     }
 
     /**
      * 判断用户是否有权限查看此关系
-     * 用户只需要对源资源或目标资源有访问权限即可
+     * 用户只需要对源节点或目标节点有访问权限即可
      *
      * @param userId 用户ID
-     * @param sourceResource 源资源
-     * @param targetResource 目标资源
-     * @return true if user has access to source or target resource
+     * @param sourceCreatedBy 源节点创建者ID
+     * @param targetCreatedBy 目标节点创建者ID
+     * @return true if user has access to source or target node
      */
-    public boolean canView(Long userId, Resource sourceResource, Resource targetResource) {
-        // 简化实现：只要用户是资源的创建者就可以查看
-        return isOwner(userId, sourceResource, targetResource);
+    public boolean canView(Long userId, Long sourceCreatedBy, Long targetCreatedBy) {
+        // 简化实现：只要用户是节点的创建者就可以查看
+        return isOwner(userId, sourceCreatedBy, targetCreatedBy);
     }
 
     /**

@@ -9,13 +9,13 @@ import java.time.LocalDateTime;
 /**
  * 资源关系持久化对象
  *
- * <p>数据库表 resource_relationship 的映射对象</p>
+ * <p>数据库表 node_2_node 的映射对象</p>
  *
  * @author AI Assistant
  * @since 2025-12-03
  */
 @Data
-@TableName("resource_relationship")
+@TableName("node_2_node")
 public class RelationshipPO implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -29,13 +29,13 @@ public class RelationshipPO implements Serializable {
     /**
      * 源资源ID
      */
-    @TableField("source_resource_id")
+    @TableField("source_id")
     private Long sourceResourceId;
 
     /**
      * 目标资源ID
      */
-    @TableField("target_resource_id")
+    @TableField("target_id")
     private Long targetResourceId;
 
     /**

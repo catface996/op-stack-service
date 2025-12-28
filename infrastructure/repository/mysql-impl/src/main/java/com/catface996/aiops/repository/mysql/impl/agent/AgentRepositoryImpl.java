@@ -150,6 +150,21 @@ public class AgentRepositoryImpl implements AgentRepository {
         return new long[]{warnings, critical};
     }
 
+    @Override
+    public List<Agent> findUnboundByNodeId(Long nodeId, List<Long> excludeAgentIds, String keyword, int page, int size) {
+        Page<AgentPO> pageParam = new Page<>(page, size);
+        return agentMapper.selectPageUnbound(pageParam, excludeAgentIds, keyword)
+                .getRecords()
+                .stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public long countUnboundByNodeId(Long nodeId, List<Long> excludeAgentIds, String keyword) {
+        return agentMapper.countUnbound(excludeAgentIds, keyword);
+    }
+
     // ==================== 转换方法 ====================
 
     private Agent toDomain(AgentPO po) {

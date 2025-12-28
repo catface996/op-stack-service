@@ -1,6 +1,5 @@
 package com.catface996.aiops.repository.mysql.mapper.relationship;
 
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.catface996.aiops.repository.mysql.po.relationship.RelationshipPO;
 import org.apache.ibatis.annotations.Param;
 
@@ -10,12 +9,44 @@ import java.util.List;
  * 资源关系 Mapper 接口
  *
  * <p>提供资源关系数据的数据库访问操作</p>
- * <p>继承 MyBatis-Plus BaseMapper，自动提供基础 CRUD 方法</p>
+ * <p>不继承 MyBatis-Plus BaseMapper，避免自动生成SQL的表名问题</p>
  *
  * @author AI Assistant
  * @since 2025-12-03
  */
-public interface RelationshipMapper extends BaseMapper<RelationshipPO> {
+public interface RelationshipMapper {
+
+    /**
+     * 插入关系记录
+     *
+     * @param relationship 关系对象
+     * @return 插入的行数
+     */
+    int insert(RelationshipPO relationship);
+
+    /**
+     * 根据ID查询关系
+     *
+     * @param id 关系ID
+     * @return 关系对象
+     */
+    RelationshipPO selectById(@Param("id") Long id);
+
+    /**
+     * 根据ID更新关系
+     *
+     * @param relationship 关系对象
+     * @return 更新的行数
+     */
+    int updateById(RelationshipPO relationship);
+
+    /**
+     * 根据ID删除关系
+     *
+     * @param id 关系ID
+     * @return 删除的行数
+     */
+    int deleteById(@Param("id") Long id);
 
     /**
      * 根据源资源ID查询关系（下游依赖查询）
