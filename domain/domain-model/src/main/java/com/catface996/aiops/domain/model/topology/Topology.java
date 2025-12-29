@@ -45,6 +45,11 @@ public class Topology {
     private Long coordinatorAgentId;
 
     /**
+     * Global Supervisor Agent ID
+     */
+    private Long globalSupervisorAgentId;
+
+    /**
      * 扩展属性（JSON格式）
      */
     private String attributes;
@@ -215,6 +220,14 @@ public class Topology {
 
     public void setCoordinatorAgentId(Long coordinatorAgentId) {
         this.coordinatorAgentId = coordinatorAgentId;
+    }
+
+    public Long getGlobalSupervisorAgentId() {
+        return globalSupervisorAgentId;
+    }
+
+    public void setGlobalSupervisorAgentId(Long globalSupervisorAgentId) {
+        this.globalSupervisorAgentId = globalSupervisorAgentId;
     }
 
     public String getAttributes() {

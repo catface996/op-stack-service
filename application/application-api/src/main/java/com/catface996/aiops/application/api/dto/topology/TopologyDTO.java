@@ -47,6 +47,15 @@ public class TopologyDTO {
     @Schema(description = "协调 Agent ID")
     private Long coordinatorAgentId;
 
+    @Schema(description = "Global Supervisor Agent ID")
+    private Long globalSupervisorAgentId;
+
+    @Schema(description = "Global Supervisor Agent 名称")
+    private String globalSupervisorAgentName;
+
+    @Schema(description = "Global Supervisor Agent 角色")
+    private String globalSupervisorAgentRole;
+
     @Schema(description = "扩展属性（JSON格式）", example = "{}")
     private String attributes;
 

@@ -130,4 +130,32 @@ public interface TopologyDomainService {
      * @return 拓扑图数据
      */
     TopologyGraphData getTopologyGraph(Long topologyId, boolean includeRelationships);
+
+    /**
+     * 绑定 Global Supervisor Agent
+     *
+     * <p>将指定的 Agent 绑定到拓扑图作为 Global Supervisor。</p>
+     * <p>要求 Agent 的角色必须为 GLOBAL_SUPERVISOR。</p>
+     * <p>支持替换绑定：已有绑定时，新绑定会替换旧绑定。</p>
+     *
+     * @param topologyId 拓扑图ID
+     * @param agentId    Agent ID（必须为 GLOBAL_SUPERVISOR 角色）
+     * @param operatorId 操作人ID
+     * @return 更新后的拓扑图
+     * @throws IllegalArgumentException 如果拓扑图不存在、Agent不存在或角色不匹配
+     */
+    Topology bindGlobalSupervisorAgent(Long topologyId, Long agentId, Long operatorId);
+
+    /**
+     * 解绑 Global Supervisor Agent
+     *
+     * <p>解除拓扑图与 Global Supervisor Agent 的绑定关系。</p>
+     * <p>支持幂等操作：未绑定时解绑也返回成功。</p>
+     *
+     * @param topologyId 拓扑图ID
+     * @param operatorId 操作人ID
+     * @return 更新后的拓扑图
+     * @throws IllegalArgumentException 如果拓扑图不存在
+     */
+    Topology unbindGlobalSupervisorAgent(Long topologyId, Long operatorId);
 }
