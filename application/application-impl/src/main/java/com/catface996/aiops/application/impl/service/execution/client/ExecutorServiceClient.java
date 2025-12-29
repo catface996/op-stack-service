@@ -28,6 +28,7 @@ import java.time.Duration;
  *   <li>POST /api/executor/v1/hierarchies/create - 创建层级结构</li>
  *   <li>POST /api/executor/v1/runs/start - 启动执行运行</li>
  *   <li>POST /api/executor/v1/runs/stream - 流式获取执行事件 (body: {"id": "run_id"})</li>
+ *   <li>POST /api/executor/v1/runs/cancel - 取消执行运行 (body: {"id": "run_id"})</li>
  * </ul>
  *
  * @author AI Assistant
@@ -112,6 +113,32 @@ public class ExecutorServiceClient {
     }
 
     /**
+     * 取消执行运行
+     *
+     * @param runId 运行 ID
+     * @return 取消是否成功
+     */
+    public Mono<Boolean> cancelRun(String runId) {
+        log.info("Cancelling run: {}", runId);
+        return webClient.post()
+                .uri("/api/executor/v1/runs/cancel")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(java.util.Map.of("id", runId))
+                .retrieve()
+                .bodyToMono(CancelRunResponse.class)
+                .map(response -> Boolean.TRUE.equals(response.getSuccess()))
+                .doOnSuccess(success -> {
+                    if (success) {
+                        log.info("Run cancelled successfully: {}", runId);
+                    } else {
+                        log.warn("Failed to cancel run: {}", runId);
+                    }
+                })
+                .doOnError(e -> log.error("Error cancelling run {}: {}", runId, e.getMessage()))
+                .onErrorReturn(false);
+    }
+
+    /**
      * 检查服务是否可用
      *
      * @return 服务是否可用
@@ -124,5 +151,14 @@ public class ExecutorServiceClient {
                 .map(response -> true)
                 .onErrorReturn(false)
                 .timeout(Duration.ofSeconds(5));
+    }
+
+    /**
+     * 取消运行响应（内部使用）
+     */
+    @lombok.Data
+    private static class CancelRunResponse {
+        private Boolean success;
+        private String message;
     }
 }

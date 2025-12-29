@@ -25,8 +25,11 @@ import java.util.Map;
 public class ExecutionEventDTO {
 
     @Schema(description = "事件类型", example = "message",
-            allowableValues = {"thinking", "message", "tool_call", "tool_result", "error", "complete"})
+            allowableValues = {"started", "thinking", "message", "tool_call", "tool_result", "error", "complete"})
     private String type;
+
+    @Schema(description = "运行 ID（仅在 started 事件中返回）", example = "a1567309-4c03-43f8-bbae-9a2d75fd6d80")
+    private String runId;
 
     @Schema(description = "产生事件的 Agent 名称", example = "Global Monitor")
     private String agentName;
@@ -43,6 +46,18 @@ public class ExecutionEventDTO {
 
     @Schema(description = "附加元数据")
     private Map<String, Object> metadata;
+
+    /**
+     * 创建启动事件（包含 runId）
+     */
+    public static ExecutionEventDTO started(String runId) {
+        return ExecutionEventDTO.builder()
+                .type("started")
+                .runId(runId)
+                .content("Execution started")
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
 
     /**
      * 创建错误事件
@@ -62,6 +77,18 @@ public class ExecutionEventDTO {
         return ExecutionEventDTO.builder()
                 .type("complete")
                 .content(message)
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
+
+    /**
+     * 创建取消成功事件
+     */
+    public static ExecutionEventDTO cancelled(String runId) {
+        return ExecutionEventDTO.builder()
+                .type("cancelled")
+                .runId(runId)
+                .content("Execution cancelled")
                 .timestamp(LocalDateTime.now())
                 .build();
     }

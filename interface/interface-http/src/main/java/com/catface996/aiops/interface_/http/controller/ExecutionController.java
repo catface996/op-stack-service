@@ -1,6 +1,7 @@
 package com.catface996.aiops.interface_.http.controller;
 
 import com.catface996.aiops.application.api.dto.execution.ExecutionEventDTO;
+import com.catface996.aiops.application.api.dto.execution.request.CancelExecutionRequest;
 import com.catface996.aiops.application.api.dto.execution.request.TriggerExecutionRequest;
 import com.catface996.aiops.application.api.service.execution.ExecutionApplicationService;
 import com.catface996.aiops.common.result.Result;
@@ -32,6 +33,7 @@ import java.util.concurrent.Executors;
  * <p>接口列表：</p>
  * <ul>
  *   <li>POST /trigger - 触发多智能体执行（SSE 流式响应）</li>
+ *   <li>POST /cancel - 取消正在执行的运行</li>
  * </ul>
  *
  * @author AI Assistant
@@ -180,5 +182,53 @@ public class ExecutionController {
         });
 
         return emitter;
+    }
+
+    /**
+     * 取消执行
+     *
+     * @param request 取消请求（包含 runId）
+     * @return 取消结果
+     */
+    @Operation(
+            summary = "取消执行",
+            description = """
+                    取消正在执行的多智能体运行。
+
+                    **注意事项**：
+                    - runId 来自触发执行时返回的 started 事件
+                    - 如果运行已完成或已取消，取消操作将失败
+                    - 取消操作是异步的，可能需要一些时间才能完全停止
+                    """
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "取消结果",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = Result.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "请求参数错误",
+                    content = @Content(
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = Result.class)
+                    )
+            )
+    })
+    @PostMapping("/cancel")
+    public Result<ExecutionEventDTO> cancelExecution(@Valid @RequestBody CancelExecutionRequest request) {
+        log.info("Received cancel request for run: {}", request.getRunId());
+
+        ExecutionEventDTO result = executionApplicationService.cancelExecution(request);
+
+        if ("cancelled".equals(result.getType())) {
+            return Result.success(result);
+        } else {
+            return Result.failure("CANCEL_FAILED", result.getContent());
+        }
     }
 }

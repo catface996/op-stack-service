@@ -1,6 +1,7 @@
 package com.catface996.aiops.application.impl.service.execution;
 
 import com.catface996.aiops.application.api.dto.execution.ExecutionEventDTO;
+import com.catface996.aiops.application.api.dto.execution.request.CancelExecutionRequest;
 import com.catface996.aiops.application.api.dto.execution.request.TriggerExecutionRequest;
 import com.catface996.aiops.application.api.dto.topology.HierarchicalTeamDTO;
 import com.catface996.aiops.application.api.dto.topology.request.HierarchicalTeamQueryRequest;
@@ -85,14 +86,35 @@ public class ExecutionApplicationServiceImpl implements ExecutionApplicationServ
                     return executorServiceClient.startRun(startRequest)
                             .flatMapMany(startResponse -> {
                                 log.info("Run started: {}", startResponse.getRunId());
-                                return executorServiceClient.streamEvents(startResponse.getRunId())
+                                String runId = startResponse.getRunId();
+
+                                // 先发送 started 事件（包含 runId），然后发送后续事件流
+                                Flux<ExecutionEventDTO> startedEvent = Flux.just(ExecutionEventDTO.started(runId));
+                                Flux<ExecutionEventDTO> eventStream = executorServiceClient.streamEvents(runId)
                                         .map(this::transformEvent);
+
+                                return Flux.concat(startedEvent, eventStream);
                             });
                 })
                 .onErrorResume(e -> {
                     log.error("Executor service error: {}", e.getMessage(), e);
                     return Flux.just(ExecutionEventDTO.error("Executor service error: " + e.getMessage()));
                 });
+    }
+
+    @Override
+    public ExecutionEventDTO cancelExecution(CancelExecutionRequest request) {
+        log.info("Cancelling execution for run: {}", request.getRunId());
+
+        Boolean success = executorServiceClient.cancelRun(request.getRunId()).block();
+
+        if (Boolean.TRUE.equals(success)) {
+            log.info("Execution cancelled successfully: {}", request.getRunId());
+            return ExecutionEventDTO.cancelled(request.getRunId());
+        } else {
+            log.warn("Failed to cancel execution: {}", request.getRunId());
+            return ExecutionEventDTO.error("Failed to cancel execution: " + request.getRunId());
+        }
     }
 
     /**
