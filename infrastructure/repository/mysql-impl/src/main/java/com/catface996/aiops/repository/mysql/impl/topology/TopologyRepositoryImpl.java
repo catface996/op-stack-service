@@ -1,6 +1,7 @@
 package com.catface996.aiops.repository.mysql.impl.topology;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.catface996.aiops.domain.model.topology.Topology;
 import com.catface996.aiops.domain.model.topology.TopologyStatus;
@@ -104,6 +105,17 @@ public class TopologyRepositoryImpl implements TopologyRepository {
         return topologyMapper.selectByName(name) != null;
     }
 
+    @Override
+    public boolean updateGlobalSupervisorAgentId(Long topologyId, Long agentId) {
+        LambdaUpdateWrapper<TopologyPO> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(TopologyPO::getId, topologyId)
+                .set(TopologyPO::getGlobalSupervisorAgentId, agentId)
+                .set(TopologyPO::getUpdatedAt, LocalDateTime.now());
+
+        int rows = topologyMapper.update(null, updateWrapper);
+        return rows > 0;
+    }
+
     // ==================== 转换方法 ====================
 
     private Topology toDomain(TopologyPO po) {
@@ -116,6 +128,7 @@ public class TopologyRepositoryImpl implements TopologyRepository {
         topology.setDescription(po.getDescription());
         topology.setStatus(TopologyStatus.valueOf(po.getStatus()));
         topology.setCoordinatorAgentId(po.getCoordinatorAgentId());
+        topology.setGlobalSupervisorAgentId(po.getGlobalSupervisorAgentId());
         topology.setAttributes(po.getAttributes());
         topology.setCreatedBy(po.getCreatedBy());
         topology.setVersion(po.getVersion());
@@ -134,6 +147,7 @@ public class TopologyRepositoryImpl implements TopologyRepository {
         po.setDescription(domain.getDescription());
         po.setStatus(domain.getStatus() != null ? domain.getStatus().name() : TopologyStatus.RUNNING.name());
         po.setCoordinatorAgentId(domain.getCoordinatorAgentId());
+        po.setGlobalSupervisorAgentId(domain.getGlobalSupervisorAgentId());
         po.setAttributes(domain.getAttributes());
         po.setCreatedBy(domain.getCreatedBy());
         po.setVersion(domain.getVersion());

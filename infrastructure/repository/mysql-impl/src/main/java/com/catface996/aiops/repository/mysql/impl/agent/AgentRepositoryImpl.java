@@ -165,6 +165,18 @@ public class AgentRepositoryImpl implements AgentRepository {
         return agentMapper.countUnbound(excludeAgentIds, keyword);
     }
 
+    @Override
+    public Optional<Agent> findByIdAndRole(Long id, AgentRole role) {
+        AgentPO po = agentMapper.selectById(id);
+        if (po == null || (po.getDeleted() != null && po.getDeleted() == 1)) {
+            return Optional.empty();
+        }
+        if (role != null && !role.name().equals(po.getRole())) {
+            return Optional.empty();
+        }
+        return Optional.of(toDomain(po));
+    }
+
     // ==================== 转换方法 ====================
 
     private Agent toDomain(AgentPO po) {

@@ -144,4 +144,13 @@ public interface AgentRepository {
      * @return Agent 数量
      */
     long countUnboundByNodeId(Long nodeId, List<Long> excludeAgentIds, String keyword);
+
+    /**
+     * 根据 ID 和角色查询 Agent
+     *
+     * @param id   Agent ID
+     * @param role Agent 角色
+     * @return Agent 实体（如果存在且角色匹配）
+     */
+    Optional<Agent> findByIdAndRole(Long id, AgentRole role);
 }

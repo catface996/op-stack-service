@@ -10,6 +10,7 @@ import com.catface996.aiops.application.api.dto.topology.request.QueryTopologies
 import com.catface996.aiops.application.api.dto.topology.request.QueryTopologyGraphRequest;
 import com.catface996.aiops.application.api.dto.topology.request.UpdateTopologyRequest;
 import com.catface996.aiops.application.api.service.topology.TopologyApplicationService;
+import com.catface996.aiops.domain.model.agent.Agent;
 import com.catface996.aiops.domain.model.node.Node;
 import com.catface996.aiops.domain.model.node.NodeStatus;
 import com.catface996.aiops.domain.model.topology.Topology;
@@ -17,6 +18,7 @@ import com.catface996.aiops.domain.model.topology.TopologyStatus;
 import com.catface996.aiops.domain.model.topology.TopologyGraphData;
 import com.catface996.aiops.domain.service.node.NodeDomainService;
 import com.catface996.aiops.domain.service.topology2.TopologyDomainService;
+import com.catface996.aiops.repository.agent.AgentRepository;
 import com.catface996.aiops.repository.node.NodeTypeRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,13 +54,16 @@ public class TopologyApplicationServiceImpl implements TopologyApplicationServic
     private final TopologyDomainService topologyDomainService;
     private final NodeDomainService nodeDomainService;
     private final NodeTypeRepository nodeTypeRepository;
+    private final AgentRepository agentRepository;
 
     public TopologyApplicationServiceImpl(@Qualifier("topologyDomainServiceV2") TopologyDomainService topologyDomainService,
                                           NodeDomainService nodeDomainService,
-                                          NodeTypeRepository nodeTypeRepository) {
+                                          NodeTypeRepository nodeTypeRepository,
+                                          AgentRepository agentRepository) {
         this.topologyDomainService = topologyDomainService;
         this.nodeDomainService = nodeDomainService;
         this.nodeTypeRepository = nodeTypeRepository;
+        this.agentRepository = agentRepository;
     }
 
     @Override
@@ -180,6 +185,7 @@ public class TopologyApplicationServiceImpl implements TopologyApplicationServic
                 .name(topology.getName())
                 .description(topology.getDescription())
                 .coordinatorAgentId(topology.getCoordinatorAgentId())
+                .globalSupervisorAgentId(topology.getGlobalSupervisorAgentId())
                 .attributes(topology.getAttributes())
                 .version(topology.getVersion())
                 .createdBy(topology.getCreatedBy())
@@ -194,6 +200,17 @@ public class TopologyApplicationServiceImpl implements TopologyApplicationServic
         // 获取成员数量
         int memberCount = topologyDomainService.countMembers(topology.getId());
         builder.memberCount(memberCount);
+
+        // 填充 Global Supervisor Agent 信息
+        if (topology.getGlobalSupervisorAgentId() != null) {
+            agentRepository.findById(topology.getGlobalSupervisorAgentId())
+                    .ifPresent(agent -> {
+                        builder.globalSupervisorAgentName(agent.getName());
+                        if (agent.getRole() != null) {
+                            builder.globalSupervisorAgentRole(agent.getRole().name());
+                        }
+                    });
+        }
 
         return builder.build();
     }
@@ -260,6 +277,25 @@ public class TopologyApplicationServiceImpl implements TopologyApplicationServic
 
         // 转换为 DTO
         return toTopologyGraphDTO(graphData);
+    }
+
+    // ===== Global Supervisor Agent 绑定方法 =====
+
+    @Override
+    public TopologyDTO bindGlobalSupervisorAgent(Long topologyId, Long agentId, Long operatorId) {
+        logger.info("绑定 Global Supervisor Agent，topologyId: {}, agentId: {}, operatorId: {}",
+                topologyId, agentId, operatorId);
+
+        Topology topology = topologyDomainService.bindGlobalSupervisorAgent(topologyId, agentId, operatorId);
+        return toDTO(topology);
+    }
+
+    @Override
+    public TopologyDTO unbindGlobalSupervisorAgent(Long topologyId, Long operatorId) {
+        logger.info("解绑 Global Supervisor Agent，topologyId: {}, operatorId: {}", topologyId, operatorId);
+
+        Topology topology = topologyDomainService.unbindGlobalSupervisorAgent(topologyId, operatorId);
+        return toDTO(topology);
     }
 
     private TopologyGraphDTO toTopologyGraphDTO(TopologyGraphData graphData) {

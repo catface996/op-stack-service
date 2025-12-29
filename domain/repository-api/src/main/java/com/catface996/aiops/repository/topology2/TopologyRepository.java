@@ -104,4 +104,13 @@ public interface TopologyRepository {
      * @return true if name exists
      */
     boolean existsByName(String name);
+
+    /**
+     * 更新拓扑图的 Global Supervisor Agent ID
+     *
+     * @param topologyId 拓扑图ID
+     * @param agentId    Agent ID（可为 null 表示解绑）
+     * @return 更新是否成功
+     */
+    boolean updateGlobalSupervisorAgentId(Long topologyId, Long agentId);
 }
