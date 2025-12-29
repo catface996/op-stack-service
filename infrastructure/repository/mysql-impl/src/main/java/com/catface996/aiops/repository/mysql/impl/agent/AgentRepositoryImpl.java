@@ -1,6 +1,5 @@
 package com.catface996.aiops.repository.mysql.impl.agent;
 
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.catface996.aiops.domain.model.agent.Agent;
 import com.catface996.aiops.domain.model.agent.AgentRole;
@@ -97,12 +96,7 @@ public class AgentRepositoryImpl implements AgentRepository {
 
     @Override
     public boolean deleteById(Long id) {
-        LambdaUpdateWrapper<AgentPO> updateWrapper = new LambdaUpdateWrapper<>();
-        updateWrapper.eq(AgentPO::getId, id)
-                .eq(AgentPO::getDeleted, 0)
-                .set(AgentPO::getDeleted, 1)
-                .set(AgentPO::getUpdatedAt, LocalDateTime.now());
-        int rows = agentMapper.update(null, updateWrapper);
+        int rows = agentMapper.softDeleteById(id, LocalDateTime.now());
         return rows > 0;
     }
 

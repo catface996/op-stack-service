@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.catface996.aiops.repository.mysql.mapper.prompt.TemplateUsageMapper">
+
+    <sql id="Base_Column_List">
+        id, code, name, description, created_at, updated_at, deleted
+    </sql>
+
+    <!-- 根据编码查询用途 -->
+    <select id="selectByCode" resultType="com.catface996.aiops.repository.mysql.po.prompt.TemplateUsagePO">
+        SELECT <include refid="Base_Column_List"/>
+        FROM template_usage
+        WHERE code = #{code} AND deleted = 0
+    </select>
+
+    <!-- 根据名称查询用途 -->
+    <select id="selectByName" resultType="com.catface996.aiops.repository.mysql.po.prompt.TemplateUsagePO">
+        SELECT <include refid="Base_Column_List"/>
+        FROM template_usage
+        WHERE name = #{name} AND deleted = 0
+    </select>
+
+    <!-- 统计使用该用途的模板数量 -->
+    <select id="countTemplatesByUsageId" resultType="long">
+        SELECT COUNT(*)
+        FROM prompt_template
+        WHERE usage_id = #{usageId} AND deleted = 0
+    </select>
+
+    <!-- 查询所有用途 -->
+    <select id="selectAll" resultType="com.catface996.aiops.repository.mysql.po.prompt.TemplateUsagePO">
+        SELECT <include refid="Base_Column_List"/>
+        FROM template_usage
+        WHERE deleted = 0
+        ORDER BY id ASC
+    </select>
+
+</mapper>

@@ -1,6 +1,5 @@
 package com.catface996.aiops.repository.mysql.impl.prompt;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.catface996.aiops.domain.model.prompt.TemplateUsage;
 import com.catface996.aiops.repository.mysql.mapper.prompt.TemplateUsageMapper;
 import com.catface996.aiops.repository.mysql.po.prompt.TemplateUsagePO;
@@ -47,10 +46,7 @@ public class TemplateUsageRepositoryImpl implements TemplateUsageRepository {
 
     @Override
     public List<TemplateUsage> findAll() {
-        LambdaQueryWrapper<TemplateUsagePO> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(TemplateUsagePO::getDeleted, false);
-        wrapper.orderByAsc(TemplateUsagePO::getId);
-        return templateUsageMapper.selectList(wrapper)
+        return templateUsageMapper.selectAll()
                 .stream()
                 .map(this::toDomain)
                 .collect(Collectors.toList());

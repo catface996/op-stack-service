@@ -6,10 +6,11 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.catface996.aiops.repository.mysql.po.topology.TopologyPO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Select;
 
 /**
  * 拓扑图 Mapper 接口
+ *
+ * <p>SQL 定义在 mapper/topology/TopologyMapper.xml</p>
  *
  * @author AI Assistant
  * @since 2025-12-26
@@ -25,21 +26,6 @@ public interface TopologyMapper extends BaseMapper<TopologyPO> {
      * @param status 状态筛选（可选）
      * @return 分页结果
      */
-    @Select("<script>" +
-            "SELECT t.*, " +
-            "(SELECT COUNT(*) FROM topology_2_node t2n WHERE t2n.topology_id = t.id AND t2n.deleted = 0) AS member_count " +
-            "FROM topology t " +
-            "<where>" +
-            "t.deleted = 0 " +
-            "<if test='name != null and name != \"\"'>" +
-            "AND t.name LIKE CONCAT('%', #{name}, '%') " +
-            "</if>" +
-            "<if test='status != null and status != \"\"'>" +
-            "AND t.status = #{status} " +
-            "</if>" +
-            "</where>" +
-            "ORDER BY t.created_at DESC" +
-            "</script>")
     IPage<TopologyPO> selectPageWithMemberCount(Page<TopologyPO> page,
                                                  @Param("name") String name,
                                                  @Param("status") String status);
@@ -50,10 +36,6 @@ public interface TopologyMapper extends BaseMapper<TopologyPO> {
      * @param id 拓扑图ID
      * @return 拓扑图信息
      */
-    @Select("SELECT t.*, " +
-            "(SELECT COUNT(*) FROM topology_2_node t2n WHERE t2n.topology_id = t.id AND t2n.deleted = 0) AS member_count " +
-            "FROM topology t " +
-            "WHERE t.id = #{id} AND t.deleted = 0")
     TopologyPO selectByIdWithMemberCount(@Param("id") Long id);
 
     /**
@@ -62,6 +44,26 @@ public interface TopologyMapper extends BaseMapper<TopologyPO> {
      * @param name 拓扑图名称
      * @return 拓扑图信息
      */
-    @Select("SELECT * FROM topology WHERE name = #{name} AND deleted = 0")
     TopologyPO selectByName(@Param("name") String name);
+
+    /**
+     * 根据条件统计拓扑图数量
+     *
+     * @param name   名称模糊查询（可选）
+     * @param status 状态筛选（可选）
+     * @return 数量
+     */
+    long countByCondition(@Param("name") String name, @Param("status") String status);
+
+    /**
+     * 更新全局监督Agent ID
+     *
+     * @param topologyId 拓扑图ID
+     * @param agentId    Agent ID
+     * @param updatedAt  更新时间
+     * @return 影响行数
+     */
+    int updateGlobalSupervisorAgentId(@Param("topologyId") Long topologyId,
+                                       @Param("agentId") Long agentId,
+                                       @Param("updatedAt") java.time.LocalDateTime updatedAt);
 }

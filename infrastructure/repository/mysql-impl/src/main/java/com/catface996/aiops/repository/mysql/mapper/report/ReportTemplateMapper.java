@@ -6,12 +6,13 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.catface996.aiops.repository.mysql.po.report.ReportTemplatePO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
 
 /**
  * 报告模板 Mapper 接口
+ *
+ * <p>SQL 定义在 mapper/report/ReportTemplateMapper.xml</p>
  *
  * @author AI Assistant
  * @since 2025-12-28
@@ -25,7 +26,6 @@ public interface ReportTemplateMapper extends BaseMapper<ReportTemplatePO> {
      * @param name 模板名称
      * @return 模板信息
      */
-    @Select("SELECT * FROM report_template WHERE name = #{name} AND deleted = 0")
     ReportTemplatePO selectByName(@Param("name") String name);
 
     /**
@@ -36,19 +36,6 @@ public interface ReportTemplateMapper extends BaseMapper<ReportTemplatePO> {
      * @param keyword  关键词搜索（可选，搜索 name, description）
      * @return 分页结果
      */
-    @Select("<script>" +
-            "SELECT * FROM report_template " +
-            "<where>" +
-            "deleted = 0 " +
-            "<if test='category != null and category != \"\"'>" +
-            "AND category = #{category} " +
-            "</if>" +
-            "<if test='keyword != null and keyword != \"\"'>" +
-            "AND (name LIKE CONCAT('%', #{keyword}, '%') OR description LIKE CONCAT('%', #{keyword}, '%') OR tags LIKE CONCAT('%', #{keyword}, '%')) " +
-            "</if>" +
-            "</where>" +
-            "ORDER BY created_at DESC" +
-            "</script>")
     IPage<ReportTemplatePO> selectPageByCondition(Page<ReportTemplatePO> page,
                                                     @Param("category") String category,
                                                     @Param("keyword") String keyword);
@@ -60,18 +47,6 @@ public interface ReportTemplateMapper extends BaseMapper<ReportTemplatePO> {
      * @param keyword  关键词搜索（可选）
      * @return 模板数量
      */
-    @Select("<script>" +
-            "SELECT COUNT(*) FROM report_template " +
-            "<where>" +
-            "deleted = 0 " +
-            "<if test='category != null and category != \"\"'>" +
-            "AND category = #{category} " +
-            "</if>" +
-            "<if test='keyword != null and keyword != \"\"'>" +
-            "AND (name LIKE CONCAT('%', #{keyword}, '%') OR description LIKE CONCAT('%', #{keyword}, '%') OR tags LIKE CONCAT('%', #{keyword}, '%')) " +
-            "</if>" +
-            "</where>" +
-            "</script>")
     long countByCondition(@Param("category") String category,
                           @Param("keyword") String keyword);
 
@@ -81,11 +56,14 @@ public interface ReportTemplateMapper extends BaseMapper<ReportTemplatePO> {
      * @param ids 模板ID列表
      * @return 存在的模板ID列表
      */
-    @Select("<script>" +
-            "SELECT id FROM report_template WHERE deleted = 0 AND id IN " +
-            "<foreach collection='ids' item='id' open='(' separator=',' close=')'>" +
-            "#{id}" +
-            "</foreach>" +
-            "</script>")
     List<Long> selectExistingIds(@Param("ids") List<Long> ids);
+
+    /**
+     * 软删除报告模板
+     *
+     * @param id        模板ID
+     * @param updatedAt 更新时间
+     * @return 影响行数
+     */
+    int softDeleteById(@Param("id") Long id, @Param("updatedAt") java.time.LocalDateTime updatedAt);
 }

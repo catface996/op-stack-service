@@ -4,12 +4,13 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.catface996.aiops.repository.mysql.po.prompt.PromptTemplateVersionPO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
 
 /**
  * 模板版本 Mapper 接口
+ *
+ * <p>SQL 定义在 mapper/prompt/PromptTemplateVersionMapper.xml</p>
  *
  * @author AI Assistant
  * @since 2025-12-26
@@ -24,7 +25,6 @@ public interface PromptTemplateVersionMapper extends BaseMapper<PromptTemplateVe
      * @param versionNumber 版本号
      * @return 版本信息
      */
-    @Select("SELECT * FROM prompt_template_version WHERE template_id = #{templateId} AND version_number = #{versionNumber}")
     PromptTemplateVersionPO selectByTemplateIdAndVersion(@Param("templateId") Long templateId,
                                                           @Param("versionNumber") Integer versionNumber);
 
@@ -34,7 +34,6 @@ public interface PromptTemplateVersionMapper extends BaseMapper<PromptTemplateVe
      * @param templateId 模板ID
      * @return 版本列表
      */
-    @Select("SELECT * FROM prompt_template_version WHERE template_id = #{templateId} ORDER BY version_number DESC")
     List<PromptTemplateVersionPO> selectByTemplateId(@Param("templateId") Long templateId);
 
     /**
@@ -43,7 +42,6 @@ public interface PromptTemplateVersionMapper extends BaseMapper<PromptTemplateVe
      * @param templateId 模板ID
      * @return 最新版本
      */
-    @Select("SELECT * FROM prompt_template_version WHERE template_id = #{templateId} ORDER BY version_number DESC LIMIT 1")
     PromptTemplateVersionPO selectLatestByTemplateId(@Param("templateId") Long templateId);
 
     /**
@@ -52,7 +50,6 @@ public interface PromptTemplateVersionMapper extends BaseMapper<PromptTemplateVe
      * @param templateId 模板ID
      * @return 版本数量
      */
-    @Select("SELECT COUNT(*) FROM prompt_template_version WHERE template_id = #{templateId}")
     long countByTemplateId(@Param("templateId") Long templateId);
 
     /**
@@ -61,6 +58,5 @@ public interface PromptTemplateVersionMapper extends BaseMapper<PromptTemplateVe
      * @param templateId 模板ID
      * @return 删除的行数
      */
-    @Select("DELETE FROM prompt_template_version WHERE template_id = #{templateId}")
     int deleteByTemplateId(@Param("templateId") Long templateId);
 }

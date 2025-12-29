@@ -1,6 +1,5 @@
 package com.catface996.aiops.repository.mysql.impl.node;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.catface996.aiops.domain.model.node.NodeAgentRelation;
 import com.catface996.aiops.repository.mysql.mapper.node.NodeAgentRelationMapper;
 import com.catface996.aiops.repository.mysql.po.node.NodeAgentRelationPO;
@@ -34,12 +33,7 @@ public class NodeAgentRelationRepositoryImpl implements NodeAgentRelationReposit
 
     @Override
     public Optional<NodeAgentRelation> findByNodeIdAndAgentId(Long nodeId, Long agentId) {
-        LambdaQueryWrapper<NodeAgentRelationPO> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(NodeAgentRelationPO::getNodeId, nodeId)
-                .eq(NodeAgentRelationPO::getAgentId, agentId)
-                .eq(NodeAgentRelationPO::getDeleted, 0);
-
-        NodeAgentRelationPO po = nodeAgentRelationMapper.selectOne(wrapper);
+        NodeAgentRelationPO po = nodeAgentRelationMapper.selectByNodeIdAndAgentId(nodeId, agentId);
         return Optional.ofNullable(po).map(this::toDomain);
     }
 
@@ -70,12 +64,7 @@ public class NodeAgentRelationRepositoryImpl implements NodeAgentRelationReposit
 
     @Override
     public boolean existsByNodeIdAndAgentId(Long nodeId, Long agentId) {
-        LambdaQueryWrapper<NodeAgentRelationPO> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(NodeAgentRelationPO::getNodeId, nodeId)
-                .eq(NodeAgentRelationPO::getAgentId, agentId)
-                .eq(NodeAgentRelationPO::getDeleted, 0);
-
-        return nodeAgentRelationMapper.exists(wrapper);
+        return nodeAgentRelationMapper.selectByNodeIdAndAgentId(nodeId, agentId) != null;
     }
 
     // ==================== 转换方法 ====================

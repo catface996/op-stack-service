@@ -1,6 +1,5 @@
 package com.catface996.aiops.repository.mysql.impl.topology;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.catface996.aiops.repository.mysql.mapper.topology.Topology2NodeMapper;
 import com.catface996.aiops.repository.mysql.po.topology.Topology2NodePO;
 import com.catface996.aiops.repository.topology2.Topology2NodeRepository;
@@ -46,10 +45,7 @@ public class Topology2NodeRepositoryImpl implements Topology2NodeRepository {
 
     @Override
     public void removeMember(Long topologyId, Long nodeId) {
-        LambdaQueryWrapper<Topology2NodePO> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Topology2NodePO::getTopologyId, topologyId);
-        wrapper.eq(Topology2NodePO::getNodeId, nodeId);
-        topology2NodeMapper.delete(wrapper);
+        topology2NodeMapper.deleteByTopologyIdAndNodeId(topologyId, nodeId);
     }
 
     @Override
@@ -71,13 +67,7 @@ public class Topology2NodeRepositoryImpl implements Topology2NodeRepository {
 
     @Override
     public List<Long> findNodeIdsByTopologyId(Long topologyId) {
-        LambdaQueryWrapper<Topology2NodePO> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Topology2NodePO::getTopologyId, topologyId);
-        wrapper.select(Topology2NodePO::getNodeId);
-        return topology2NodeMapper.selectList(wrapper)
-                .stream()
-                .map(Topology2NodePO::getNodeId)
-                .collect(Collectors.toList());
+        return topology2NodeMapper.selectNodeIdsByTopologyId(topologyId);
     }
 
     @Override
@@ -87,9 +77,7 @@ public class Topology2NodeRepositoryImpl implements Topology2NodeRepository {
 
     @Override
     public int countByTopologyId(Long topologyId) {
-        LambdaQueryWrapper<Topology2NodePO> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Topology2NodePO::getTopologyId, topologyId);
-        return Math.toIntExact(topology2NodeMapper.selectCount(wrapper));
+        return topology2NodeMapper.countByTopologyId(topologyId);
     }
 
     @Override

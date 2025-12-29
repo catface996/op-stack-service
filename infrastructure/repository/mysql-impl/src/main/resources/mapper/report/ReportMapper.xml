@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.catface996.aiops.repository.mysql.mapper.report.ReportMapper">
+
+    <sql id="Base_Column_List">
+        id, title, type, status, author, summary, content, tags, topology_id,
+        created_by, created_at, updated_by, updated_at, deleted
+    </sql>
+
+    <!-- 分页查询报告列表 -->
+    <select id="selectPageByCondition" resultType="com.catface996.aiops.repository.mysql.po.report.ReportPO">
+        SELECT <include refid="Base_Column_List"/>
+        FROM report
+        <where>
+            deleted = 0
+            <if test="type != null and type != ''">AND type = #{type}</if>
+            <if test="status != null and status != ''">AND status = #{status}</if>
+            <if test="keyword != null and keyword != ''">
+                AND (title LIKE CONCAT('%', #{keyword}, '%') OR summary LIKE CONCAT('%', #{keyword}, '%') OR tags LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        <choose>
+            <when test="sortBy == 'title'">ORDER BY title</when>
+            <when test="sortBy == 'type'">ORDER BY type</when>
+            <when test="sortBy == 'status'">ORDER BY status</when>
+            <otherwise>ORDER BY created_at</otherwise>
+        </choose>
+        <if test="sortOrder == 'asc'">ASC</if>
+        <if test="sortOrder != 'asc'">DESC</if>
+    </select>
+
+    <!-- 按条件统计报告数量 -->
+    <select id="countByCondition" resultType="long">
+        SELECT COUNT(*)
+        FROM report
+        <where>
+            deleted = 0
+            <if test="type != null and type != ''">AND type = #{type}</if>
+            <if test="status != null and status != ''">AND status = #{status}</if>
+            <if test="keyword != null and keyword != ''">
+                AND (title LIKE CONCAT('%', #{keyword}, '%') OR summary LIKE CONCAT('%', #{keyword}, '%') OR tags LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+    </select>
+
+    <!-- 软删除报告 -->
+    <update id="softDeleteById">
+        UPDATE report
+        SET deleted = 1
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+</mapper>
