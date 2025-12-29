@@ -1,7 +1,5 @@
 package com.catface996.aiops.repository.mysql.impl.prompt;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.catface996.aiops.domain.model.prompt.PromptTemplate;
 import com.catface996.aiops.repository.mysql.mapper.prompt.PromptTemplateMapper;
@@ -82,12 +80,7 @@ public class PromptTemplateRepositoryImpl implements PromptTemplateRepository {
 
     @Override
     public void deleteById(Long id) {
-        // 软删除：使用 UpdateWrapper 直接更新 deleted 和 updated_at 字段
-        LambdaUpdateWrapper<PromptTemplatePO> updateWrapper = new LambdaUpdateWrapper<>();
-        updateWrapper.eq(PromptTemplatePO::getId, id)
-                .set(PromptTemplatePO::getDeleted, true)
-                .set(PromptTemplatePO::getUpdatedAt, LocalDateTime.now());
-        promptTemplateMapper.update(null, updateWrapper);
+        promptTemplateMapper.softDeleteById(id, LocalDateTime.now());
     }
 
     @Override

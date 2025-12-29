@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.catface996.aiops.repository.mysql.mapper.prompt.PromptTemplateVersionMapper">
+
+    <sql id="Base_Column_List">
+        id, template_id, version_number, content, created_by, created_at
+    </sql>
+
+    <!-- 根据模板ID和版本号查询版本 -->
+    <select id="selectByTemplateIdAndVersion" resultType="com.catface996.aiops.repository.mysql.po.prompt.PromptTemplateVersionPO">
+        SELECT <include refid="Base_Column_List"/>
+        FROM prompt_template_version
+        WHERE template_id = #{templateId} AND version_number = #{versionNumber}
+    </select>
+
+    <!-- 查询模板的所有版本（按版本号降序） -->
+    <select id="selectByTemplateId" resultType="com.catface996.aiops.repository.mysql.po.prompt.PromptTemplateVersionPO">
+        SELECT <include refid="Base_Column_List"/>
+        FROM prompt_template_version
+        WHERE template_id = #{templateId}
+        ORDER BY version_number DESC
+    </select>
+
+    <!-- 查询模板的最新版本 -->
+    <select id="selectLatestByTemplateId" resultType="com.catface996.aiops.repository.mysql.po.prompt.PromptTemplateVersionPO">
+        SELECT <include refid="Base_Column_List"/>
+        FROM prompt_template_version
+        WHERE template_id = #{templateId}
+        ORDER BY version_number DESC
+        LIMIT 1
+    </select>
+
+    <!-- 查询模板的版本数量 -->
+    <select id="countByTemplateId" resultType="long">
+        SELECT COUNT(*)
+        FROM prompt_template_version
+        WHERE template_id = #{templateId}
+    </select>
+
+    <!-- 删除模板的所有版本 -->
+    <delete id="deleteByTemplateId">
+        DELETE FROM prompt_template_version
+        WHERE template_id = #{templateId}
+    </delete>
+
+</mapper>

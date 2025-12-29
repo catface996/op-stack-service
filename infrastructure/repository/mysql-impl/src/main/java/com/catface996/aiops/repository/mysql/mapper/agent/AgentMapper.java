@@ -6,8 +6,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.catface996.aiops.repository.mysql.po.agent.AgentPO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Select;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -28,19 +28,6 @@ public interface AgentMapper extends BaseMapper<AgentPO> {
      * @param keyword 关键词搜索（可选）
      * @return 分页结果
      */
-    @Select("<script>" +
-            "SELECT * FROM agent " +
-            "<where>" +
-            "deleted = 0 " +
-            "<if test='role != null and role != \"\"'>" +
-            "AND role = #{role} " +
-            "</if>" +
-            "<if test='keyword != null and keyword != \"\"'>" +
-            "AND (name LIKE CONCAT('%', #{keyword}, '%') OR specialty LIKE CONCAT('%', #{keyword}, '%')) " +
-            "</if>" +
-            "</where>" +
-            "ORDER BY created_at DESC" +
-            "</script>")
     IPage<AgentPO> selectPageByCondition(Page<AgentPO> page,
                                           @Param("role") String role,
                                           @Param("keyword") String keyword);
@@ -52,18 +39,6 @@ public interface AgentMapper extends BaseMapper<AgentPO> {
      * @param keyword 关键词搜索（可选）
      * @return Agent 数量
      */
-    @Select("<script>" +
-            "SELECT COUNT(*) FROM agent " +
-            "<where>" +
-            "deleted = 0 " +
-            "<if test='role != null and role != \"\"'>" +
-            "AND role = #{role} " +
-            "</if>" +
-            "<if test='keyword != null and keyword != \"\"'>" +
-            "AND (name LIKE CONCAT('%', #{keyword}, '%') OR specialty LIKE CONCAT('%', #{keyword}, '%')) " +
-            "</if>" +
-            "</where>" +
-            "</script>")
     long countByCondition(@Param("role") String role,
                           @Param("keyword") String keyword);
 
@@ -73,7 +48,6 @@ public interface AgentMapper extends BaseMapper<AgentPO> {
      * @param name Agent 名称
      * @return Agent 持久化对象
      */
-    @Select("SELECT * FROM agent WHERE name = #{name} AND deleted = 0 LIMIT 1")
     AgentPO selectByName(@Param("name") String name);
 
     /**
@@ -83,12 +57,6 @@ public interface AgentMapper extends BaseMapper<AgentPO> {
      * @param excludeId 排除的 Agent ID
      * @return 存在返回 1，不存在返回 0
      */
-    @Select("<script>" +
-            "SELECT COUNT(*) FROM agent WHERE name = #{name} AND deleted = 0 " +
-            "<if test='excludeId != null'>" +
-            "AND id != #{excludeId} " +
-            "</if>" +
-            "</script>")
     int countByNameExcludeId(@Param("name") String name, @Param("excludeId") Long excludeId);
 
     /**
@@ -96,7 +64,6 @@ public interface AgentMapper extends BaseMapper<AgentPO> {
      *
      * @return 存在返回数量，不存在返回 0
      */
-    @Select("SELECT COUNT(*) FROM agent WHERE role = 'GLOBAL_SUPERVISOR' AND deleted = 0")
     int countGlobalSupervisor();
 
     /**
@@ -104,7 +71,6 @@ public interface AgentMapper extends BaseMapper<AgentPO> {
      *
      * @return 角色 -> 数量 的列表
      */
-    @Select("SELECT role, COUNT(*) as count FROM agent WHERE deleted = 0 GROUP BY role")
     List<Map<String, Object>> countGroupByRole();
 
     /**
@@ -112,7 +78,6 @@ public interface AgentMapper extends BaseMapper<AgentPO> {
      *
      * @return 包含 totalWarnings 和 totalCritical 的 Map
      */
-    @Select("SELECT COALESCE(SUM(warnings), 0) as totalWarnings, COALESCE(SUM(critical), 0) as totalCritical FROM agent WHERE deleted = 0")
     Map<String, Object> sumFindings();
 
     /**
@@ -121,7 +86,6 @@ public interface AgentMapper extends BaseMapper<AgentPO> {
      * @param agentId Agent ID
      * @return 包含 warnings 和 critical 的 Map
      */
-    @Select("SELECT COALESCE(warnings, 0) as warnings, COALESCE(critical, 0) as critical FROM agent WHERE id = #{agentId} AND deleted = 0")
     Map<String, Object> sumFindingsById(@Param("agentId") Long agentId);
 
     /**
@@ -132,22 +96,6 @@ public interface AgentMapper extends BaseMapper<AgentPO> {
      * @param keyword        关键词搜索（可选）
      * @return 分页结果
      */
-    @Select("<script>" +
-            "SELECT * FROM agent " +
-            "<where>" +
-            "deleted = 0 " +
-            "<if test='excludeAgentIds != null and excludeAgentIds.size() > 0'>" +
-            "AND id NOT IN " +
-            "<foreach collection='excludeAgentIds' item='id' open='(' separator=',' close=')'>" +
-            "#{id}" +
-            "</foreach> " +
-            "</if>" +
-            "<if test='keyword != null and keyword != \"\"'>" +
-            "AND (name LIKE CONCAT('%', #{keyword}, '%') OR specialty LIKE CONCAT('%', #{keyword}, '%')) " +
-            "</if>" +
-            "</where>" +
-            "ORDER BY created_at DESC" +
-            "</script>")
     IPage<AgentPO> selectPageUnbound(Page<AgentPO> page,
                                       @Param("excludeAgentIds") List<Long> excludeAgentIds,
                                       @Param("keyword") String keyword);
@@ -159,21 +107,15 @@ public interface AgentMapper extends BaseMapper<AgentPO> {
      * @param keyword        关键词搜索（可选）
      * @return Agent 数量
      */
-    @Select("<script>" +
-            "SELECT COUNT(*) FROM agent " +
-            "<where>" +
-            "deleted = 0 " +
-            "<if test='excludeAgentIds != null and excludeAgentIds.size() > 0'>" +
-            "AND id NOT IN " +
-            "<foreach collection='excludeAgentIds' item='id' open='(' separator=',' close=')'>" +
-            "#{id}" +
-            "</foreach> " +
-            "</if>" +
-            "<if test='keyword != null and keyword != \"\"'>" +
-            "AND (name LIKE CONCAT('%', #{keyword}, '%') OR specialty LIKE CONCAT('%', #{keyword}, '%')) " +
-            "</if>" +
-            "</where>" +
-            "</script>")
     long countUnbound(@Param("excludeAgentIds") List<Long> excludeAgentIds,
                       @Param("keyword") String keyword);
+
+    /**
+     * 软删除 Agent
+     *
+     * @param id        Agent ID
+     * @param updatedAt 更新时间
+     * @return 影响行数
+     */
+    int softDeleteById(@Param("id") Long id, @Param("updatedAt") LocalDateTime updatedAt);
 }

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.catface996.aiops.repository.mysql.mapper.topology.Topology2NodeMapper">
+
+    <sql id="Base_Column_List">
+        id, topology_id, node_id, added_at, added_by, deleted
+    </sql>
+
+    <!-- 查询拓扑图的所有成员（带节点详情） -->
+    <select id="selectMembersByTopologyId" resultType="com.catface996.aiops.repository.mysql.po.topology.Topology2NodePO">
+        SELECT t2n.*,
+            n.name AS node_name, n.status AS node_status,
+            nt.code AS node_type_code, nt.name AS node_type_name
+        FROM topology_2_node t2n
+        JOIN node n ON t2n.node_id = n.id
+        JOIN node_type nt ON n.node_type_id = nt.id
+        WHERE t2n.topology_id = #{topologyId}
+        ORDER BY t2n.added_at DESC
+    </select>
+
+    <!-- 根据拓扑图ID和节点ID查询关联记录 -->
+    <select id="selectByTopologyIdAndNodeId" resultType="com.catface996.aiops.repository.mysql.po.topology.Topology2NodePO">
+        SELECT <include refid="Base_Column_List"/>
+        FROM topology_2_node
+        WHERE topology_id = #{topologyId} AND node_id = #{nodeId}
+    </select>
+
+    <!-- 删除拓扑图的所有成员关联 -->
+    <delete id="deleteByTopologyId">
+        DELETE FROM topology_2_node
+        WHERE topology_id = #{topologyId}
+    </delete>
+
+    <!-- 删除节点相关的所有拓扑图关联 -->
+    <delete id="deleteByNodeId">
+        DELETE FROM topology_2_node
+        WHERE node_id = #{nodeId}
+    </delete>
+
+    <!-- 查询节点所属的拓扑图数量 -->
+    <select id="countByNodeId" resultType="int">
+        SELECT COUNT(*)
+        FROM topology_2_node
+        WHERE node_id = #{nodeId}
+    </select>
+
+    <!-- 统计拓扑图的成员数量 -->
+    <select id="countByTopologyId" resultType="int">
+        SELECT COUNT(*)
+        FROM topology_2_node
+        WHERE topology_id = #{topologyId}
+    </select>
+
+    <!-- 查询拓扑图的所有节点ID -->
+    <select id="selectNodeIdsByTopologyId" resultType="java.lang.Long">
+        SELECT node_id
+        FROM topology_2_node
+        WHERE topology_id = #{topologyId}
+    </select>
+
+    <!-- 删除指定拓扑图和节点的关联 -->
+    <delete id="deleteByTopologyIdAndNodeId">
+        DELETE FROM topology_2_node
+        WHERE topology_id = #{topologyId} AND node_id = #{nodeId}
+    </delete>
+
+</mapper>

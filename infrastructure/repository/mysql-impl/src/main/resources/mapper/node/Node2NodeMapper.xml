@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.catface996.aiops.repository.mysql.mapper.node.Node2NodeMapper">
+
+    <sql id="Base_Column_List">
+        id, source_id, target_id, relationship_type, direction, strength, status, created_at
+    </sql>
+
+    <!-- 查询节点的出边关系（带节点名称） -->
+    <select id="selectOutgoingBySourceId" resultType="com.catface996.aiops.repository.mysql.po.node.Node2NodePO">
+        SELECT n2n.*, n.name AS target_name
+        FROM node_2_node n2n
+        JOIN node n ON n2n.target_id = n.id
+        WHERE n2n.source_id = #{sourceId}
+    </select>
+
+    <!-- 查询节点的入边关系（带节点名称） -->
+    <select id="selectIncomingByTargetId" resultType="com.catface996.aiops.repository.mysql.po.node.Node2NodePO">
+        SELECT n2n.*, n.name AS source_name
+        FROM node_2_node n2n
+        JOIN node n ON n2n.source_id = n.id
+        WHERE n2n.target_id = #{targetId}
+    </select>
+
+    <!-- 删除节点相关的所有关系 -->
+    <delete id="deleteByNodeId">
+        DELETE FROM node_2_node
+        WHERE source_id = #{nodeId} OR target_id = #{nodeId}
+    </delete>
+
+    <!-- 查询指定节点集合之间的关系 -->
+    <select id="selectByNodeIds" resultType="com.catface996.aiops.repository.mysql.po.node.Node2NodePO">
+        SELECT <include refid="Base_Column_List"/>
+        FROM node_2_node
+        WHERE source_id IN
+        <foreach collection="nodeIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        AND target_id IN
+        <foreach collection="nodeIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <!-- 检查关系是否已存在 -->
+    <select id="existsBySourceAndTargetAndType" resultType="int">
+        SELECT COUNT(1)
+        FROM node_2_node
+        WHERE source_id = #{sourceId} AND target_id = #{targetId} AND relationship_type = #{relationshipType}
+    </select>
+
+    <!-- 根据条件分页查询关系 -->
+    <select id="selectByConditions" resultType="com.catface996.aiops.repository.mysql.po.node.Node2NodePO">
+        SELECT <include refid="Base_Column_List"/>
+        FROM node_2_node
+        <where>
+            <if test="sourceId != null">AND source_id = #{sourceId}</if>
+            <if test="targetId != null">AND target_id = #{targetId}</if>
+            <if test="relationshipType != null">AND relationship_type = #{relationshipType}</if>
+            <if test="status != null">AND status = #{status}</if>
+        </where>
+        ORDER BY created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 根据条件统计关系数量 -->
+    <select id="countByConditions" resultType="long">
+        SELECT COUNT(1)
+        FROM node_2_node
+        <where>
+            <if test="sourceId != null">AND source_id = #{sourceId}</if>
+            <if test="targetId != null">AND target_id = #{targetId}</if>
+            <if test="relationshipType != null">AND relationship_type = #{relationshipType}</if>
+            <if test="status != null">AND status = #{status}</if>
+        </where>
+    </select>
+
+    <!-- 查询源节点的所有关系 -->
+    <select id="selectBySourceId" resultType="com.catface996.aiops.repository.mysql.po.node.Node2NodePO">
+        SELECT <include refid="Base_Column_List"/>
+        FROM node_2_node
+        WHERE source_id = #{sourceId}
+    </select>
+
+    <!-- 查询目标节点的所有关系 -->
+    <select id="selectByTargetId" resultType="com.catface996.aiops.repository.mysql.po.node.Node2NodePO">
+        SELECT <include refid="Base_Column_List"/>
+        FROM node_2_node
+        WHERE target_id = #{targetId}
+    </select>
+
+    <!-- 删除指定的关系 -->
+    <delete id="deleteBySourceAndTargetAndType">
+        DELETE FROM node_2_node
+        WHERE source_id = #{sourceId} AND target_id = #{targetId} AND relationship_type = #{relationshipType}
+    </delete>
+
+</mapper>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.catface996.aiops.repository.mysql.mapper.node.NodeTypeMapper">
+
+    <sql id="Base_Column_List">
+        id, code, name, description, is_system, created_at, updated_at
+    </sql>
+
+    <!-- 查询所有节点类型 -->
+    <select id="selectAll" resultType="com.catface996.aiops.repository.mysql.po.node.NodeTypePO">
+        SELECT <include refid="Base_Column_List"/>
+        FROM node_type
+        ORDER BY id
+    </select>
+
+    <!-- 根据编码查询节点类型 -->
+    <select id="selectByCode" resultType="com.catface996.aiops.repository.mysql.po.node.NodeTypePO">
+        SELECT <include refid="Base_Column_List"/>
+        FROM node_type
+        WHERE code = #{code}
+    </select>
+
+</mapper>

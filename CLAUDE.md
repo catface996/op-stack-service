@@ -51,9 +51,9 @@ mvn test
 Java 21 (LTS): Follow standard conventions
 
 ## Recent Changes
+- 036-refactor-sql-to-xml: Added Java 21 (LTS) + Spring Boot 3.4.x, MyBatis-Plus 3.5.x
 - 033-database-schema-compliance: Added Java 21 (LTS) + Spring Boot 3.4.x, MyBatis-Plus 3.5.x, Flyway
 - 001-remove-relationship: Added Java 21 (LTS) + Spring Boot 3.4.x, MyBatis-Plus 3.5.x, SpringDoc OpenAPI
-- 001-remove-resource-api: Added Java 21 (LTS) + Spring Boot 3.4.x, MyBatis-Plus 3.5.x, SpringDoc OpenAPI
 
 
 <!-- MANUAL ADDITIONS START -->
@@ -64,4 +64,12 @@ Java 21 (LTS): Follow standard conventions
 ### 端口配置
 - **开发环境端口必须是 8081**，禁止修改
 - local profile 服务端口: `server.port=8081`
+
+### SQL 定义规则
+- **禁止使用注解方式定义 SQL**（@Select, @Update, @Delete, @Insert）
+- **禁止使用 Lambda 表达式查询**（LambdaQueryWrapper, LambdaUpdateWrapper）
+- **所有 SQL 必须定义在 mapper.xml 文件中**
+- Mapper 接口仅声明方法签名，SQL 实现在对应的 XML 文件中
+- BaseMapper 方法仅允许使用：selectById, selectBatchIds, insert, updateById, deleteById
+- XML 文件位置：`infrastructure/repository/mysql-impl/src/main/resources/mapper/{module}/*.xml`
 <!-- MANUAL ADDITIONS END -->

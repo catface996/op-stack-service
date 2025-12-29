@@ -2,15 +2,15 @@ package com.catface996.aiops.repository.mysql.mapper.topology;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.catface996.aiops.repository.mysql.po.topology.Topology2NodePO;
-import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
 
 /**
  * 拓扑图-节点关联 Mapper 接口
+ *
+ * <p>SQL 定义在 mapper/topology/Topology2NodeMapper.xml</p>
  *
  * @author AI Assistant
  * @since 2025-12-26
@@ -24,14 +24,6 @@ public interface Topology2NodeMapper extends BaseMapper<Topology2NodePO> {
      * @param topologyId 拓扑图ID
      * @return 成员列表
      */
-    @Select("SELECT t2n.*, " +
-            "n.name AS node_name, n.status AS node_status, " +
-            "nt.code AS node_type_code, nt.name AS node_type_name " +
-            "FROM topology_2_node t2n " +
-            "JOIN node n ON t2n.node_id = n.id " +
-            "JOIN node_type nt ON n.node_type_id = nt.id " +
-            "WHERE t2n.topology_id = #{topologyId} " +
-            "ORDER BY t2n.added_at DESC")
     List<Topology2NodePO> selectMembersByTopologyId(@Param("topologyId") Long topologyId);
 
     /**
@@ -41,7 +33,6 @@ public interface Topology2NodeMapper extends BaseMapper<Topology2NodePO> {
      * @param nodeId     节点ID
      * @return 关联记录
      */
-    @Select("SELECT * FROM topology_2_node WHERE topology_id = #{topologyId} AND node_id = #{nodeId}")
     Topology2NodePO selectByTopologyIdAndNodeId(@Param("topologyId") Long topologyId,
                                                  @Param("nodeId") Long nodeId);
 
@@ -51,7 +42,6 @@ public interface Topology2NodeMapper extends BaseMapper<Topology2NodePO> {
      * @param topologyId 拓扑图ID
      * @return 删除的记录数
      */
-    @Delete("DELETE FROM topology_2_node WHERE topology_id = #{topologyId}")
     int deleteByTopologyId(@Param("topologyId") Long topologyId);
 
     /**
@@ -60,7 +50,6 @@ public interface Topology2NodeMapper extends BaseMapper<Topology2NodePO> {
      * @param nodeId 节点ID
      * @return 删除的记录数
      */
-    @Delete("DELETE FROM topology_2_node WHERE node_id = #{nodeId}")
     int deleteByNodeId(@Param("nodeId") Long nodeId);
 
     /**
@@ -69,6 +58,30 @@ public interface Topology2NodeMapper extends BaseMapper<Topology2NodePO> {
      * @param nodeId 节点ID
      * @return 拓扑图数量
      */
-    @Select("SELECT COUNT(*) FROM topology_2_node WHERE node_id = #{nodeId}")
     int countByNodeId(@Param("nodeId") Long nodeId);
+
+    /**
+     * 统计拓扑图的成员数量
+     *
+     * @param topologyId 拓扑图ID
+     * @return 成员数量
+     */
+    int countByTopologyId(@Param("topologyId") Long topologyId);
+
+    /**
+     * 查询拓扑图的所有节点ID
+     *
+     * @param topologyId 拓扑图ID
+     * @return 节点ID列表
+     */
+    List<Long> selectNodeIdsByTopologyId(@Param("topologyId") Long topologyId);
+
+    /**
+     * 删除指定拓扑图和节点的关联
+     *
+     * @param topologyId 拓扑图ID
+     * @param nodeId     节点ID
+     * @return 删除的记录数
+     */
+    int deleteByTopologyIdAndNodeId(@Param("topologyId") Long topologyId, @Param("nodeId") Long nodeId);
 }

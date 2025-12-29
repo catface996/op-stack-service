@@ -1,6 +1,5 @@
 package com.catface996.aiops.repository.mysql.impl.node;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.catface996.aiops.domain.model.node.Node;
 import com.catface996.aiops.domain.model.node.NodeStatus;
@@ -9,7 +8,6 @@ import com.catface996.aiops.repository.mysql.mapper.node.NodeMapper;
 import com.catface996.aiops.repository.mysql.po.node.NodePO;
 import com.catface996.aiops.repository.node.NodeRepository;
 import org.springframework.stereotype.Repository;
-import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -116,13 +114,7 @@ public class NodeRepositoryImpl implements NodeRepository {
         if (ids == null || ids.isEmpty()) {
             return List.of();
         }
-        LambdaQueryWrapper<NodePO> wrapper = new LambdaQueryWrapper<>();
-        wrapper.in(NodePO::getId, ids);
-        wrapper.select(NodePO::getId);
-        return nodeMapper.selectList(wrapper)
-                .stream()
-                .map(NodePO::getId)
-                .collect(Collectors.toList());
+        return nodeMapper.findExistingIds(ids);
     }
 
     // ==================== 转换方法 ====================

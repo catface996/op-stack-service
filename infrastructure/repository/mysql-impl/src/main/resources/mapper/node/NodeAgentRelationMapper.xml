@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.catface996.aiops.repository.mysql.mapper.node.NodeAgentRelationMapper">
+
+    <sql id="Base_Column_List">
+        id, node_id, agent_id, created_at, deleted
+    </sql>
+
+    <!-- 根据节点ID查询关联的Agent ID列表 -->
+    <select id="selectAgentIdsByNodeId" resultType="java.lang.Long">
+        SELECT agent_id
+        FROM node_2_agent
+        WHERE node_id = #{nodeId} AND deleted = 0
+    </select>
+
+    <!-- 根据Agent ID查询关联的节点ID列表 -->
+    <select id="selectNodeIdsByAgentId" resultType="java.lang.Long">
+        SELECT node_id
+        FROM node_2_agent
+        WHERE agent_id = #{agentId} AND deleted = 0
+    </select>
+
+    <!-- 软删除指定记录 -->
+    <update id="softDeleteById">
+        UPDATE node_2_agent
+        SET deleted = 1
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据节点ID软删除所有关联 -->
+    <update id="softDeleteByNodeId">
+        UPDATE node_2_agent
+        SET deleted = 1
+        WHERE node_id = #{nodeId} AND deleted = 0
+    </update>
+
+    <!-- 根据Agent ID软删除所有关联 -->
+    <update id="softDeleteByAgentId">
+        UPDATE node_2_agent
+        SET deleted = 1
+        WHERE agent_id = #{agentId} AND deleted = 0
+    </update>
+
+    <!-- 根据节点ID和Agent ID查询关联记录 -->
+    <select id="selectByNodeIdAndAgentId" resultType="com.catface996.aiops.repository.mysql.po.node.NodeAgentRelationPO">
+        SELECT <include refid="Base_Column_List"/>
+        FROM node_2_agent
+        WHERE node_id = #{nodeId} AND agent_id = #{agentId} AND deleted = 0
+    </select>
+
+    <!-- 统计节点的Agent绑定数量 -->
+    <select id="countByNodeId" resultType="int">
+        SELECT COUNT(*)
+        FROM node_2_agent
+        WHERE node_id = #{nodeId} AND deleted = 0
+    </select>
+
+</mapper>

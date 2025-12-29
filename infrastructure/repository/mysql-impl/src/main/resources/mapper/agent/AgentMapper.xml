@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.catface996.aiops.repository.mysql.mapper.agent.AgentMapper">
+
+    <sql id="Base_Column_List">
+        id, name, role, specialty, prompt_template_id, model, temperature,
+        top_p, max_tokens, max_runtime, warnings, critical,
+        created_at, updated_at, deleted
+    </sql>
+
+    <!-- 分页查询 Agent 列表 -->
+    <select id="selectPageByCondition" resultType="com.catface996.aiops.repository.mysql.po.agent.AgentPO">
+        SELECT <include refid="Base_Column_List"/>
+        FROM agent
+        <where>
+            deleted = 0
+            <if test="role != null and role != ''">
+                AND role = #{role}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (name LIKE CONCAT('%', #{keyword}, '%') OR specialty LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 按条件统计 Agent 数量 -->
+    <select id="countByCondition" resultType="long">
+        SELECT COUNT(*) FROM agent
+        <where>
+            deleted = 0
+            <if test="role != null and role != ''">
+                AND role = #{role}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (name LIKE CONCAT('%', #{keyword}, '%') OR specialty LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+    </select>
+
+    <!-- 根据名称查询 Agent -->
+    <select id="selectByName" resultType="com.catface996.aiops.repository.mysql.po.agent.AgentPO">
+        SELECT <include refid="Base_Column_List"/>
+        FROM agent
+        WHERE name = #{name} AND deleted = 0
+        LIMIT 1
+    </select>
+
+    <!-- 检查名称是否已存在（排除指定ID） -->
+    <select id="countByNameExcludeId" resultType="int">
+        SELECT COUNT(*) FROM agent
+        WHERE name = #{name} AND deleted = 0
+        <if test="excludeId != null">
+            AND id != #{excludeId}
+        </if>
+    </select>
+
+    <!-- 检查是否存在 GLOBAL_SUPERVISOR -->
+    <select id="countGlobalSupervisor" resultType="int">
+        SELECT COUNT(*) FROM agent
+        WHERE role = 'GLOBAL_SUPERVISOR' AND deleted = 0
+    </select>
+
+    <!-- 统计各角色的 Agent 数量 -->
+    <select id="countGroupByRole" resultType="map">
+        SELECT role, COUNT(*) as count
+        FROM agent
+        WHERE deleted = 0
+        GROUP BY role
+    </select>
+
+    <!-- 统计总警告数和严重问题数 -->
+    <select id="sumFindings" resultType="map">
+        SELECT COALESCE(SUM(warnings), 0) as totalWarnings,
+               COALESCE(SUM(critical), 0) as totalCritical
+        FROM agent
+        WHERE deleted = 0
+    </select>
+
+    <!-- 统计指定 Agent 的发现数 -->
+    <select id="sumFindingsById" resultType="map">
+        SELECT COALESCE(warnings, 0) as warnings,
+               COALESCE(critical, 0) as critical
+        FROM agent
+        WHERE id = #{agentId} AND deleted = 0
+    </select>
+
+    <!-- 分页查询未绑定的 Agent 列表 -->
+    <select id="selectPageUnbound" resultType="com.catface996.aiops.repository.mysql.po.agent.AgentPO">
+        SELECT <include refid="Base_Column_List"/>
+        FROM agent
+        <where>
+            deleted = 0
+            <if test="excludeAgentIds != null and excludeAgentIds.size() > 0">
+                AND id NOT IN
+                <foreach collection="excludeAgentIds" item="id" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (name LIKE CONCAT('%', #{keyword}, '%') OR specialty LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 统计未绑定的 Agent 数量 -->
+    <select id="countUnbound" resultType="long">
+        SELECT COUNT(*) FROM agent
+        <where>
+            deleted = 0
+            <if test="excludeAgentIds != null and excludeAgentIds.size() > 0">
+                AND id NOT IN
+                <foreach collection="excludeAgentIds" item="id" open="(" separator="," close=")">
+                    #{id}
+                </foreach>
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (name LIKE CONCAT('%', #{keyword}, '%') OR specialty LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+    </select>
+
+    <!-- 软删除 Agent -->
+    <update id="softDeleteById">
+        UPDATE agent
+        SET deleted = 1, updated_at = #{updatedAt}
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+</mapper>

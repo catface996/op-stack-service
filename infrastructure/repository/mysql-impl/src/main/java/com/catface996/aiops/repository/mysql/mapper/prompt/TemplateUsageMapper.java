@@ -4,10 +4,11 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.catface996.aiops.repository.mysql.po.prompt.TemplateUsagePO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Select;
 
 /**
  * 模板用途 Mapper 接口
+ *
+ * <p>SQL 定义在 mapper/prompt/TemplateUsageMapper.xml</p>
  *
  * @author AI Assistant
  * @since 2025-12-26
@@ -21,7 +22,6 @@ public interface TemplateUsageMapper extends BaseMapper<TemplateUsagePO> {
      * @param code 用途编码
      * @return 用途信息
      */
-    @Select("SELECT * FROM template_usage WHERE code = #{code} AND deleted = 0")
     TemplateUsagePO selectByCode(@Param("code") String code);
 
     /**
@@ -30,7 +30,6 @@ public interface TemplateUsageMapper extends BaseMapper<TemplateUsagePO> {
      * @param name 用途名称
      * @return 用途信息
      */
-    @Select("SELECT * FROM template_usage WHERE name = #{name} AND deleted = 0")
     TemplateUsagePO selectByName(@Param("name") String name);
 
     /**
@@ -39,6 +38,12 @@ public interface TemplateUsageMapper extends BaseMapper<TemplateUsagePO> {
      * @param usageId 用途ID
      * @return 使用该用途的模板数量
      */
-    @Select("SELECT COUNT(*) FROM prompt_template WHERE usage_id = #{usageId} AND deleted = 0")
     long countTemplatesByUsageId(@Param("usageId") Long usageId);
+
+    /**
+     * 查询所有用途
+     *
+     * @return 用途列表
+     */
+    java.util.List<TemplateUsagePO> selectAll();
 }

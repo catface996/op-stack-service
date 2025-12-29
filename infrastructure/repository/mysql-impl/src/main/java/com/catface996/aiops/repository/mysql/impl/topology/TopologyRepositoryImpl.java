@@ -1,7 +1,5 @@
 package com.catface996.aiops.repository.mysql.impl.topology;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.catface996.aiops.domain.model.topology.Topology;
 import com.catface996.aiops.domain.model.topology.TopologyStatus;
@@ -9,7 +7,6 @@ import com.catface996.aiops.repository.mysql.mapper.topology.TopologyMapper;
 import com.catface996.aiops.repository.mysql.po.topology.TopologyPO;
 import com.catface996.aiops.repository.topology2.TopologyRepository;
 import org.springframework.stereotype.Repository;
-import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -62,14 +59,8 @@ public class TopologyRepositoryImpl implements TopologyRepository {
 
     @Override
     public long countByCondition(String name, TopologyStatus status) {
-        LambdaQueryWrapper<TopologyPO> wrapper = new LambdaQueryWrapper<>();
-        if (StringUtils.hasText(name)) {
-            wrapper.like(TopologyPO::getName, name);
-        }
-        if (status != null) {
-            wrapper.eq(TopologyPO::getStatus, status.name());
-        }
-        return topologyMapper.selectCount(wrapper);
+        String statusStr = status != null ? status.name() : null;
+        return topologyMapper.countByCondition(name, statusStr);
     }
 
     @Override
@@ -107,12 +98,7 @@ public class TopologyRepositoryImpl implements TopologyRepository {
 
     @Override
     public boolean updateGlobalSupervisorAgentId(Long topologyId, Long agentId) {
-        LambdaUpdateWrapper<TopologyPO> updateWrapper = new LambdaUpdateWrapper<>();
-        updateWrapper.eq(TopologyPO::getId, topologyId)
-                .set(TopologyPO::getGlobalSupervisorAgentId, agentId)
-                .set(TopologyPO::getUpdatedAt, LocalDateTime.now());
-
-        int rows = topologyMapper.update(null, updateWrapper);
+        int rows = topologyMapper.updateGlobalSupervisorAgentId(topologyId, agentId, LocalDateTime.now());
         return rows > 0;
     }
 

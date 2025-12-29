@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.catface996.aiops.repository.mysql.mapper.node.NodeMapper">
+
+    <sql id="Base_Column_List">
+        id, name, description, node_type_id, status, attributes,
+        created_by, created_at, updated_by, updated_at, version, deleted
+    </sql>
+
+    <!-- 分页查询节点（带类型信息） -->
+    <select id="selectPageWithTypeInfo" resultType="com.catface996.aiops.repository.mysql.po.node.NodePO">
+        SELECT DISTINCT n.*, nt.code AS node_type_code, nt.name AS node_type_name
+        FROM node n
+        JOIN node_type nt ON n.node_type_id = nt.id
+        <if test="topologyId != null">
+            JOIN topology_2_node t2n ON n.id = t2n.node_id
+        </if>
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (n.name LIKE CONCAT('%', #{keyword}, '%') OR n.description LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="nodeTypeId != null">
+                AND n.node_type_id = #{nodeTypeId}
+            </if>
+            <if test="status != null and status != ''">
+                AND n.status = #{status}
+            </if>
+            <if test="topologyId != null">
+                AND t2n.topology_id = #{topologyId}
+            </if>
+        </where>
+        ORDER BY n.created_at DESC
+    </select>
+
+    <!-- 按条件统计节点数量 -->
+    <select id="countByCondition" resultType="long">
+        SELECT COUNT(DISTINCT n.id)
+        FROM node n
+        <if test="topologyId != null">
+            JOIN topology_2_node t2n ON n.id = t2n.node_id
+        </if>
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (n.name LIKE CONCAT('%', #{keyword}, '%') OR n.description LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="nodeTypeId != null">
+                AND n.node_type_id = #{nodeTypeId}
+            </if>
+            <if test="status != null and status != ''">
+                AND n.status = #{status}
+            </if>
+            <if test="topologyId != null">
+                AND t2n.topology_id = #{topologyId}
+            </if>
+        </where>
+    </select>
+
+    <!-- 根据ID查询节点（带类型信息） -->
+    <select id="selectByIdWithTypeInfo" resultType="com.catface996.aiops.repository.mysql.po.node.NodePO">
+        SELECT n.*, nt.code AS node_type_code, nt.name AS node_type_name
+        FROM node n
+        JOIN node_type nt ON n.node_type_id = nt.id
+        WHERE n.id = #{id}
+    </select>
+
+    <!-- 根据类型ID和名称查询节点 -->
+    <select id="selectByTypeIdAndName" resultType="com.catface996.aiops.repository.mysql.po.node.NodePO">
+        SELECT <include refid="Base_Column_List"/>
+        FROM node
+        WHERE node_type_id = #{nodeTypeId} AND name = #{name}
+    </select>
+
+    <!-- 根据名称查询节点 -->
+    <select id="selectByName" resultType="com.catface996.aiops.repository.mysql.po.node.NodePO">
+        SELECT <include refid="Base_Column_List"/>
+        FROM node
+        WHERE name = #{name}
+    </select>
+
+    <!-- 查询存在的节点ID列表 -->
+    <select id="findExistingIds" resultType="java.lang.Long">
+        SELECT id FROM node
+        WHERE id IN
+        <foreach collection="nodeIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+</mapper>

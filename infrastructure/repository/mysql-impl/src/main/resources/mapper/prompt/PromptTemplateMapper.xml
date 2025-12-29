@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.catface996.aiops.repository.mysql.mapper.prompt.PromptTemplateMapper">
+
+    <sql id="Base_Column_List">
+        id, name, description, usage_id, current_version,
+        created_by, created_at, updated_at, version, deleted
+    </sql>
+
+    <!-- 根据名称查询模板 -->
+    <select id="selectByName" resultType="com.catface996.aiops.repository.mysql.po.prompt.PromptTemplatePO">
+        SELECT <include refid="Base_Column_List"/>
+        FROM prompt_template
+        WHERE name = #{name} AND deleted = 0
+    </select>
+
+    <!-- 根据ID查询模板（带用途信息和当前版本内容） -->
+    <select id="selectByIdWithDetail" resultType="com.catface996.aiops.repository.mysql.po.prompt.PromptTemplatePO">
+        SELECT pt.*, tu.name AS usage_name, ptv.content
+        FROM prompt_template pt
+        LEFT JOIN template_usage tu ON pt.usage_id = tu.id AND tu.deleted = 0
+        LEFT JOIN prompt_template_version ptv ON pt.id = ptv.template_id AND pt.current_version = ptv.version_number
+        WHERE pt.id = #{id} AND pt.deleted = 0
+    </select>
+
+    <!-- 分页查询模板（带用途信息） -->
+    <select id="selectPageWithUsage" resultType="com.catface996.aiops.repository.mysql.po.prompt.PromptTemplatePO">
+        SELECT pt.*, tu.name AS usage_name
+        FROM prompt_template pt
+        LEFT JOIN template_usage tu ON pt.usage_id = tu.id AND tu.deleted = 0
+        <where>
+            pt.deleted = 0
+            <if test="keyword != null and keyword != ''">
+                AND (pt.name LIKE CONCAT('%', #{keyword}, '%') OR pt.description LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="usageId != null">AND pt.usage_id = #{usageId}</if>
+        </where>
+        ORDER BY pt.created_at DESC
+    </select>
+
+    <!-- 按条件统计模板数量 -->
+    <select id="countByCondition" resultType="long">
+        SELECT COUNT(*)
+        FROM prompt_template pt
+        <where>
+            pt.deleted = 0
+            <if test="keyword != null and keyword != ''">
+                AND (pt.name LIKE CONCAT('%', #{keyword}, '%') OR pt.description LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="usageId != null">AND pt.usage_id = #{usageId}</if>
+        </where>
+    </select>
+
+    <!-- 软删除模板 -->
+    <update id="softDeleteById">
+        UPDATE prompt_template
+        SET deleted = 1, updated_at = #{updatedAt}
+        WHERE id = #{id}
+    </update>
+
+</mapper>

@@ -1,6 +1,5 @@
 package com.catface996.aiops.repository.mysql.impl.report;
 
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.catface996.aiops.domain.model.report.ReportTemplate;
 import com.catface996.aiops.domain.model.report.ReportTemplateCategory;
@@ -84,13 +83,7 @@ public class ReportTemplateRepositoryImpl implements ReportTemplateRepository {
 
     @Override
     public boolean deleteById(Long id) {
-        // 软删除
-        LambdaUpdateWrapper<ReportTemplatePO> updateWrapper = new LambdaUpdateWrapper<>();
-        updateWrapper.eq(ReportTemplatePO::getId, id)
-                .eq(ReportTemplatePO::getDeleted, false)
-                .set(ReportTemplatePO::getDeleted, true)
-                .set(ReportTemplatePO::getUpdatedAt, LocalDateTime.now());
-        int rows = reportTemplateMapper.update(null, updateWrapper);
+        int rows = reportTemplateMapper.softDeleteById(id, LocalDateTime.now());
         return rows > 0;
     }
 
