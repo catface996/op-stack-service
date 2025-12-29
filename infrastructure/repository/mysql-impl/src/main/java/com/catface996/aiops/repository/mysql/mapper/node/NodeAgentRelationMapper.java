@@ -74,4 +74,13 @@ public interface NodeAgentRelationMapper extends BaseMapper<NodeAgentRelationPO>
      * @return 绑定数量
      */
     int countByNodeId(@Param("nodeId") Long nodeId);
+
+    /**
+     * 物理删除已软删除的记录（用于解决唯一键冲突）
+     *
+     * @param nodeId  资源节点 ID
+     * @param agentId Agent ID
+     * @return 影响行数
+     */
+    int hardDeleteSoftDeleted(@Param("nodeId") Long nodeId, @Param("agentId") Long agentId);
 }

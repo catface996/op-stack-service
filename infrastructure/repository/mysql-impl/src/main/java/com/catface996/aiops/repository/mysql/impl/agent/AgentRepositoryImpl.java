@@ -2,6 +2,7 @@ package com.catface996.aiops.repository.mysql.impl.agent;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.catface996.aiops.domain.model.agent.Agent;
+import com.catface996.aiops.domain.model.agent.AgentHierarchyLevel;
 import com.catface996.aiops.domain.model.agent.AgentRole;
 import com.catface996.aiops.repository.agent.AgentRepository;
 import com.catface996.aiops.repository.mysql.mapper.agent.AgentMapper;
@@ -171,6 +172,18 @@ public class AgentRepositoryImpl implements AgentRepository {
         return Optional.of(toDomain(po));
     }
 
+    @Override
+    public Optional<Agent> findByIdAndHierarchyLevel(Long id, AgentHierarchyLevel hierarchyLevel) {
+        AgentPO po = agentMapper.selectById(id);
+        if (po == null || (po.getDeleted() != null && po.getDeleted() == 1)) {
+            return Optional.empty();
+        }
+        if (hierarchyLevel != null && !hierarchyLevel.name().equals(po.getHierarchyLevel())) {
+            return Optional.empty();
+        }
+        return Optional.of(toDomain(po));
+    }
+
     // ==================== 转换方法 ====================
 
     private Agent toDomain(AgentPO po) {
@@ -181,6 +194,7 @@ public class AgentRepositoryImpl implements AgentRepository {
         agent.setId(po.getId());
         agent.setName(po.getName());
         agent.setRole(AgentRole.fromName(po.getRole()));
+        agent.setHierarchyLevel(AgentHierarchyLevel.fromName(po.getHierarchyLevel()));
         agent.setSpecialty(po.getSpecialty());
 
         // LLM 配置（扁平化）
@@ -211,6 +225,7 @@ public class AgentRepositoryImpl implements AgentRepository {
         po.setId(domain.getId());
         po.setName(domain.getName());
         po.setRole(domain.getRole() != null ? domain.getRole().name() : null);
+        po.setHierarchyLevel(domain.getHierarchyLevel() != null ? domain.getHierarchyLevel().name() : AgentHierarchyLevel.TEAM_WORKER.name());
         po.setSpecialty(domain.getSpecialty());
 
         // LLM 配置（扁平化）

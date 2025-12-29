@@ -35,7 +35,11 @@ public class UpdateAgentRequest {
     @Size(max = 100, message = "Agent 名称长度不能超过 100 个字符")
     private String name;
 
-    @Schema(description = "专业领域（可选，不传则不更新）", example = "性能分析、资源监控")
+    @Schema(description = "Agent 层级（可选，不传则不更新）: GLOBAL_SUPERVISOR, TEAM_SUPERVISOR, TEAM_WORKER",
+            example = "TEAM_WORKER")
+    private String hierarchyLevel;
+
+    @Schema(description = "专业领域描述（可选，不传则不更新）", example = "性能分析、资源监控")
     @Size(max = 200, message = "专业领域长度不能超过 200 个字符")
     private String specialty;
 

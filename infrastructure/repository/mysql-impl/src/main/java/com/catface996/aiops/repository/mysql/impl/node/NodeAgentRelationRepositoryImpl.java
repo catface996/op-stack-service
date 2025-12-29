@@ -49,6 +49,13 @@ public class NodeAgentRelationRepositoryImpl implements NodeAgentRelationReposit
 
     @Override
     public void softDelete(Long id) {
+        // 先查询要删除的记录，获取 node_id 和 agent_id
+        NodeAgentRelationPO po = nodeAgentRelationMapper.selectById(id);
+        if (po != null) {
+            // 先物理删除已存在的软删除记录，避免唯一键冲突
+            nodeAgentRelationMapper.hardDeleteSoftDeleted(po.getNodeId(), po.getAgentId());
+        }
+        // 然后执行软删除
         nodeAgentRelationMapper.softDeleteById(id);
     }
 

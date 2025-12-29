@@ -4,7 +4,7 @@
 <mapper namespace="com.catface996.aiops.repository.mysql.mapper.agent.AgentMapper">
 
     <sql id="Base_Column_List">
-        id, name, role, specialty, prompt_template_id, model, temperature,
+        id, name, role, hierarchy_level, specialty, prompt_template_id, model, temperature,
         top_p, max_tokens, max_runtime, warnings, critical,
         created_at, updated_at, deleted
     </sql>
@@ -56,10 +56,10 @@
         </if>
     </select>
 
-    <!-- 检查是否存在 GLOBAL_SUPERVISOR -->
+    <!-- 检查是否存在 GLOBAL_SUPERVISOR 层级 -->
     <select id="countGlobalSupervisor" resultType="int">
         SELECT COUNT(*) FROM agent
-        WHERE role = 'GLOBAL_SUPERVISOR' AND deleted = 0
+        WHERE hierarchy_level = 'GLOBAL_SUPERVISOR' AND deleted = 0
     </select>
 
     <!-- 统计各角色的 Agent 数量 -->
@@ -86,12 +86,13 @@
         WHERE id = #{agentId} AND deleted = 0
     </select>
 
-    <!-- 分页查询未绑定的 Agent 列表 -->
+    <!-- 分页查询未绑定的 Agent 列表（仅查询 TEAM_SUPERVISOR 和 TEAM_WORKER 层级） -->
     <select id="selectPageUnbound" resultType="com.catface996.aiops.repository.mysql.po.agent.AgentPO">
         SELECT <include refid="Base_Column_List"/>
         FROM agent
         <where>
             deleted = 0
+            AND hierarchy_level IN ('TEAM_SUPERVISOR', 'TEAM_WORKER')
             <if test="excludeAgentIds != null and excludeAgentIds.size() > 0">
                 AND id NOT IN
                 <foreach collection="excludeAgentIds" item="id" open="(" separator="," close=")">
@@ -105,11 +106,12 @@
         ORDER BY created_at DESC
     </select>
 
-    <!-- 统计未绑定的 Agent 数量 -->
+    <!-- 统计未绑定的 Agent 数量（仅统计 TEAM_SUPERVISOR 和 TEAM_WORKER 层级） -->
     <select id="countUnbound" resultType="long">
         SELECT COUNT(*) FROM agent
         <where>
             deleted = 0
+            AND hierarchy_level IN ('TEAM_SUPERVISOR', 'TEAM_WORKER')
             <if test="excludeAgentIds != null and excludeAgentIds.size() > 0">
                 AND id NOT IN
                 <foreach collection="excludeAgentIds" item="id" open="(" separator="," close=")">

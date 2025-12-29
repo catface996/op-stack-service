@@ -33,10 +33,16 @@ public class AgentPO implements Serializable {
     private String name;
 
     /**
-     * Agent 角色
+     * Agent 角色（专业领域）
      */
     @TableField("role")
     private String role;
+
+    /**
+     * Agent 层级（团队位置）
+     */
+    @TableField("hierarchy_level")
+    private String hierarchyLevel;
 
     /**
      * 专业领域

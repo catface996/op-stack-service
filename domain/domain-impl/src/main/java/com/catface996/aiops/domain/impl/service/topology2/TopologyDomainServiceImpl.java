@@ -1,6 +1,7 @@
 package com.catface996.aiops.domain.impl.service.topology2;
 
 import com.catface996.aiops.domain.model.agent.Agent;
+import com.catface996.aiops.domain.model.agent.AgentHierarchyLevel;
 import com.catface996.aiops.domain.model.agent.AgentRole;
 import com.catface996.aiops.domain.model.topology.Topology;
 import com.catface996.aiops.domain.model.topology.TopologyGraphData;
@@ -229,15 +230,15 @@ public class TopologyDomainServiceImpl implements TopologyDomainService {
         Topology topology = topologyRepository.findById(topologyId)
                 .orElseThrow(() -> new IllegalArgumentException("拓扑图不存在: " + topologyId));
 
-        // 2. 验证 Agent 存在且角色为 GLOBAL_SUPERVISOR
-        Agent agent = agentRepository.findByIdAndRole(agentId, AgentRole.GLOBAL_SUPERVISOR)
+        // 2. 验证 Agent 存在且层级为 GLOBAL_SUPERVISOR（使用 hierarchyLevel 而非 role）
+        Agent agent = agentRepository.findByIdAndHierarchyLevel(agentId, AgentHierarchyLevel.GLOBAL_SUPERVISOR)
                 .orElseThrow(() -> {
                     // 先检查 Agent 是否存在
                     if (!agentRepository.existsById(agentId)) {
                         return new IllegalArgumentException("Agent 不存在: " + agentId);
                     }
-                    // Agent 存在但角色不匹配
-                    return new IllegalArgumentException("Agent 角色不匹配，必须为 GLOBAL_SUPERVISOR");
+                    // Agent 存在但层级不匹配
+                    return new IllegalArgumentException("Agent 层级不匹配，必须为 GLOBAL_SUPERVISOR");
                 });
 
         // 3. 更新绑定关系

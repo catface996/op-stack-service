@@ -29,10 +29,13 @@ public class AgentDTO {
     @Schema(description = "Agent 名称", example = "性能分析 Agent")
     private String name;
 
-    @Schema(description = "Agent 角色", example = "WORKER")
+    @Schema(description = "Agent 角色（专业领域）", example = "WORKER")
     private String role;
 
-    @Schema(description = "专业领域", example = "性能分析、资源监控")
+    @Schema(description = "Agent 层级（团队位置）", example = "TEAM_WORKER")
+    private String hierarchyLevel;
+
+    @Schema(description = "专业领域描述", example = "性能分析、资源监控")
     private String specialty;
 
     // ===== LLM 配置（扁平化） =====

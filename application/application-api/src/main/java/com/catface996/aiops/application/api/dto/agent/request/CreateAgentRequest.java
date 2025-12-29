@@ -30,12 +30,16 @@ public class CreateAgentRequest {
     @Size(max = 100, message = "Agent 名称长度不能超过 100 个字符")
     private String name;
 
-    @Schema(description = "Agent 角色: GLOBAL_SUPERVISOR, TEAM_SUPERVISOR, WORKER, SCOUTER",
+    @Schema(description = "Agent 角色（专业领域）: GLOBAL_SUPERVISOR, TEAM_SUPERVISOR, WORKER, SCOUTER",
             example = "WORKER", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "Agent 角色不能为空")
     private String role;
 
-    @Schema(description = "专业领域（可选）", example = "性能分析、资源监控")
+    @Schema(description = "Agent 层级（团队位置）: GLOBAL_SUPERVISOR, TEAM_SUPERVISOR, TEAM_WORKER",
+            example = "TEAM_WORKER")
+    private String hierarchyLevel;
+
+    @Schema(description = "专业领域描述（可选）", example = "性能分析、资源监控")
     @Size(max = 200, message = "专业领域长度不能超过 200 个字符")
     private String specialty;
 

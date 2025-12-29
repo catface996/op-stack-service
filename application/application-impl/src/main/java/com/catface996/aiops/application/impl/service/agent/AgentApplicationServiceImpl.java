@@ -6,6 +6,7 @@ import com.catface996.aiops.application.api.dto.agent.request.*;
 import com.catface996.aiops.application.api.dto.common.PageResult;
 import com.catface996.aiops.application.api.service.agent.AgentApplicationService;
 import com.catface996.aiops.domain.model.agent.Agent;
+import com.catface996.aiops.domain.model.agent.AgentHierarchyLevel;
 import com.catface996.aiops.domain.model.agent.AgentRole;
 import com.catface996.aiops.common.enums.AgentErrorCode;
 import com.catface996.aiops.common.exception.BusinessException;
@@ -75,14 +76,22 @@ public class AgentApplicationServiceImpl implements AgentApplicationService {
     @Override
     @Transactional
     public AgentDTO createAgent(CreateAgentRequest request) {
-        logger.info("创建 Agent，name: {}, role: {}", request.getName(), request.getRole());
+        logger.info("创建 Agent，name: {}, role: {}, hierarchyLevel: {}",
+                request.getName(), request.getRole(), request.getHierarchyLevel());
 
         AgentRole role = AgentRole.fromName(request.getRole());
         if (role == null) {
             throw new BusinessException(AgentErrorCode.INVALID_AGENT_ROLE, request.getRole());
         }
 
-        if (role == AgentRole.GLOBAL_SUPERVISOR && agentRepository.existsGlobalSupervisor()) {
+        AgentHierarchyLevel hierarchyLevel = AgentHierarchyLevel.fromName(request.getHierarchyLevel());
+        // 默认层级为 TEAM_WORKER
+        if (hierarchyLevel == null) {
+            hierarchyLevel = AgentHierarchyLevel.TEAM_WORKER;
+        }
+
+        // GLOBAL_SUPERVISOR 层级只能有一个
+        if (hierarchyLevel == AgentHierarchyLevel.GLOBAL_SUPERVISOR && agentRepository.existsGlobalSupervisor()) {
             throw new BusinessException(AgentErrorCode.GLOBAL_SUPERVISOR_EXISTS);
         }
 
@@ -94,6 +103,7 @@ public class AgentApplicationServiceImpl implements AgentApplicationService {
         Agent agent = Agent.create(
                 request.getName(),
                 role,
+                hierarchyLevel,
                 request.getSpecialty(),
                 request.getPromptTemplateId(),
                 request.getModel()
@@ -135,6 +145,18 @@ public class AgentApplicationServiceImpl implements AgentApplicationService {
             agent.setName(request.getName());
         }
 
+        // 更新层级
+        if (request.getHierarchyLevel() != null) {
+            AgentHierarchyLevel newLevel = AgentHierarchyLevel.fromName(request.getHierarchyLevel());
+            if (newLevel != null && newLevel != agent.getHierarchyLevel()) {
+                // 如果要变成 GLOBAL_SUPERVISOR，检查是否已存在
+                if (newLevel == AgentHierarchyLevel.GLOBAL_SUPERVISOR && agentRepository.existsGlobalSupervisor()) {
+                    throw new BusinessException(AgentErrorCode.GLOBAL_SUPERVISOR_EXISTS);
+                }
+                agent.setHierarchyLevel(newLevel);
+            }
+        }
+
         if (request.getSpecialty() != null) {
             agent.setSpecialty(request.getSpecialty());
         }
@@ -162,8 +184,8 @@ public class AgentApplicationServiceImpl implements AgentApplicationService {
         Agent agent = agentRepository.findById(request.getId())
                 .orElseThrow(() -> new BusinessException(AgentErrorCode.AGENT_NOT_FOUND, request.getId()));
 
-        // GLOBAL_SUPERVISOR 不能删除
-        if (agent.getRole() == AgentRole.GLOBAL_SUPERVISOR) {
+        // GLOBAL_SUPERVISOR 层级不能删除
+        if (agent.isGlobalSupervisor()) {
             throw new BusinessException(AgentErrorCode.CANNOT_DELETE_GLOBAL_SUPERVISOR);
         }
 
@@ -213,6 +235,7 @@ public class AgentApplicationServiceImpl implements AgentApplicationService {
                 .id(agent.getId())
                 .name(agent.getName())
                 .role(agent.getRole() != null ? agent.getRole().name() : null)
+                .hierarchyLevel(agent.getHierarchyLevel() != null ? agent.getHierarchyLevel().name() : null)
                 .specialty(agent.getSpecialty())
                 // LLM 配置（扁平化）
                 .promptTemplateId(agent.getPromptTemplateId())
