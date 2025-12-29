@@ -34,7 +34,7 @@ mvn clean package -DskipTests
 ### Run Application (Recommended)
 ```bash
 # 推荐: 直接运行 jar 包，避免 mvn spring-boot:run 的类路径缓存问题
-java -jar bootstrap/target/bootstrap-1.0.0-SNAPSHOT.jar --spring.profiles.active=local
+java -jar bootstrap/target/aiops-service-1.0.0-SNAPSHOT.jar --spring.profiles.active=local
 ```
 
 ### Run Application (Alternative)
@@ -54,9 +54,9 @@ mvn test
 Java 21 (LTS): Follow standard conventions
 
 ## Recent Changes
+- 040-agent-bound-refactor: Added Java 21 (LTS) + Spring Boot 3.4.x, MyBatis-Plus 3.5.x, SpringDoc OpenAPI
 - 039-trigger-multiagent-execution: Added Java 21 (LTS) + Spring Boot 3.4.x, Spring WebFlux (for WebClient SSE), MyBatis-Plus 3.5.x, SpringDoc OpenAPI
 - 038-hierarchical-team-query: Added Java 21 (LTS) + Spring Boot 3.4.x, MyBatis-Plus 3.5.x, SpringDoc OpenAPI
-- 036-refactor-sql-to-xml: Added Java 21 (LTS) + Spring Boot 3.4.x, MyBatis-Plus 3.5.x
 
 
 <!-- MANUAL ADDITIONS START -->

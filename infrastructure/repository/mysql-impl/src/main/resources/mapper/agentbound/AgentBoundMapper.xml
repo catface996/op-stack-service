@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.catface996.aiops.repository.mysql.mapper.agentbound.AgentBoundMapper">
+
+    <sql id="Base_Column_List">
+        id, agent_id, hierarchy_level, entity_id, entity_type, created_at, deleted
+    </sql>
+
+    <!-- 按实体查询绑定（带 Agent 名称） -->
+    <select id="selectByEntity" resultType="com.catface996.aiops.repository.mysql.po.agentbound.AgentBoundPO">
+        SELECT ab.id, ab.agent_id, ab.hierarchy_level, ab.entity_id, ab.entity_type,
+               ab.created_at, ab.deleted,
+               a.name AS agentName, a.role AS agentRole
+        FROM agent_bound ab
+        JOIN agent a ON ab.agent_id = a.id AND a.deleted = 0
+        WHERE ab.entity_type = #{entityType}
+          AND ab.entity_id = #{entityId}
+        <if test="hierarchyLevel != null and hierarchyLevel != ''">
+          AND ab.hierarchy_level = #{hierarchyLevel}
+        </if>
+        ORDER BY ab.hierarchy_level, ab.created_at
+    </select>
+
+    <!-- 按 Agent 查询绑定（带实体名称） -->
+    <select id="selectByAgentId" resultType="com.catface996.aiops.repository.mysql.po.agentbound.AgentBoundPO">
+        SELECT ab.id, ab.agent_id, ab.hierarchy_level, ab.entity_id, ab.entity_type,
+               ab.created_at, ab.deleted,
+               a.name AS agentName, a.role AS agentRole,
+               CASE
+                   WHEN ab.entity_type = 'TOPOLOGY' THEN t.name
+                   WHEN ab.entity_type = 'NODE' THEN n.name
+               END AS entityName
+        FROM agent_bound ab
+        JOIN agent a ON ab.agent_id = a.id AND a.deleted = 0
+        LEFT JOIN topology t ON ab.entity_type = 'TOPOLOGY' AND ab.entity_id = t.id AND t.deleted = 0
+        LEFT JOIN node n ON ab.entity_type = 'NODE' AND ab.entity_id = n.id AND n.deleted = 0
+        WHERE ab.agent_id = #{agentId}
+        <if test="entityType != null and entityType != ''">
+          AND ab.entity_type = #{entityType}
+        </if>
+        ORDER BY ab.entity_type, ab.entity_id
+    </select>
+
+    <!-- 查询 Topology 的层级团队结构 -->
+    <select id="selectHierarchyByTopologyId" resultType="com.catface996.aiops.repository.mysql.po.agentbound.AgentBoundPO">
+        SELECT ab.id, ab.agent_id, ab.hierarchy_level, ab.entity_id, ab.entity_type,
+               ab.created_at, ab.deleted,
+               a.name AS agentName, a.role AS agentRole,
+               CASE
+                   WHEN ab.entity_type = 'TOPOLOGY' THEN t.name
+                   WHEN ab.entity_type = 'NODE' THEN n.name
+               END AS entityName
+        FROM agent_bound ab
+        JOIN agent a ON ab.agent_id = a.id AND a.deleted = 0
+        LEFT JOIN topology t ON ab.entity_type = 'TOPOLOGY' AND ab.entity_id = t.id AND t.deleted = 0
+        LEFT JOIN node n ON ab.entity_type = 'NODE' AND ab.entity_id = n.id AND n.deleted = 0
+        WHERE (ab.entity_type = 'TOPOLOGY' AND ab.entity_id = #{topologyId})
+           OR (ab.entity_type = 'NODE' AND ab.entity_id IN (
+              SELECT node_id FROM topology_2_node
+              WHERE topology_id = #{topologyId} AND deleted = 0
+            ))
+        ORDER BY ab.entity_type DESC, ab.hierarchy_level, ab.entity_id
+    </select>
+
+    <!-- 检查是否存在指定类型的绑定 -->
+    <select id="existsByEntityAndHierarchy" resultType="int">
+        SELECT COUNT(*)
+        FROM agent_bound
+        WHERE entity_type = #{entityType}
+          AND entity_id = #{entityId}
+          AND hierarchy_level = #{hierarchyLevel}
+    </select>
+
+    <!-- 查询指定实体的 Supervisor 绑定 -->
+    <select id="selectSupervisorBinding" resultType="com.catface996.aiops.repository.mysql.po.agentbound.AgentBoundPO">
+        SELECT <include refid="Base_Column_List"/>
+        FROM agent_bound
+        WHERE entity_type = #{entityType}
+          AND entity_id = #{entityId}
+          AND hierarchy_level = #{hierarchyLevel}
+        LIMIT 1
+    </select>
+
+    <!-- 物理删除绑定 -->
+    <delete id="hardDeleteBinding">
+        DELETE FROM agent_bound
+        WHERE agent_id = #{agentId}
+          AND entity_id = #{entityId}
+          AND entity_type = #{entityType}
+    </delete>
+
+    <!-- 检查绑定是否已存在 -->
+    <select id="existsBinding" resultType="int">
+        SELECT COUNT(*)
+        FROM agent_bound
+        WHERE agent_id = #{agentId}
+          AND entity_id = #{entityId}
+          AND entity_type = #{entityType}
+    </select>
+
+</mapper>

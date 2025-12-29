@@ -1,8 +1,8 @@
 package com.catface996.aiops.application.impl.service.execution.transformer;
 
 import com.catface996.aiops.application.api.dto.agent.AgentDTO;
-import com.catface996.aiops.application.api.dto.topology.HierarchicalTeamDTO;
-import com.catface996.aiops.application.api.dto.topology.TeamDTO;
+import com.catface996.aiops.application.api.dto.agentbound.HierarchyStructureDTO;
+import com.catface996.aiops.application.api.dto.agentbound.HierarchyTeamDTO;
 import com.catface996.aiops.application.impl.service.execution.client.dto.CreateHierarchyRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -15,7 +15,7 @@ import java.util.List;
 /**
  * 层级结构转换器
  *
- * <p>将 HierarchicalTeamDTO 转换为 Executor API 所需的 CreateHierarchyRequest 格式。</p>
+ * <p>将 HierarchyStructureDTO 转换为 Executor API 所需的 CreateHierarchyRequest 格式。</p>
  *
  * <p>转换映射：</p>
  * <ul>
@@ -34,23 +34,23 @@ import java.util.List;
 public class HierarchyTransformer {
 
     /**
-     * 将 HierarchicalTeamDTO 转换为 CreateHierarchyRequest
+     * 将 HierarchyStructureDTO 转换为 CreateHierarchyRequest
      *
-     * @param hierarchicalTeam 层级团队 DTO
+     * @param hierarchyStructure 层级结构 DTO
      * @return Executor API 创建层级请求
      */
-    public CreateHierarchyRequest transform(HierarchicalTeamDTO hierarchicalTeam) {
-        log.debug("Transforming HierarchicalTeamDTO to CreateHierarchyRequest for topology: {}",
-                hierarchicalTeam.getTopologyName());
+    public CreateHierarchyRequest transform(HierarchyStructureDTO hierarchyStructure) {
+        log.debug("Transforming HierarchyStructureDTO to CreateHierarchyRequest for topology: {}",
+                hierarchyStructure.getTopologyName());
 
         // 构建 global_prompt
-        String globalPrompt = buildGlobalPrompt(hierarchicalTeam.getGlobalSupervisor());
+        String globalPrompt = buildGlobalPrompt(hierarchyStructure.getGlobalSupervisor());
 
         // 转换团队列表
-        List<CreateHierarchyRequest.TeamConfig> teamConfigs = transformTeams(hierarchicalTeam.getTeams());
+        List<CreateHierarchyRequest.TeamConfig> teamConfigs = transformTeams(hierarchyStructure.getTeams());
 
         // 使用拓扑名称 + 时间戳确保唯一性（每次执行创建新的层级实例）
-        String hierarchyName = hierarchicalTeam.getTopologyName() + "_" + Instant.now().toEpochMilli();
+        String hierarchyName = hierarchyStructure.getTopologyName() + "_" + Instant.now().toEpochMilli();
 
         return CreateHierarchyRequest.builder()
                 .name(hierarchyName)
@@ -82,14 +82,14 @@ public class HierarchyTransformer {
     /**
      * 转换团队列表
      */
-    private List<CreateHierarchyRequest.TeamConfig> transformTeams(List<TeamDTO> teams) {
+    private List<CreateHierarchyRequest.TeamConfig> transformTeams(List<HierarchyTeamDTO> teams) {
         if (teams == null || teams.isEmpty()) {
             return Collections.emptyList();
         }
 
         List<CreateHierarchyRequest.TeamConfig> teamConfigs = new ArrayList<>();
 
-        for (TeamDTO team : teams) {
+        for (HierarchyTeamDTO team : teams) {
             // 构建 supervisor_prompt
             String supervisorPrompt = buildSupervisorPrompt(team.getSupervisor(), team.getNodeName());
 

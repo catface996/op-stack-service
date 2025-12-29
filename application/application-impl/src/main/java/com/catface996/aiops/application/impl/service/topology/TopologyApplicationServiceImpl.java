@@ -294,23 +294,7 @@ public class TopologyApplicationServiceImpl implements TopologyApplicationServic
     }
 
     // ===== Global Supervisor Agent 绑定方法 =====
-
-    @Override
-    public TopologyDTO bindGlobalSupervisorAgent(Long topologyId, Long agentId, Long operatorId) {
-        logger.info("绑定 Global Supervisor Agent，topologyId: {}, agentId: {}, operatorId: {}",
-                topologyId, agentId, operatorId);
-
-        Topology topology = topologyDomainService.bindGlobalSupervisorAgent(topologyId, agentId, operatorId);
-        return toDTO(topology);
-    }
-
-    @Override
-    public TopologyDTO unbindGlobalSupervisorAgent(Long topologyId, Long operatorId) {
-        logger.info("解绑 Global Supervisor Agent，topologyId: {}, operatorId: {}", topologyId, operatorId);
-
-        Topology topology = topologyDomainService.unbindGlobalSupervisorAgent(topologyId, operatorId);
-        return toDTO(topology);
-    }
+    // Note: 绑定方法已移至 AgentBoundApplicationService (Feature 040)
 
     private TopologyGraphDTO toTopologyGraphDTO(TopologyGraphData graphData) {
         TopologyGraphDTO result = new TopologyGraphDTO();

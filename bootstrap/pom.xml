@@ -167,6 +167,8 @@
     </dependencies>
 
     <build>
+        <!-- 使用项目名作为 jar 包名 -->
+        <finalName>aiops-service-${project.version}</finalName>
         <plugins>
             <!-- Spring Boot Maven Plugin -->
             <plugin>

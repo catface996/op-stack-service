@@ -128,29 +128,7 @@ public interface TopologyApplicationService {
     TopologyGraphDTO getTopologyGraph(QueryTopologyGraphRequest request);
 
     // ===== Global Supervisor Agent 绑定方法 =====
-
-    /**
-     * 绑定 Global Supervisor Agent
-     *
-     * <p>将指定的 Agent 绑定到拓扑图作为 Global Supervisor。</p>
-     *
-     * @param topologyId 拓扑图ID
-     * @param agentId    Agent ID（必须为 GLOBAL_SUPERVISOR 角色）
-     * @param operatorId 操作人ID
-     * @return 更新后的拓扑图 DTO
-     */
-    TopologyDTO bindGlobalSupervisorAgent(Long topologyId, Long agentId, Long operatorId);
-
-    /**
-     * 解绑 Global Supervisor Agent
-     *
-     * <p>解除拓扑图与 Global Supervisor Agent 的绑定关系。</p>
-     *
-     * @param topologyId 拓扑图ID
-     * @param operatorId 操作人ID
-     * @return 更新后的拓扑图 DTO
-     */
-    TopologyDTO unbindGlobalSupervisorAgent(Long topologyId, Long operatorId);
+    // Note: 绑定方法已移至 AgentBoundApplicationService (Feature 040)
 
     // ===== 层级团队查询 =====
 

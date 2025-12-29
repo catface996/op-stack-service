@@ -1,13 +1,9 @@
 package com.catface996.aiops.domain.impl.service.topology2;
 
-import com.catface996.aiops.domain.model.agent.Agent;
-import com.catface996.aiops.domain.model.agent.AgentHierarchyLevel;
-import com.catface996.aiops.domain.model.agent.AgentRole;
 import com.catface996.aiops.domain.model.topology.Topology;
 import com.catface996.aiops.domain.model.topology.TopologyGraphData;
 import com.catface996.aiops.domain.model.topology.TopologyStatus;
 import com.catface996.aiops.domain.service.topology2.TopologyDomainService;
-import com.catface996.aiops.repository.agent.AgentRepository;
 import com.catface996.aiops.repository.node.Node2NodeRepository;
 import com.catface996.aiops.repository.node.NodeRepository;
 import com.catface996.aiops.repository.topology2.Topology2NodeRepository;
@@ -37,18 +33,15 @@ public class TopologyDomainServiceImpl implements TopologyDomainService {
     private final Topology2NodeRepository topology2NodeRepository;
     private final NodeRepository nodeRepository;
     private final Node2NodeRepository node2NodeRepository;
-    private final AgentRepository agentRepository;
 
     public TopologyDomainServiceImpl(TopologyRepository topologyRepository,
                                      Topology2NodeRepository topology2NodeRepository,
                                      NodeRepository nodeRepository,
-                                     Node2NodeRepository node2NodeRepository,
-                                     AgentRepository agentRepository) {
+                                     Node2NodeRepository node2NodeRepository) {
         this.topologyRepository = topologyRepository;
         this.topology2NodeRepository = topology2NodeRepository;
         this.nodeRepository = nodeRepository;
         this.node2NodeRepository = node2NodeRepository;
-        this.agentRepository = agentRepository;
     }
 
     @Override
@@ -220,57 +213,5 @@ public class TopologyDomainServiceImpl implements TopologyDomainService {
         return builder.build();
     }
 
-    @Override
-    @Transactional
-    public Topology bindGlobalSupervisorAgent(Long topologyId, Long agentId, Long operatorId) {
-        logger.info("绑定 Global Supervisor Agent，topologyId: {}, agentId: {}, operatorId: {}",
-                topologyId, agentId, operatorId);
-
-        // 1. 验证拓扑图存在
-        Topology topology = topologyRepository.findById(topologyId)
-                .orElseThrow(() -> new IllegalArgumentException("拓扑图不存在: " + topologyId));
-
-        // 2. 验证 Agent 存在且层级为 GLOBAL_SUPERVISOR（使用 hierarchyLevel 而非 role）
-        Agent agent = agentRepository.findByIdAndHierarchyLevel(agentId, AgentHierarchyLevel.GLOBAL_SUPERVISOR)
-                .orElseThrow(() -> {
-                    // 先检查 Agent 是否存在
-                    if (!agentRepository.existsById(agentId)) {
-                        return new IllegalArgumentException("Agent 不存在: " + agentId);
-                    }
-                    // Agent 存在但层级不匹配
-                    return new IllegalArgumentException("Agent 层级不匹配，必须为 GLOBAL_SUPERVISOR");
-                });
-
-        // 3. 更新绑定关系
-        boolean updated = topologyRepository.updateGlobalSupervisorAgentId(topologyId, agentId);
-        if (!updated) {
-            throw new IllegalStateException("绑定失败，请重试");
-        }
-
-        logger.info("Global Supervisor Agent 绑定成功，topologyId: {}, agentId: {}", topologyId, agentId);
-
-        // 4. 返回更新后的拓扑图
-        return topologyRepository.findById(topologyId).orElse(topology);
-    }
-
-    @Override
-    @Transactional
-    public Topology unbindGlobalSupervisorAgent(Long topologyId, Long operatorId) {
-        logger.info("解绑 Global Supervisor Agent，topologyId: {}, operatorId: {}", topologyId, operatorId);
-
-        // 1. 验证拓扑图存在
-        Topology topology = topologyRepository.findById(topologyId)
-                .orElseThrow(() -> new IllegalArgumentException("拓扑图不存在: " + topologyId));
-
-        // 2. 更新绑定关系（设为 null）- 幂等操作
-        boolean updated = topologyRepository.updateGlobalSupervisorAgentId(topologyId, null);
-        if (!updated) {
-            throw new IllegalStateException("解绑失败，请重试");
-        }
-
-        logger.info("Global Supervisor Agent 解绑成功，topologyId: {}", topologyId);
-
-        // 3. 返回更新后的拓扑图
-        return topologyRepository.findById(topologyId).orElse(topology);
-    }
+    // Note: Global Supervisor Agent 绑定/解绑方法已移至 AgentBoundDomainService (Feature 040)
 }

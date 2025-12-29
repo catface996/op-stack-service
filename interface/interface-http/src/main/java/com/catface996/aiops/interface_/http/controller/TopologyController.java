@@ -2,14 +2,12 @@ package com.catface996.aiops.interface_.http.controller;
 
 import com.catface996.aiops.application.api.dto.common.PageResult;
 import com.catface996.aiops.application.api.dto.node.NodeDTO;
-import com.catface996.aiops.application.api.dto.topology.HierarchicalTeamDTO;
 import com.catface996.aiops.application.api.dto.topology.TopologyDTO;
 import com.catface996.aiops.application.api.dto.topology.TopologyGraphDTO;
 import com.catface996.aiops.application.api.dto.topology.request.AddMembersRequest;
 import com.catface996.aiops.application.api.dto.topology.request.CreateTopologyRequest;
 import com.catface996.aiops.application.api.dto.topology.request.DeleteTopologyRequest;
 import com.catface996.aiops.application.api.dto.topology.request.GetTopologyRequest;
-import com.catface996.aiops.application.api.dto.topology.request.HierarchicalTeamQueryRequest;
 import com.catface996.aiops.application.api.dto.topology.request.QueryMembersRequest;
 import com.catface996.aiops.application.api.dto.topology.request.QueryTopologiesRequest;
 import com.catface996.aiops.application.api.dto.topology.request.QueryTopologyGraphRequest;
@@ -18,11 +16,9 @@ import com.catface996.aiops.application.api.dto.topology.request.UpdateTopologyR
 import com.catface996.aiops.application.api.service.topology.TopologyApplicationService;
 import com.catface996.aiops.application.api.service.topology.TopologyReportTemplateApplicationService;
 import com.catface996.aiops.interface_.http.request.topology.BindReportTemplatesRequest;
-import com.catface996.aiops.interface_.http.request.topology.BindSupervisorAgentRequest;
 import com.catface996.aiops.interface_.http.request.topology.QueryBoundTemplatesRequest;
 import com.catface996.aiops.interface_.http.request.topology.QueryUnboundTemplatesRequest;
 import com.catface996.aiops.interface_.http.request.topology.UnbindReportTemplatesRequest;
-import com.catface996.aiops.interface_.http.request.topology.UnbindSupervisorAgentRequest;
 import com.catface996.aiops.interface_.http.response.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -330,128 +326,9 @@ public class TopologyController {
         return ResponseEntity.ok(Result.success(result));
     }
 
-    // ===== Global Supervisor Agent 绑定接口 =====
-
-    /**
-     * 绑定 Global Supervisor Agent
-     *
-     * <p>将指定的 Agent 绑定到拓扑图作为 Global Supervisor。</p>
-     * <p>要求 Agent 的角色必须为 GLOBAL_SUPERVISOR。</p>
-     */
-    @PostMapping("/supervisor/bind")
-    @Operation(summary = "绑定 Global Supervisor Agent",
-            description = "将指定的 Agent 绑定到拓扑图作为 Global Supervisor。要求 Agent 角色必须为 GLOBAL_SUPERVISOR。支持替换绑定。")
-    @SecurityRequirement(name = "bearerAuth")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "绑定成功",
-                    content = @Content(schema = @Schema(implementation = TopologyDTO.class))),
-            @ApiResponse(responseCode = "400", description = "参数无效或 Agent 角色不匹配"),
-            @ApiResponse(responseCode = "401", description = "未认证"),
-            @ApiResponse(responseCode = "404", description = "拓扑图或 Agent 不存在")
-    })
-    public ResponseEntity<Result<TopologyDTO>> bindSupervisorAgent(
-            @Valid @RequestBody BindSupervisorAgentRequest request) {
-
-        log.info("绑定 Global Supervisor Agent，topologyId: {}, agentId: {}, operatorId: {}",
-                request.getTopologyId(), request.getAgentId(), request.getOperatorId());
-
-        try {
-            TopologyDTO result = topologyApplicationService.bindGlobalSupervisorAgent(
-                    request.getTopologyId(), request.getAgentId(), request.getOperatorId());
-            return ResponseEntity.ok(Result.success("绑定成功", result));
-        } catch (IllegalArgumentException e) {
-            String message = e.getMessage();
-            if (message.contains("拓扑图不存在")) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(Result.error(404001, message));
-            } else if (message.contains("Agent 不存在")) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(Result.error(404002, message));
-            } else if (message.contains("角色不匹配")) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(Result.error(400001, message));
-            }
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Result.error(400000, message));
-        }
-    }
-
-    /**
-     * 解绑 Global Supervisor Agent
-     *
-     * <p>解除拓扑图与 Global Supervisor Agent 的绑定关系。</p>
-     */
-    @PostMapping("/supervisor/unbind")
-    @Operation(summary = "解绑 Global Supervisor Agent",
-            description = "解除拓扑图与 Global Supervisor Agent 的绑定关系。支持幂等操作。")
-    @SecurityRequirement(name = "bearerAuth")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "解绑成功",
-                    content = @Content(schema = @Schema(implementation = TopologyDTO.class))),
-            @ApiResponse(responseCode = "401", description = "未认证"),
-            @ApiResponse(responseCode = "404", description = "拓扑图不存在")
-    })
-    public ResponseEntity<Result<TopologyDTO>> unbindSupervisorAgent(
-            @Valid @RequestBody UnbindSupervisorAgentRequest request) {
-
-        log.info("解绑 Global Supervisor Agent，topologyId: {}, operatorId: {}",
-                request.getTopologyId(), request.getOperatorId());
-
-        try {
-            TopologyDTO result = topologyApplicationService.unbindGlobalSupervisorAgent(
-                    request.getTopologyId(), request.getOperatorId());
-            return ResponseEntity.ok(Result.success("解绑成功", result));
-        } catch (IllegalArgumentException e) {
-            String message = e.getMessage();
-            if (message.contains("拓扑图不存在")) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(Result.error(404001, message));
-            }
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Result.error(400000, message));
-        }
-    }
-
     // ===== 层级团队查询接口 =====
-
-    /**
-     * 查询层级团队结构
-     *
-     * <p>根据拓扑图 ID 查询该拓扑图关联的层级化 Agent 团队结构。</p>
-     * <p>返回结构包含：</p>
-     * <ul>
-     *   <li>Global Supervisor: 拓扑图绑定的全局监管者</li>
-     *   <li>Teams: 资源节点对应的团队列表（每个团队包含 Supervisor 和 Workers）</li>
-     * </ul>
-     */
-    @PostMapping("/hierarchical-team/query")
-    @Operation(summary = "查询层级团队结构",
-            description = "根据拓扑图 ID 查询层级化 Agent 团队结构，包含 Global Supervisor 和各节点的 Team Supervisor/Worker")
-    @SecurityRequirement(name = "bearerAuth")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "查询成功",
-                    content = @Content(schema = @Schema(implementation = HierarchicalTeamDTO.class))),
-            @ApiResponse(responseCode = "401", description = "未认证"),
-            @ApiResponse(responseCode = "404", description = "拓扑图不存在")
-    })
-    public ResponseEntity<Result<HierarchicalTeamDTO>> queryHierarchicalTeam(
-            @Valid @RequestBody HierarchicalTeamQueryRequest request) {
-
-        log.info("查询层级团队，topologyId: {}", request.getTopologyId());
-
-        try {
-            HierarchicalTeamDTO result = topologyApplicationService.queryHierarchicalTeam(request);
-            return ResponseEntity.ok(Result.success(result));
-        } catch (IllegalArgumentException e) {
-            String message = e.getMessage();
-            if (message.contains("not found") || message.contains("不存在")) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(Result.error(404001, message));
-            }
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Result.error(400000, message));
-        }
-    }
+    // Note: Global Supervisor 绑定/解绑接口已移至 /api/service/v1/agent-bounds/* (Feature 040)
+    // Note: 层级团队查询接口已移至 /api/service/v1/agent-bounds/query-hierarchy (Feature 040)
 
     // ===== 报告模板绑定接口 =====
 

@@ -1,12 +1,11 @@
 package com.catface996.aiops.application.impl.service.execution;
 
+import com.catface996.aiops.application.api.dto.agentbound.HierarchyStructureDTO;
 import com.catface996.aiops.application.api.dto.execution.ExecutionEventDTO;
 import com.catface996.aiops.application.api.dto.execution.request.CancelExecutionRequest;
 import com.catface996.aiops.application.api.dto.execution.request.TriggerExecutionRequest;
-import com.catface996.aiops.application.api.dto.topology.HierarchicalTeamDTO;
-import com.catface996.aiops.application.api.dto.topology.request.HierarchicalTeamQueryRequest;
+import com.catface996.aiops.application.api.service.agentbound.AgentBoundApplicationService;
 import com.catface996.aiops.application.api.service.execution.ExecutionApplicationService;
-import com.catface996.aiops.application.api.service.topology.TopologyApplicationService;
 import com.catface996.aiops.application.impl.service.execution.client.ExecutorServiceClient;
 import com.catface996.aiops.application.impl.service.execution.client.dto.CreateHierarchyRequest;
 import com.catface996.aiops.application.impl.service.execution.client.dto.ExecutorEvent;
@@ -34,7 +33,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ExecutionApplicationServiceImpl implements ExecutionApplicationService {
 
-    private final TopologyApplicationService topologyApplicationService;
+    private final AgentBoundApplicationService agentBoundApplicationService;
     private final ExecutorServiceClient executorServiceClient;
     private final HierarchyTransformer hierarchyTransformer;
 
@@ -44,30 +43,28 @@ public class ExecutionApplicationServiceImpl implements ExecutionApplicationServ
                 request.getTopologyId(),
                 request.getUserMessage().substring(0, Math.min(50, request.getUserMessage().length())) + "...");
 
-        // Step 1: 查询层级团队结构（同步操作）
-        HierarchicalTeamDTO hierarchicalTeam;
+        // Step 1: 查询层级结构（使用新的 AgentBoundApplicationService）
+        HierarchyStructureDTO hierarchyStructure;
         try {
-            HierarchicalTeamQueryRequest queryRequest = new HierarchicalTeamQueryRequest();
-            queryRequest.setTopologyId(request.getTopologyId());
-            hierarchicalTeam = topologyApplicationService.queryHierarchicalTeam(queryRequest);
+            hierarchyStructure = agentBoundApplicationService.queryHierarchy(request.getTopologyId());
         } catch (IllegalArgumentException e) {
             log.error("Topology not found: {}", request.getTopologyId());
             return Flux.just(ExecutionEventDTO.error("Topology not found: " + request.getTopologyId()));
         }
 
         // Step 2: 验证配置
-        if (hierarchicalTeam.getGlobalSupervisor() == null) {
+        if (hierarchyStructure.getGlobalSupervisor() == null) {
             log.error("Topology {} has no Global Supervisor", request.getTopologyId());
             return Flux.just(ExecutionEventDTO.error("Topology does not have a bound Global Supervisor Agent"));
         }
 
-        if (hierarchicalTeam.getTeams() == null || hierarchicalTeam.getTeams().isEmpty()) {
+        if (hierarchyStructure.getTeams() == null || hierarchyStructure.getTeams().isEmpty()) {
             log.error("Topology {} has no teams", request.getTopologyId());
             return Flux.just(ExecutionEventDTO.error("Topology has no teams configured"));
         }
 
         // Step 3: 转换为 Executor 格式
-        CreateHierarchyRequest createRequest = hierarchyTransformer.transform(hierarchicalTeam);
+        CreateHierarchyRequest createRequest = hierarchyTransformer.transform(hierarchyStructure);
 
         log.info("Creating hierarchy '{}' with {} teams",
                 createRequest.getName(),
