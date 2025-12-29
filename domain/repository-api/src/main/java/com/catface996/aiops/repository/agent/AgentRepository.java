@@ -1,6 +1,7 @@
 package com.catface996.aiops.repository.agent;
 
 import com.catface996.aiops.domain.model.agent.Agent;
+import com.catface996.aiops.domain.model.agent.AgentHierarchyLevel;
 import com.catface996.aiops.domain.model.agent.AgentRole;
 
 import java.util.List;
@@ -153,4 +154,13 @@ public interface AgentRepository {
      * @return Agent 实体（如果存在且角色匹配）
      */
     Optional<Agent> findByIdAndRole(Long id, AgentRole role);
+
+    /**
+     * 根据 ID 和层级查询 Agent
+     *
+     * @param id             Agent ID
+     * @param hierarchyLevel Agent 层级
+     * @return Agent 实体（如果存在且层级匹配）
+     */
+    Optional<Agent> findByIdAndHierarchyLevel(Long id, AgentHierarchyLevel hierarchyLevel);
 }

@@ -56,4 +56,10 @@
         WHERE node_id = #{nodeId} AND deleted = 0
     </select>
 
+    <!-- 物理删除已软删除的记录（用于解决唯一键冲突） -->
+    <delete id="hardDeleteSoftDeleted">
+        DELETE FROM node_2_agent
+        WHERE node_id = #{nodeId} AND agent_id = #{agentId} AND deleted = 1
+    </delete>
+
 </mapper>

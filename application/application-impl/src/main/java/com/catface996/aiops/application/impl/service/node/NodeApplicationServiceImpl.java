@@ -11,6 +11,7 @@ import com.catface996.aiops.application.api.dto.node.request.QueryNodesRequest;
 import com.catface996.aiops.application.api.dto.node.request.UpdateNodeRequest;
 import com.catface996.aiops.application.api.service.node.NodeApplicationService;
 import com.catface996.aiops.domain.model.agent.Agent;
+import com.catface996.aiops.domain.model.agent.AgentHierarchyLevel;
 import com.catface996.aiops.domain.model.node.Node;
 import com.catface996.aiops.domain.model.node.NodeAgentRelation;
 import com.catface996.aiops.domain.model.node.NodeStatus;
@@ -223,8 +224,13 @@ public class NodeApplicationServiceImpl implements NodeApplicationService {
         }
 
         // 验证 Agent 是否存在
-        if (!agentRepository.existsById(agentId)) {
-            throw new IllegalArgumentException("Agent不存在");
+        Agent agent = agentRepository.findById(agentId)
+                .orElseThrow(() -> new IllegalArgumentException("Agent不存在"));
+
+        // 验证 Agent 层级必须是 TEAM_SUPERVISOR 或 TEAM_WORKER（不能是 GLOBAL_SUPERVISOR）
+        AgentHierarchyLevel level = agent.getHierarchyLevel();
+        if (level == null || level == AgentHierarchyLevel.GLOBAL_SUPERVISOR) {
+            throw new IllegalArgumentException("只能绑定层级为 TEAM_SUPERVISOR 或 TEAM_WORKER 的 Agent");
         }
 
         // 检查是否已绑定
@@ -315,6 +321,7 @@ public class NodeApplicationServiceImpl implements NodeApplicationService {
                 .id(agent.getId())
                 .name(agent.getName())
                 .role(agent.getRole() != null ? agent.getRole().name() : null)
+                .hierarchyLevel(agent.getHierarchyLevel() != null ? agent.getHierarchyLevel().name() : null)
                 .specialty(agent.getSpecialty())
                 .promptTemplateId(agent.getPromptTemplateId())
                 .promptTemplateName(agent.getPromptTemplateName())

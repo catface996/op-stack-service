@@ -24,9 +24,14 @@ public class Agent {
     private String name;
 
     /**
-     * Agent 角色
+     * Agent 角色（专业领域）
      */
     private AgentRole role;
+
+    /**
+     * Agent 层级（团队位置）
+     */
+    private AgentHierarchyLevel hierarchyLevel;
 
     /**
      * 专业领域
@@ -124,17 +129,19 @@ public class Agent {
      * 创建新 Agent 的工厂方法
      *
      * @param name             Agent 名称
-     * @param role             Agent 角色
-     * @param specialty        专业领域
+     * @param role             Agent 角色（专业领域）
+     * @param hierarchyLevel   Agent 层级（团队位置）
+     * @param specialty        专业领域描述
      * @param promptTemplateId 提示词模板ID（可选）
      * @param model            模型标识（可选）
      * @return 新创建的 Agent 实例
      */
-    public static Agent create(String name, AgentRole role, String specialty,
-                               Long promptTemplateId, String model) {
+    public static Agent create(String name, AgentRole role, AgentHierarchyLevel hierarchyLevel,
+                               String specialty, Long promptTemplateId, String model) {
         Agent agent = new Agent();
         agent.setName(name);
         agent.setRole(role);
+        agent.setHierarchyLevel(hierarchyLevel != null ? hierarchyLevel : AgentHierarchyLevel.TEAM_WORKER);
         agent.setSpecialty(specialty);
         agent.setPromptTemplateId(promptTemplateId);
         agent.setModel(model != null ? model : DEFAULT_MODEL);
@@ -237,28 +244,37 @@ public class Agent {
     /**
      * 检查 Agent 是否可以被删除
      *
-     * @return true 如果可以删除（非 GLOBAL_SUPERVISOR）
+     * @return true 如果可以删除（非 GLOBAL_SUPERVISOR 层级）
      */
     public boolean canBeDeleted() {
-        return role != AgentRole.GLOBAL_SUPERVISOR;
+        return hierarchyLevel != AgentHierarchyLevel.GLOBAL_SUPERVISOR;
     }
 
     /**
-     * 检查是否为 GLOBAL_SUPERVISOR
+     * 检查是否为 GLOBAL_SUPERVISOR 层级
      *
      * @return true 如果是 GLOBAL_SUPERVISOR
      */
     public boolean isGlobalSupervisor() {
-        return role == AgentRole.GLOBAL_SUPERVISOR;
+        return hierarchyLevel == AgentHierarchyLevel.GLOBAL_SUPERVISOR;
     }
 
     /**
-     * 检查是否为 TEAM_SUPERVISOR
+     * 检查是否为 TEAM_SUPERVISOR 层级
      *
      * @return true 如果是 TEAM_SUPERVISOR
      */
     public boolean isTeamSupervisor() {
-        return role == AgentRole.TEAM_SUPERVISOR;
+        return hierarchyLevel == AgentHierarchyLevel.TEAM_SUPERVISOR;
+    }
+
+    /**
+     * 检查是否为监管者（Global 或 Team）
+     *
+     * @return true 如果是监管者
+     */
+    public boolean isSupervisor() {
+        return hierarchyLevel != null && hierarchyLevel.isSupervisor();
     }
 
     // ===== Getters and Setters =====
@@ -285,6 +301,14 @@ public class Agent {
 
     public void setRole(AgentRole role) {
         this.role = role;
+    }
+
+    public AgentHierarchyLevel getHierarchyLevel() {
+        return hierarchyLevel;
+    }
+
+    public void setHierarchyLevel(AgentHierarchyLevel hierarchyLevel) {
+        this.hierarchyLevel = hierarchyLevel;
     }
 
     public String getSpecialty() {
@@ -397,6 +421,7 @@ public class Agent {
                 "id=" + id +
                 ", name='" + name + '\'' +
                 ", role=" + role +
+                ", hierarchyLevel=" + hierarchyLevel +
                 ", specialty='" + specialty + '\'' +
                 ", promptTemplateId=" + promptTemplateId +
                 ", model='" + model + '\'' +
