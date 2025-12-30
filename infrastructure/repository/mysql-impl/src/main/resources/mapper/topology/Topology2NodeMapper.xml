@@ -4,14 +4,15 @@
 <mapper namespace="com.catface996.aiops.repository.mysql.mapper.topology.Topology2NodeMapper">
 
     <sql id="Base_Column_List">
-        id, topology_id, node_id, added_at, added_by, deleted
+        id, topology_id, node_id, position_x, position_y, added_at, added_by, deleted
     </sql>
 
     <!-- 查询拓扑图的所有成员（带节点详情） -->
     <select id="selectMembersByTopologyId" resultType="com.catface996.aiops.repository.mysql.po.topology.Topology2NodePO">
-        SELECT t2n.*,
-            n.name AS node_name, n.status AS node_status,
-            nt.code AS node_type_code, nt.name AS node_type_name
+        SELECT t2n.id, t2n.topology_id, t2n.node_id, t2n.position_x, t2n.position_y,
+               t2n.added_at, t2n.added_by, t2n.deleted,
+               n.name AS node_name, n.status AS node_status, n.layer AS node_layer,
+               nt.code AS node_type_code, nt.name AS node_type_name
         FROM topology_2_node t2n
         JOIN node n ON t2n.node_id = n.id
         JOIN node_type nt ON n.node_type_id = nt.id

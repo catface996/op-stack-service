@@ -117,6 +117,15 @@ public class AgentBoundRepositoryImpl implements AgentBoundRepository {
         }
     }
 
+    @Override
+    public List<AgentBound> findByEntityIds(BoundEntityType entityType, List<Long> entityIds) {
+        if (entityType == null || entityIds == null || entityIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<AgentBoundPO> pos = agentBoundMapper.selectByEntityIds(entityType.name(), entityIds);
+        return pos.stream().map(this::toDomainWithAgentDetails).collect(Collectors.toList());
+    }
+
     // ==================== PO <-> Domain 转换 ====================
 
     private AgentBoundPO toPO(AgentBound domain) {
@@ -150,6 +159,28 @@ public class AgentBoundRepositoryImpl implements AgentBoundRepository {
 
         // 设置派生字段
         domain.setDerivedFields(po.getAgentName(), po.getAgentRole(), po.getEntityName());
+
+        return domain;
+    }
+
+    private AgentBound toDomainWithAgentDetails(AgentBoundPO po) {
+        if (po == null) {
+            return null;
+        }
+        AgentBound domain = AgentBound.builder()
+                .id(po.getId())
+                .agentId(po.getAgentId())
+                .hierarchyLevel(AgentHierarchyLevel.fromName(po.getHierarchyLevel()))
+                .entityId(po.getEntityId())
+                .entityType(BoundEntityType.fromName(po.getEntityType()))
+                .createdAt(po.getCreatedAt())
+                .deleted(po.getDeleted() != null && po.getDeleted() == 1)
+                .build();
+
+        // 设置派生字段（包含 Agent 详情）
+        domain.setDerivedFields(po.getAgentName(), po.getAgentRole(), po.getEntityName());
+        domain.setAgentSpecialty(po.getAgentSpecialty());
+        domain.setAgentModel(po.getAgentModel());
 
         return domain;
     }

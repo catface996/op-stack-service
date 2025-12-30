@@ -99,4 +99,20 @@
           AND entity_type = #{entityType}
     </select>
 
+    <!-- 批量查询指定实体的 Agent 绑定（带 Agent 详情） -->
+    <select id="selectByEntityIds" resultType="com.catface996.aiops.repository.mysql.po.agentbound.AgentBoundPO">
+        SELECT ab.id, ab.agent_id, ab.hierarchy_level, ab.entity_id, ab.entity_type,
+               ab.created_at, ab.deleted,
+               a.name AS agentName, a.role AS agentRole,
+               a.specialty AS agentSpecialty, a.model AS agentModel
+        FROM agent_bound ab
+        JOIN agent a ON ab.agent_id = a.id AND a.deleted = 0
+        WHERE ab.entity_type = #{entityType}
+          AND ab.entity_id IN
+          <foreach collection="entityIds" item="id" open="(" separator="," close=")">
+              #{id}
+          </foreach>
+        ORDER BY ab.entity_id, ab.hierarchy_level, ab.created_at
+    </select>
+
 </mapper>

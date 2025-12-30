@@ -1,6 +1,7 @@
 package com.catface996.aiops.domain.impl.service.node;
 
 import com.catface996.aiops.domain.model.node.Node;
+import com.catface996.aiops.domain.model.node.NodeLayer;
 import com.catface996.aiops.domain.model.node.NodeStatus;
 import com.catface996.aiops.domain.model.node.NodeType;
 import com.catface996.aiops.domain.service.node.NodeDomainService;
@@ -35,9 +36,9 @@ public class NodeDomainServiceImpl implements NodeDomainService {
 
     @Override
     @Transactional
-    public Node createNode(String name, String description, Long nodeTypeId,
-                           Long agentTeamId, String attributes, Long operatorId) {
-        logger.info("创建节点，name: {}, nodeTypeId: {}, operatorId: {}", name, nodeTypeId, operatorId);
+    public Node createNode(String name, String description, Long nodeTypeId, NodeLayer layer,
+                           String attributes, Long operatorId) {
+        logger.info("创建节点，name: {}, nodeTypeId: {}, layer: {}, operatorId: {}", name, nodeTypeId, layer, operatorId);
 
         // 检查名称是否已存在
         if (nodeRepository.existsByName(name)) {
@@ -49,19 +50,19 @@ public class NodeDomainServiceImpl implements NodeDomainService {
             throw new IllegalArgumentException("节点类型不存在: " + nodeTypeId);
         }
 
-        Node node = Node.create(name, description, nodeTypeId, agentTeamId, attributes, operatorId);
+        Node node = Node.create(name, description, nodeTypeId, layer, attributes, operatorId);
         return nodeRepository.save(node);
     }
 
     @Override
-    public List<Node> listNodes(Long nodeTypeId, NodeStatus status, String keyword,
+    public List<Node> listNodes(Long nodeTypeId, NodeStatus status, NodeLayer layer, String keyword,
                                 Long topologyId, int page, int size) {
-        return nodeRepository.findByCondition(nodeTypeId, status, keyword, topologyId, page, size);
+        return nodeRepository.findByCondition(nodeTypeId, status, layer, keyword, topologyId, page, size);
     }
 
     @Override
-    public long countNodes(Long nodeTypeId, NodeStatus status, String keyword, Long topologyId) {
-        return nodeRepository.countByCondition(nodeTypeId, status, keyword, topologyId);
+    public long countNodes(Long nodeTypeId, NodeStatus status, NodeLayer layer, String keyword, Long topologyId) {
+        return nodeRepository.countByCondition(nodeTypeId, status, layer, keyword, topologyId);
     }
 
     @Override
@@ -72,7 +73,7 @@ public class NodeDomainServiceImpl implements NodeDomainService {
     @Override
     @Transactional
     public Node updateNode(Long nodeId, String name, String description,
-                           Long agentTeamId, String attributes, Integer version, Long operatorId) {
+                           String attributes, Integer version, Long operatorId) {
         logger.info("更新节点，nodeId: {}, operatorId: {}", nodeId, operatorId);
 
         Node node = nodeRepository.findById(nodeId)
@@ -88,7 +89,7 @@ public class NodeDomainServiceImpl implements NodeDomainService {
             throw new IllegalArgumentException("节点名称已存在: " + name);
         }
 
-        node.update(name, description, agentTeamId, attributes);
+        node.update(name, description, attributes);
 
         if (!nodeRepository.update(node)) {
             throw new IllegalStateException("更新失败，版本冲突");

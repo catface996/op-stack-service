@@ -1,6 +1,7 @@
 package com.catface996.aiops.repository.node;
 
 import com.catface996.aiops.domain.model.node.Node;
+import com.catface996.aiops.domain.model.node.NodeLayer;
 import com.catface996.aiops.domain.model.node.NodeStatus;
 
 import java.util.List;
@@ -60,24 +61,26 @@ public interface NodeRepository {
      *
      * @param nodeTypeId 节点类型ID筛选（可选）
      * @param status     状态筛选（可选）
+     * @param layer      架构层级筛选（可选）
      * @param keyword    关键词模糊查询（可选，搜索名称和描述）
      * @param topologyId 拓扑图ID筛选（可选，只查询属于指定拓扑图的节点）
      * @param page       页码（从1开始）
      * @param size       每页大小
      * @return 节点列表
      */
-    List<Node> findByCondition(Long nodeTypeId, NodeStatus status, String keyword, Long topologyId, int page, int size);
+    List<Node> findByCondition(Long nodeTypeId, NodeStatus status, NodeLayer layer, String keyword, Long topologyId, int page, int size);
 
     /**
      * 按条件统计节点数量
      *
      * @param nodeTypeId 节点类型ID筛选（可选）
      * @param status     状态筛选（可选）
+     * @param layer      架构层级筛选（可选）
      * @param keyword    关键词模糊查询（可选，搜索名称和描述）
      * @param topologyId 拓扑图ID筛选（可选）
      * @return 节点数量
      */
-    long countByCondition(Long nodeTypeId, NodeStatus status, String keyword, Long topologyId);
+    long countByCondition(Long nodeTypeId, NodeStatus status, NodeLayer layer, String keyword, Long topologyId);
 
     /**
      * 保存节点

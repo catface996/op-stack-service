@@ -84,6 +84,16 @@ public class AgentBound {
     private String entityName;
 
     /**
+     * Agent 专长领域（JOIN 查询填充）
+     */
+    private String agentSpecialty;
+
+    /**
+     * Agent 使用的模型（JOIN 查询填充）
+     */
+    private String agentModel;
+
+    /**
      * 工厂方法：创建新的绑定关系
      *
      * @param agentId        Agent ID
@@ -146,5 +156,19 @@ public class AgentBound {
         this.agentName = agentName;
         this.agentRole = agentRole;
         this.entityName = entityName;
+    }
+
+    /**
+     * 设置 Agent 专长领域
+     */
+    public void setAgentSpecialty(String agentSpecialty) {
+        this.agentSpecialty = agentSpecialty;
+    }
+
+    /**
+     * 设置 Agent 使用的模型
+     */
+    public void setAgentModel(String agentModel) {
+        this.agentModel = agentModel;
     }
 }

@@ -51,10 +51,10 @@ public class NodePO implements Serializable {
     private String status;
 
     /**
-     * Agent Team ID
+     * 架构层级（BUSINESS_SCENARIO, BUSINESS_FLOW, BUSINESS_APPLICATION, MIDDLEWARE, INFRASTRUCTURE）
      */
-    @TableField("agent_team_id")
-    private Long agentTeamId;
+    @TableField("layer")
+    private String layer;
 
     /**
      * 扩展属性（JSON格式）

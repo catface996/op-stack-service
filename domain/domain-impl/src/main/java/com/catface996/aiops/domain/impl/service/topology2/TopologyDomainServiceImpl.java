@@ -46,7 +46,7 @@ public class TopologyDomainServiceImpl implements TopologyDomainService {
 
     @Override
     @Transactional
-    public Topology createTopology(String name, String description, Long coordinatorAgentId, Long operatorId) {
+    public Topology createTopology(String name, String description, Long operatorId) {
         logger.info("创建拓扑图，name: {}, operatorId: {}", name, operatorId);
 
         // 检查名称是否已存在
@@ -54,7 +54,7 @@ public class TopologyDomainServiceImpl implements TopologyDomainService {
             throw new IllegalArgumentException("拓扑图名称已存在: " + name);
         }
 
-        Topology topology = Topology.create(name, description, coordinatorAgentId, null, operatorId);
+        Topology topology = Topology.create(name, description, null, operatorId);
         return topologyRepository.save(topology);
     }
 
@@ -76,7 +76,7 @@ public class TopologyDomainServiceImpl implements TopologyDomainService {
     @Override
     @Transactional
     public Topology updateTopology(Long topologyId, String name, String description,
-                                   Long coordinatorAgentId, Integer version, Long operatorId) {
+                                   Integer version, Long operatorId) {
         logger.info("更新拓扑图，topologyId: {}, operatorId: {}", topologyId, operatorId);
 
         Topology topology = topologyRepository.findById(topologyId)
@@ -92,7 +92,7 @@ public class TopologyDomainServiceImpl implements TopologyDomainService {
             throw new IllegalArgumentException("拓扑图名称已存在: " + name);
         }
 
-        topology.update(name, description, coordinatorAgentId, null);
+        topology.update(name, description, null);
 
         if (!topologyRepository.update(topology)) {
             throw new IllegalStateException("更新失败，版本冲突");
@@ -180,6 +180,7 @@ public class TopologyDomainServiceImpl implements TopologyDomainService {
                         .name(member.nodeName())
                         .nodeTypeCode(member.nodeTypeCode())
                         .status(member.nodeStatus())
+                        .layer(member.nodeLayer())
                         .positionX(member.positionX())
                         .positionY(member.positionY())
                         .build())

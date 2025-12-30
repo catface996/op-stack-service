@@ -94,4 +94,10 @@ public class Topology2NodePO implements Serializable {
      */
     @TableField(exist = false)
     private String nodeStatus;
+
+    /**
+     * 节点架构层级（JOIN 查询填充）
+     */
+    @TableField(exist = false)
+    private String nodeLayer;
 }

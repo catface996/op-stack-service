@@ -17,7 +17,6 @@ import java.util.Optional;
  *   <li>FR-001: 系统必须将 resource 表拆分为 topology 表和 node 表</li>
  *   <li>FR-002: topology 表字段定义</li>
  *   <li>FR-006: 拓扑图 API 保持接口契约不变</li>
- *   <li>FR-013: 支持 coordinator_agent_id 字段</li>
  * </ul>
  *
  * @author AI Assistant
@@ -28,13 +27,12 @@ public interface TopologyDomainService {
     /**
      * 创建拓扑图
      *
-     * @param name               拓扑图名称
-     * @param description        拓扑图描述
-     * @param coordinatorAgentId 协调 Agent ID（可选）
-     * @param operatorId         操作人ID
+     * @param name        拓扑图名称
+     * @param description 拓扑图描述
+     * @param operatorId  操作人ID
      * @return 创建的拓扑图
      */
-    Topology createTopology(String name, String description, Long coordinatorAgentId, Long operatorId);
+    Topology createTopology(String name, String description, Long operatorId);
 
     /**
      * 分页查询拓扑图列表
@@ -67,16 +65,15 @@ public interface TopologyDomainService {
     /**
      * 更新拓扑图
      *
-     * @param topologyId         拓扑图ID
-     * @param name               新名称（可选）
-     * @param description        新描述（可选）
-     * @param coordinatorAgentId 协调 Agent ID（可选）
-     * @param version            当前版本号（乐观锁）
-     * @param operatorId         操作人ID
+     * @param topologyId  拓扑图ID
+     * @param name        新名称（可选）
+     * @param description 新描述（可选）
+     * @param version     当前版本号（乐观锁）
+     * @param operatorId  操作人ID
      * @return 更新后的拓扑图
      */
     Topology updateTopology(Long topologyId, String name, String description,
-                            Long coordinatorAgentId, Integer version, Long operatorId);
+                            Integer version, Long operatorId);
 
     /**
      * 删除拓扑图

@@ -43,8 +43,9 @@ public class UpdateNodeRequest {
     @Size(max = 500, message = "描述最长500个字符")
     private String description;
 
-    @Schema(description = "Agent Team ID（可选，null表示不修改）")
-    private Long agentTeamId;
+    @Schema(description = "架构层级（可选，null表示不修改）", example = "BUSINESS_APPLICATION",
+            allowableValues = {"BUSINESS_SCENARIO", "BUSINESS_FLOW", "BUSINESS_APPLICATION", "MIDDLEWARE", "INFRASTRUCTURE"})
+    private String layer;
 
     @Schema(description = "扩展属性（可选，null表示不修改）", example = "{\"ip\": \"192.168.1.101\"}")
     @Size(max = 4000, message = "扩展属性最长4000个字符")

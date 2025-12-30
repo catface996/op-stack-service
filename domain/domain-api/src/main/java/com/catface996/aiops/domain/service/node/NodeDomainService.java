@@ -1,6 +1,7 @@
 package com.catface996.aiops.domain.service.node;
 
 import com.catface996.aiops.domain.model.node.Node;
+import com.catface996.aiops.domain.model.node.NodeLayer;
 import com.catface996.aiops.domain.model.node.NodeStatus;
 import com.catface996.aiops.domain.model.node.NodeType;
 
@@ -17,7 +18,6 @@ import java.util.Optional;
  *   <li>FR-001: 系统必须将 resource 表拆分为 topology 表和 node 表</li>
  *   <li>FR-003: node 表字段定义</li>
  *   <li>FR-005: 节点 API 保持接口契约不变</li>
- *   <li>FR-014: 支持 agent_team_id 字段</li>
  * </ul>
  *
  * @author AI Assistant
@@ -31,26 +31,27 @@ public interface NodeDomainService {
      * @param name        节点名称
      * @param description 节点描述
      * @param nodeTypeId  节点类型ID
-     * @param agentTeamId Agent Team ID（可选）
+     * @param layer       架构层级（可选）
      * @param attributes  扩展属性（JSON格式）
      * @param operatorId  操作人ID
      * @return 创建的节点
      */
-    Node createNode(String name, String description, Long nodeTypeId,
-                    Long agentTeamId, String attributes, Long operatorId);
+    Node createNode(String name, String description, Long nodeTypeId, NodeLayer layer,
+                    String attributes, Long operatorId);
 
     /**
      * 分页查询节点列表
      *
      * @param nodeTypeId 节点类型ID（可选）
      * @param status     状态筛选（可选）
+     * @param layer      架构层级筛选（可选）
      * @param keyword    搜索关键词（可选）
      * @param topologyId 拓扑图ID（可选）
      * @param page       页码（从1开始）
      * @param size       每页大小
      * @return 节点列表
      */
-    List<Node> listNodes(Long nodeTypeId, NodeStatus status, String keyword,
+    List<Node> listNodes(Long nodeTypeId, NodeStatus status, NodeLayer layer, String keyword,
                          Long topologyId, int page, int size);
 
     /**
@@ -58,11 +59,12 @@ public interface NodeDomainService {
      *
      * @param nodeTypeId 节点类型ID（可选）
      * @param status     状态筛选（可选）
+     * @param layer      架构层级筛选（可选）
      * @param keyword    搜索关键词（可选）
      * @param topologyId 拓扑图ID（可选）
      * @return 节点数量
      */
-    long countNodes(Long nodeTypeId, NodeStatus status, String keyword, Long topologyId);
+    long countNodes(Long nodeTypeId, NodeStatus status, NodeLayer layer, String keyword, Long topologyId);
 
     /**
      * 根据ID获取节点详情
@@ -78,14 +80,13 @@ public interface NodeDomainService {
      * @param nodeId      节点ID
      * @param name        新名称（可选）
      * @param description 新描述（可选）
-     * @param agentTeamId Agent Team ID（可选）
      * @param attributes  扩展属性（可选）
      * @param version     当前版本号（乐观锁）
      * @param operatorId  操作人ID
      * @return 更新后的节点
      */
     Node updateNode(Long nodeId, String name, String description,
-                    Long agentTeamId, String attributes, Integer version, Long operatorId);
+                    String attributes, Integer version, Long operatorId);
 
     /**
      * 删除节点

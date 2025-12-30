@@ -1,12 +1,12 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.1.0 → 1.2.0 (MINOR: Added Database Design Standards principle)
+Version change: 1.2.0 → 1.3.0 (MINOR: Added SQL Query Standards principle)
 
 Modified principles: None
 
 Added sections:
-- VII. Database Design Standards (新增数据库设计规范)
+- VIII. SQL Query Standards (新增 SQL 查询规范)
 
 Removed sections: None
 
@@ -276,6 +276,86 @@ CREATE TABLE {tableA}_2_{tableB} (
 7. 版本控制字段 (`version`)
 8. 软删除字段 (`deleted`)
 
+### VIII. SQL Query Standards
+
+所有 SQL 查询 MUST 遵循以下规范：
+
+#### 禁止使用 SELECT *
+
+SQL 查询中 MUST NOT 使用 `SELECT *` 来获取所有字段，MUST 明确列出需要的字段名。
+
+**原因**：
+- 避免查询不需要的字段，减少网络传输和内存消耗
+- 表结构变更时不会意外返回新字段
+- 提高代码可读性和可维护性
+- JOIN 查询时避免字段名冲突
+
+**错误示例**：
+
+```sql
+-- MUST NOT: 禁止使用 SELECT *
+SELECT * FROM node WHERE id = 1;
+
+SELECT t.*, n.* FROM topology t JOIN node n ON t.id = n.topology_id;
+```
+
+**正确示例**：
+
+```sql
+-- MUST: 明确列出需要的字段
+SELECT id, name, status, created_at FROM node WHERE id = 1;
+
+SELECT
+    t.id AS topology_id,
+    t.name AS topology_name,
+    n.id AS node_id,
+    n.name AS node_name,
+    n.status AS node_status
+FROM topology t
+JOIN node n ON t.id = n.topology_id;
+```
+
+#### MyBatis Mapper XML 规范
+
+在 MyBatis Mapper XML 中，MUST 使用 `<sql>` 片段定义常用字段列表：
+
+```xml
+<!-- 定义基础字段列表 -->
+<sql id="Base_Column_List">
+    id, name, description, status, layer, created_at, updated_at, version, deleted
+</sql>
+
+<!-- 使用字段列表 -->
+<select id="selectById" resultType="...">
+    SELECT <include refid="Base_Column_List"/>
+    FROM node
+    WHERE id = #{id} AND deleted = 0
+</select>
+
+<!-- JOIN 查询时明确指定表别名和字段 -->
+<select id="selectWithType" resultType="...">
+    SELECT
+        n.id, n.name, n.status, n.layer,
+        nt.code AS node_type_code, nt.name AS node_type_name
+    FROM node n
+    JOIN node_type nt ON n.node_type_id = nt.id
+    WHERE n.id = #{id} AND n.deleted = 0
+</select>
+```
+
+#### 例外情况
+
+以下情况可以使用 `SELECT *`，但 MUST 添加注释说明原因：
+
+1. **临时调试查询**（MUST NOT 提交到代码库）
+2. **数据迁移脚本**（一次性脚本，需注释说明）
+3. **动态 schema 场景**（如 EAV 模式，需架构评审）
+
+```sql
+-- 例外：数据迁移脚本，仅执行一次
+-- INSERT INTO node_backup SELECT * FROM node WHERE created_at < '2025-01-01';
+```
+
 ## API Design Standards
 
 ### Request/Response 规范
@@ -349,5 +429,6 @@ mvn test
 - 数据库变更 MUST 遵循 Database Migration 原则
 - 分页接口 MUST 遵循 Pagination Protocol
 - 数据库表设计 MUST 遵循 Database Design Standards
+- SQL 查询 MUST 遵循 SQL Query Standards
 
-**Version**: 1.2.0 | **Ratified**: 2025-12-27 | **Last Amended**: 2025-12-28
+**Version**: 1.3.0 | **Ratified**: 2025-12-27 | **Last Amended**: 2025-12-30

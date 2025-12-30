@@ -91,6 +91,9 @@ public class TopologyGraphDTO {
         @Schema(description = "节点状态", example = "RUNNING")
         private String status;
 
+        @Schema(description = "架构层级", example = "BUSINESS_APPLICATION")
+        private String layer;
+
         @Schema(description = "节点在画布上的X坐标", example = "100")
         private Integer positionX;
 

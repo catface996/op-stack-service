@@ -66,7 +66,6 @@ public class TopologyDomainServiceImpl implements TopologyDomainService {
         Topology topology = Topology.create(
                 name.trim(),
                 description,
-                null, // coordinatorAgentId
                 "{}", // attributes
                 operatorId
         );

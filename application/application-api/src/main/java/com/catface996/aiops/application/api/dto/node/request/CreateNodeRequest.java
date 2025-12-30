@@ -45,8 +45,9 @@ public class CreateNodeRequest {
     @NotNull(message = "节点类型ID不能为空")
     private Long nodeTypeId;
 
-    @Schema(description = "Agent Team ID（可选）")
-    private Long agentTeamId;
+    @Schema(description = "架构层级", example = "BUSINESS_APPLICATION",
+            allowableValues = {"BUSINESS_SCENARIO", "BUSINESS_FLOW", "BUSINESS_APPLICATION", "MIDDLEWARE", "INFRASTRUCTURE"})
+    private String layer;
 
     @Schema(description = "扩展属性（JSON格式）", example = "{\"ip\": \"192.168.1.100\"}")
     @Size(max = 4000, message = "扩展属性最长4000个字符")

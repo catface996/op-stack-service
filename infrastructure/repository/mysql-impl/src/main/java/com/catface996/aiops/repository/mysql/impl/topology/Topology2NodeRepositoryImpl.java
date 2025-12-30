@@ -92,6 +92,7 @@ public class Topology2NodeRepositoryImpl implements Topology2NodeRepository {
                         po.getNodeTypeCode(),
                         po.getNodeTypeName(),
                         po.getNodeStatus(),
+                        po.getNodeLayer(),
                         po.getPositionX(),
                         po.getPositionY(),
                         po.getAddedAt(),

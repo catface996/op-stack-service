@@ -27,6 +27,7 @@ public interface NodeMapper extends BaseMapper<NodePO> {
      * @param keyword    关键词模糊查询（可选，搜索名称和描述）
      * @param nodeTypeId 节点类型ID筛选（可选）
      * @param status     状态筛选（可选）
+     * @param layer      架构层级筛选（可选）
      * @param topologyId 拓扑图ID筛选（可选）
      * @return 分页结果
      */
@@ -34,6 +35,7 @@ public interface NodeMapper extends BaseMapper<NodePO> {
                                           @Param("keyword") String keyword,
                                           @Param("nodeTypeId") Long nodeTypeId,
                                           @Param("status") String status,
+                                          @Param("layer") String layer,
                                           @Param("topologyId") Long topologyId);
 
     /**
@@ -42,12 +44,14 @@ public interface NodeMapper extends BaseMapper<NodePO> {
      * @param keyword    关键词模糊查询（可选）
      * @param nodeTypeId 节点类型ID筛选（可选）
      * @param status     状态筛选（可选）
+     * @param layer      架构层级筛选（可选）
      * @param topologyId 拓扑图ID筛选（可选）
      * @return 节点数量
      */
     long countByCondition(@Param("keyword") String keyword,
                           @Param("nodeTypeId") Long nodeTypeId,
                           @Param("status") String status,
+                          @Param("layer") String layer,
                           @Param("topologyId") Long topologyId);
 
     /**

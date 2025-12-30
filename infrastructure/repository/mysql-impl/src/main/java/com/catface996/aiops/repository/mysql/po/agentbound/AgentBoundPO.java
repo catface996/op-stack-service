@@ -82,4 +82,16 @@ public class AgentBoundPO implements Serializable {
      */
     @TableField(exist = false)
     private String entityName;
+
+    /**
+     * Agent 专长领域（JOIN 查询填充）
+     */
+    @TableField(exist = false)
+    private String agentSpecialty;
+
+    /**
+     * Agent 使用的模型（JOIN 查询填充）
+     */
+    @TableField(exist = false)
+    private String agentModel;
 }

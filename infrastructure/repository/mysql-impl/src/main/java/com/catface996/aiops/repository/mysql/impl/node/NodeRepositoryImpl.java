@@ -2,6 +2,7 @@ package com.catface996.aiops.repository.mysql.impl.node;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.catface996.aiops.domain.model.node.Node;
+import com.catface996.aiops.domain.model.node.NodeLayer;
 import com.catface996.aiops.domain.model.node.NodeStatus;
 import com.catface996.aiops.domain.model.node.NodeType;
 import com.catface996.aiops.repository.mysql.mapper.node.NodeMapper;
@@ -54,11 +55,12 @@ public class NodeRepositoryImpl implements NodeRepository {
     }
 
     @Override
-    public List<Node> findByCondition(Long nodeTypeId, NodeStatus status, String keyword,
+    public List<Node> findByCondition(Long nodeTypeId, NodeStatus status, NodeLayer layer, String keyword,
                                       Long topologyId, int page, int size) {
         Page<NodePO> pageParam = new Page<>(page, size);
         String statusStr = status != null ? status.name() : null;
-        return nodeMapper.selectPageWithTypeInfo(pageParam, keyword, nodeTypeId, statusStr, topologyId)
+        String layerStr = layer != null ? layer.name() : null;
+        return nodeMapper.selectPageWithTypeInfo(pageParam, keyword, nodeTypeId, statusStr, layerStr, topologyId)
                 .getRecords()
                 .stream()
                 .map(this::toDomainWithType)
@@ -66,9 +68,10 @@ public class NodeRepositoryImpl implements NodeRepository {
     }
 
     @Override
-    public long countByCondition(Long nodeTypeId, NodeStatus status, String keyword, Long topologyId) {
+    public long countByCondition(Long nodeTypeId, NodeStatus status, NodeLayer layer, String keyword, Long topologyId) {
+        String layerStr = layer != null ? layer.name() : null;
         return nodeMapper.countByCondition(keyword, nodeTypeId,
-                status != null ? status.name() : null, topologyId);
+                status != null ? status.name() : null, layerStr, topologyId);
     }
 
     @Override
@@ -129,7 +132,9 @@ public class NodeRepositoryImpl implements NodeRepository {
         node.setDescription(po.getDescription());
         node.setNodeTypeId(po.getNodeTypeId());
         node.setStatus(NodeStatus.valueOf(po.getStatus()));
-        node.setAgentTeamId(po.getAgentTeamId());
+        if (po.getLayer() != null && !po.getLayer().isEmpty()) {
+            node.setLayer(NodeLayer.valueOf(po.getLayer()));
+        }
         node.setAttributes(po.getAttributes());
         node.setCreatedBy(po.getCreatedBy());
         node.setVersion(po.getVersion());
@@ -160,7 +165,7 @@ public class NodeRepositoryImpl implements NodeRepository {
         po.setDescription(domain.getDescription());
         po.setNodeTypeId(domain.getNodeTypeId());
         po.setStatus(domain.getStatus() != null ? domain.getStatus().name() : NodeStatus.RUNNING.name());
-        po.setAgentTeamId(domain.getAgentTeamId());
+        po.setLayer(domain.getLayer() != null ? domain.getLayer().name() : null);
         po.setAttributes(domain.getAttributes());
         po.setCreatedBy(domain.getCreatedBy());
         po.setVersion(domain.getVersion());

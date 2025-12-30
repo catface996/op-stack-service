@@ -106,4 +106,15 @@ public interface AgentBoundRepository {
      * @param id 绑定ID
      */
     void deleteById(Long id);
+
+    /**
+     * 批量查询指定实体的 Agent 绑定（带 Agent 信息）
+     *
+     * <p>用于层级团队查询，一次性获取多个节点的所有 Agent 绑定</p>
+     *
+     * @param entityType 实体类型
+     * @param entityIds  实体 ID 列表
+     * @return 绑定列表（包含 Agent 详情）
+     */
+    List<AgentBound> findByEntityIds(BoundEntityType entityType, List<Long> entityIds);
 }

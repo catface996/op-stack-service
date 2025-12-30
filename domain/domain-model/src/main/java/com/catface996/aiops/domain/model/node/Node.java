@@ -11,7 +11,6 @@ import java.time.LocalDateTime;
  * <ul>
  *   <li>FR-001: resource 表拆分为 topology 表和 node 表</li>
  *   <li>FR-003: node 表字段定义</li>
- *   <li>FR-014: 支持 agent_team_id 字段</li>
  * </ul>
  *
  * @author AI Assistant
@@ -50,9 +49,9 @@ public class Node {
     private NodeStatus status;
 
     /**
-     * Agent Team ID（预留字段）
+     * 架构层级
      */
-    private Long agentTeamId;
+    private NodeLayer layer;
 
     /**
      * 扩展属性（JSON格式）
@@ -87,14 +86,13 @@ public class Node {
     }
 
     public Node(Long id, String name, String description, Long nodeTypeId,
-                NodeStatus status, Long agentTeamId, String attributes, Long createdBy,
+                NodeStatus status, String attributes, Long createdBy,
                 Integer version, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.nodeTypeId = nodeTypeId;
         this.status = status;
-        this.agentTeamId = agentTeamId;
         this.attributes = attributes;
         this.createdBy = createdBy;
         this.version = version;
@@ -107,13 +105,13 @@ public class Node {
     /**
      * 创建新节点的工厂方法
      */
-    public static Node create(String name, String description, Long nodeTypeId,
-                              Long agentTeamId, String attributes, Long createdBy) {
+    public static Node create(String name, String description, Long nodeTypeId, NodeLayer layer,
+                              String attributes, Long createdBy) {
         Node node = new Node();
         node.setName(name);
         node.setDescription(description);
         node.setNodeTypeId(nodeTypeId);
-        node.setAgentTeamId(agentTeamId);
+        node.setLayer(layer);
         node.setAttributes(attributes);
         node.setStatus(NodeStatus.RUNNING);
         node.setVersion(0);
@@ -164,15 +162,12 @@ public class Node {
     /**
      * 更新节点基本信息
      */
-    public void update(String name, String description, Long agentTeamId, String attributes) {
+    public void update(String name, String description, String attributes) {
         if (name != null) {
             this.name = name;
         }
         if (description != null) {
             this.description = description;
-        }
-        if (agentTeamId != null) {
-            this.agentTeamId = agentTeamId;
         }
         if (attributes != null) {
             this.attributes = attributes;
@@ -237,12 +232,12 @@ public class Node {
         this.status = status;
     }
 
-    public Long getAgentTeamId() {
-        return agentTeamId;
+    public NodeLayer getLayer() {
+        return layer;
     }
 
-    public void setAgentTeamId(Long agentTeamId) {
-        this.agentTeamId = agentTeamId;
+    public void setLayer(NodeLayer layer) {
+        this.layer = layer;
     }
 
     public String getAttributes() {
@@ -293,7 +288,7 @@ public class Node {
                 ", description='" + description + '\'' +
                 ", nodeTypeId=" + nodeTypeId +
                 ", status=" + status +
-                ", agentTeamId=" + agentTeamId +
+                ", layer=" + layer +
                 ", version=" + version +
                 ", createdAt=" + createdAt +
                 ", updatedAt=" + updatedAt +

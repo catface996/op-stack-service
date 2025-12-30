@@ -82,6 +82,11 @@ public class TopologyGraphData {
         private String status;
 
         /**
+         * 架构层级
+         */
+        private String layer;
+
+        /**
          * 节点在画布上的X坐标
          */
         private Integer positionX;

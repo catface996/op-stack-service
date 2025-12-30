@@ -33,6 +33,10 @@ public class QueryNodesRequest {
     @Schema(description = "节点状态（可选，RUNNING/STOPPED/MAINTENANCE/OFFLINE）", example = "RUNNING")
     private String status;
 
+    @Schema(description = "架构层级（可选）", example = "BUSINESS_APPLICATION",
+            allowableValues = {"BUSINESS_SCENARIO", "BUSINESS_FLOW", "BUSINESS_APPLICATION", "MIDDLEWARE", "INFRASTRUCTURE"})
+    private String layer;
+
     @Schema(description = "搜索关键词（可选，搜索名称和描述）", example = "web")
     private String keyword;
 

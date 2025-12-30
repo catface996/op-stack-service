@@ -4,13 +4,15 @@
 <mapper namespace="com.catface996.aiops.repository.mysql.mapper.topology.TopologyMapper">
 
     <sql id="Base_Column_List">
-        id, name, description, status, created_by, created_at, updated_by, updated_at, version, deleted
+        id, name, description, status, attributes,
+        created_by, created_at, updated_by, updated_at, version, deleted
     </sql>
 
     <!-- 分页查询拓扑图（带成员数量统计） -->
     <select id="selectPageWithMemberCount" resultType="com.catface996.aiops.repository.mysql.po.topology.TopologyPO">
-        SELECT t.*,
-            (SELECT COUNT(*) FROM topology_2_node t2n WHERE t2n.topology_id = t.id AND t2n.deleted = 0) AS member_count
+        SELECT t.id, t.name, t.description, t.status, t.attributes,
+               t.created_by, t.created_at, t.updated_by, t.updated_at, t.version, t.deleted,
+               (SELECT COUNT(*) FROM topology_2_node t2n WHERE t2n.topology_id = t.id AND t2n.deleted = 0) AS member_count
         FROM topology t
         <where>
             t.deleted = 0
@@ -22,8 +24,9 @@
 
     <!-- 根据ID查询拓扑图（带成员数量统计） -->
     <select id="selectByIdWithMemberCount" resultType="com.catface996.aiops.repository.mysql.po.topology.TopologyPO">
-        SELECT t.*,
-            (SELECT COUNT(*) FROM topology_2_node t2n WHERE t2n.topology_id = t.id AND t2n.deleted = 0) AS member_count
+        SELECT t.id, t.name, t.description, t.status, t.attributes,
+               t.created_by, t.created_at, t.updated_by, t.updated_at, t.version, t.deleted,
+               (SELECT COUNT(*) FROM topology_2_node t2n WHERE t2n.topology_id = t.id AND t2n.deleted = 0) AS member_count
         FROM topology t
         WHERE t.id = #{id} AND t.deleted = 0
     </select>
@@ -45,12 +48,5 @@
             <if test="status != null and status != ''">AND status = #{status}</if>
         </where>
     </select>
-
-    <!-- 更新全局监督Agent ID -->
-    <update id="updateGlobalSupervisorAgentId">
-        UPDATE topology
-        SET global_supervisor_agent_id = #{agentId}, updated_at = #{updatedAt}
-        WHERE id = #{topologyId}
-    </update>
 
 </mapper>

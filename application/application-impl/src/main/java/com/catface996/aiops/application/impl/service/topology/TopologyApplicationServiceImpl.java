@@ -22,8 +22,11 @@ import com.catface996.aiops.domain.model.topology.TopologyStatus;
 import com.catface996.aiops.domain.model.topology.TopologyGraphData;
 import com.catface996.aiops.domain.service.node.NodeDomainService;
 import com.catface996.aiops.domain.service.topology2.TopologyDomainService;
+import com.catface996.aiops.domain.model.agent.AgentHierarchyLevel;
+import com.catface996.aiops.domain.model.agentbound.AgentBound;
+import com.catface996.aiops.domain.model.agentbound.BoundEntityType;
 import com.catface996.aiops.repository.agent.AgentRepository;
-import com.catface996.aiops.repository.node.NodeAgentRelationRepository;
+import com.catface996.aiops.repository.agentbound.AgentBoundRepository;
 import com.catface996.aiops.repository.node.NodeTypeRepository;
 import com.catface996.aiops.repository.topology2.Topology2NodeRepository;
 import org.slf4j.Logger;
@@ -46,7 +49,6 @@ import java.util.stream.Collectors;
  * <ul>
  *   <li>FR-001: resource 表拆分为 topology 表和 node 表</li>
  *   <li>FR-006: 拓扑图 API 保持接口契约不变</li>
- *   <li>FR-013: 支持 coordinator_agent_id 字段</li>
  *   <li>US1: 查询所有拓扑图</li>
  *   <li>US3: 创建拓扑图</li>
  * </ul>
@@ -63,21 +65,21 @@ public class TopologyApplicationServiceImpl implements TopologyApplicationServic
     private final NodeDomainService nodeDomainService;
     private final NodeTypeRepository nodeTypeRepository;
     private final AgentRepository agentRepository;
+    private final AgentBoundRepository agentBoundRepository;
     private final Topology2NodeRepository topology2NodeRepository;
-    private final NodeAgentRelationRepository nodeAgentRelationRepository;
 
     public TopologyApplicationServiceImpl(@Qualifier("topologyDomainServiceV2") TopologyDomainService topologyDomainService,
                                           NodeDomainService nodeDomainService,
                                           NodeTypeRepository nodeTypeRepository,
                                           AgentRepository agentRepository,
-                                          Topology2NodeRepository topology2NodeRepository,
-                                          NodeAgentRelationRepository nodeAgentRelationRepository) {
+                                          AgentBoundRepository agentBoundRepository,
+                                          Topology2NodeRepository topology2NodeRepository) {
         this.topologyDomainService = topologyDomainService;
         this.nodeDomainService = nodeDomainService;
         this.nodeTypeRepository = nodeTypeRepository;
         this.agentRepository = agentRepository;
+        this.agentBoundRepository = agentBoundRepository;
         this.topology2NodeRepository = topology2NodeRepository;
-        this.nodeAgentRelationRepository = nodeAgentRelationRepository;
     }
 
     @Override
@@ -87,7 +89,6 @@ public class TopologyApplicationServiceImpl implements TopologyApplicationServic
         Topology topology = topologyDomainService.createTopology(
                 request.getName(),
                 request.getDescription(),
-                request.getCoordinatorAgentId(),
                 operatorId
         );
 
@@ -130,7 +131,6 @@ public class TopologyApplicationServiceImpl implements TopologyApplicationServic
                 topologyId,
                 request.getName(),
                 request.getDescription(),
-                request.getCoordinatorAgentId(),
                 request.getVersion(),
                 operatorId
         );
@@ -167,6 +167,7 @@ public class TopologyApplicationServiceImpl implements TopologyApplicationServic
         List<Node> nodes = nodeDomainService.listNodes(
                 request.getNodeTypeId(),
                 status,
+                null, // layer: 成员查询不筛选架构层级
                 request.getKeyword(),
                 request.getTopologyId(),
                 request.getPage(),
@@ -176,6 +177,7 @@ public class TopologyApplicationServiceImpl implements TopologyApplicationServic
         long total = nodeDomainService.countNodes(
                 request.getNodeTypeId(),
                 status,
+                null, // layer: 成员查询不筛选架构层级
                 request.getKeyword(),
                 request.getTopologyId()
         );
@@ -198,8 +200,6 @@ public class TopologyApplicationServiceImpl implements TopologyApplicationServic
                 .id(topology.getId())
                 .name(topology.getName())
                 .description(topology.getDescription())
-                .coordinatorAgentId(topology.getCoordinatorAgentId())
-                .globalSupervisorAgentId(topology.getGlobalSupervisorAgentId())
                 .attributes(topology.getAttributes())
                 .version(topology.getVersion())
                 .createdBy(topology.getCreatedBy())
@@ -214,17 +214,6 @@ public class TopologyApplicationServiceImpl implements TopologyApplicationServic
         // 获取成员数量
         int memberCount = topologyDomainService.countMembers(topology.getId());
         builder.memberCount(memberCount);
-
-        // 填充 Global Supervisor Agent 信息
-        if (topology.getGlobalSupervisorAgentId() != null) {
-            agentRepository.findById(topology.getGlobalSupervisorAgentId())
-                    .ifPresent(agent -> {
-                        builder.globalSupervisorAgentName(agent.getName());
-                        if (agent.getRole() != null) {
-                            builder.globalSupervisorAgentRole(agent.getRole().name());
-                        }
-                    });
-        }
 
         return builder.build();
     }
@@ -251,7 +240,6 @@ public class TopologyApplicationServiceImpl implements TopologyApplicationServic
                 .name(node.getName())
                 .description(node.getDescription())
                 .nodeTypeId(node.getNodeTypeId())
-                .agentTeamId(node.getAgentTeamId())
                 .attributes(node.getAttributes())
                 .version(node.getVersion())
                 .createdBy(node.getCreatedBy())
@@ -312,6 +300,7 @@ public class TopologyApplicationServiceImpl implements TopologyApplicationServic
                         .name(node.getName())
                         .nodeTypeCode(node.getNodeTypeCode())
                         .status(node.getStatus())
+                        .layer(node.getLayer())
                         .positionX(node.getPositionX())
                         .positionY(node.getPositionY())
                         .build())
@@ -344,13 +333,12 @@ public class TopologyApplicationServiceImpl implements TopologyApplicationServic
         Topology topology = topologyDomainService.getTopologyById(request.getTopologyId())
                 .orElseThrow(() -> new IllegalArgumentException("Topology not found: " + request.getTopologyId()));
 
-        // 2. 获取 Global Supervisor Agent
-        AgentDTO globalSupervisorDTO = null;
-        if (topology.getGlobalSupervisorAgentId() != null) {
-            globalSupervisorDTO = agentRepository.findById(topology.getGlobalSupervisorAgentId())
-                    .map(this::toAgentDTO)
-                    .orElse(null);
-        }
+        // 2. 获取 Global Supervisor Agent（从 agent_bound 表查询）
+        AgentDTO globalSupervisorDTO = agentBoundRepository
+                .findSupervisorBinding(BoundEntityType.TOPOLOGY, topology.getId(), AgentHierarchyLevel.GLOBAL_SUPERVISOR)
+                .flatMap(binding -> agentRepository.findById(binding.getAgentId()))
+                .map(this::toAgentDTO)
+                .orElse(null);
 
         // 3. 获取拓扑图的成员节点列表
         List<Topology2NodeRepository.MemberInfo> members = topology2NodeRepository.findMembersByTopologyId(request.getTopologyId());
@@ -370,36 +358,34 @@ public class TopologyApplicationServiceImpl implements TopologyApplicationServic
                 .map(Topology2NodeRepository.MemberInfo::nodeId)
                 .collect(Collectors.toList());
 
-        // 5. 批量获取所有节点关联的 Agent 及其层级信息
-        List<Map<String, Object>> agentsWithHierarchy = nodeAgentRelationRepository.findAgentsWithHierarchyByNodeIds(nodeIds);
+        // 5. 批量获取所有节点关联的 Agent 绑定（从 agent_bound 表查询）
+        List<AgentBound> nodeAgentBindings = agentBoundRepository.findByEntityIds(BoundEntityType.NODE, nodeIds);
 
         // 6. 按节点ID分组
-        Map<Long, List<Map<String, Object>>> agentsByNodeId = new HashMap<>();
-        for (Map<String, Object> agentInfo : agentsWithHierarchy) {
-            Long nodeId = ((Number) agentInfo.get("nodeId")).longValue();
-            agentsByNodeId.computeIfAbsent(nodeId, k -> new ArrayList<>()).add(agentInfo);
+        Map<Long, List<AgentBound>> agentsByNodeId = new HashMap<>();
+        for (AgentBound binding : nodeAgentBindings) {
+            agentsByNodeId.computeIfAbsent(binding.getEntityId(), k -> new ArrayList<>()).add(binding);
         }
 
         // 7. 组装 Teams 列表
         List<TeamDTO> teams = new ArrayList<>();
         for (Topology2NodeRepository.MemberInfo member : members) {
-            List<Map<String, Object>> nodeAgents = agentsByNodeId.getOrDefault(member.nodeId(), new ArrayList<>());
+            List<AgentBound> nodeAgents = agentsByNodeId.getOrDefault(member.nodeId(), new ArrayList<>());
 
             // 分离 Supervisor 和 Workers
             AgentDTO supervisor = null;
             List<AgentDTO> workers = new ArrayList<>();
 
-            for (Map<String, Object> agentInfo : nodeAgents) {
-                String hierarchyLevel = (String) agentInfo.get("hierarchyLevel");
-                AgentDTO agentDTO = mapToAgentDTO(agentInfo);
+            for (AgentBound binding : nodeAgents) {
+                AgentDTO agentDTO = mapBoundToAgentDTO(binding);
 
-                if ("TEAM_SUPERVISOR".equals(hierarchyLevel)) {
+                if (binding.getHierarchyLevel() == AgentHierarchyLevel.TEAM_SUPERVISOR) {
                     if (supervisor == null) {
                         // FR-009: 当节点绑定多个 TEAM_SUPERVISOR 时，取创建时间最早的一个
                         // 由于 SQL 已按 created_at 排序，第一个即为最早的
                         supervisor = agentDTO;
                     }
-                } else if ("TEAM_WORKER".equals(hierarchyLevel)) {
+                } else if (binding.getHierarchyLevel() == AgentHierarchyLevel.TEAM_WORKER) {
                     workers.add(agentDTO);
                 }
             }
@@ -446,14 +432,14 @@ public class TopologyApplicationServiceImpl implements TopologyApplicationServic
                 .build();
     }
 
-    private AgentDTO mapToAgentDTO(Map<String, Object> agentInfo) {
+    private AgentDTO mapBoundToAgentDTO(AgentBound binding) {
         return AgentDTO.builder()
-                .id(((Number) agentInfo.get("id")).longValue())
-                .name((String) agentInfo.get("name"))
-                .role((String) agentInfo.get("role"))
-                .hierarchyLevel((String) agentInfo.get("hierarchyLevel"))
-                .specialty((String) agentInfo.get("specialty"))
-                .model((String) agentInfo.get("model"))
+                .id(binding.getAgentId())
+                .name(binding.getAgentName())
+                .role(binding.getAgentRole())
+                .hierarchyLevel(binding.getHierarchyLevel() != null ? binding.getHierarchyLevel().name() : null)
+                .specialty(binding.getAgentSpecialty())
+                .model(binding.getAgentModel())
                 .build();
     }
 }

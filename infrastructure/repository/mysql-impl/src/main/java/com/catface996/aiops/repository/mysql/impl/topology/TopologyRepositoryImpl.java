@@ -96,12 +96,6 @@ public class TopologyRepositoryImpl implements TopologyRepository {
         return topologyMapper.selectByName(name) != null;
     }
 
-    @Override
-    public boolean updateGlobalSupervisorAgentId(Long topologyId, Long agentId) {
-        int rows = topologyMapper.updateGlobalSupervisorAgentId(topologyId, agentId, LocalDateTime.now());
-        return rows > 0;
-    }
-
     // ==================== 转换方法 ====================
 
     private Topology toDomain(TopologyPO po) {
@@ -113,8 +107,6 @@ public class TopologyRepositoryImpl implements TopologyRepository {
         topology.setName(po.getName());
         topology.setDescription(po.getDescription());
         topology.setStatus(TopologyStatus.valueOf(po.getStatus()));
-        topology.setCoordinatorAgentId(po.getCoordinatorAgentId());
-        topology.setGlobalSupervisorAgentId(po.getGlobalSupervisorAgentId());
         topology.setAttributes(po.getAttributes());
         topology.setCreatedBy(po.getCreatedBy());
         topology.setVersion(po.getVersion());
@@ -132,8 +124,6 @@ public class TopologyRepositoryImpl implements TopologyRepository {
         po.setName(domain.getName());
         po.setDescription(domain.getDescription());
         po.setStatus(domain.getStatus() != null ? domain.getStatus().name() : TopologyStatus.RUNNING.name());
-        po.setCoordinatorAgentId(domain.getCoordinatorAgentId());
-        po.setGlobalSupervisorAgentId(domain.getGlobalSupervisorAgentId());
         po.setAttributes(domain.getAttributes());
         po.setCreatedBy(domain.getCreatedBy());
         po.setVersion(domain.getVersion());

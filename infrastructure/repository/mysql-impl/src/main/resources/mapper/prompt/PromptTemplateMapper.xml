@@ -17,7 +17,9 @@
 
     <!-- 根据ID查询模板（带用途信息和当前版本内容） -->
     <select id="selectByIdWithDetail" resultType="com.catface996.aiops.repository.mysql.po.prompt.PromptTemplatePO">
-        SELECT pt.*, tu.name AS usage_name, ptv.content
+        SELECT pt.id, pt.name, pt.description, pt.usage_id, pt.current_version,
+               pt.created_by, pt.created_at, pt.updated_by, pt.updated_at, pt.version, pt.deleted,
+               tu.name AS usage_name, ptv.content
         FROM prompt_template pt
         LEFT JOIN template_usage tu ON pt.usage_id = tu.id AND tu.deleted = 0
         LEFT JOIN prompt_template_version ptv ON pt.id = ptv.template_id AND pt.current_version = ptv.version_number
@@ -26,7 +28,9 @@
 
     <!-- 分页查询模板（带用途信息） -->
     <select id="selectPageWithUsage" resultType="com.catface996.aiops.repository.mysql.po.prompt.PromptTemplatePO">
-        SELECT pt.*, tu.name AS usage_name
+        SELECT pt.id, pt.name, pt.description, pt.usage_id, pt.current_version,
+               pt.created_by, pt.created_at, pt.updated_by, pt.updated_at, pt.version, pt.deleted,
+               tu.name AS usage_name
         FROM prompt_template pt
         LEFT JOIN template_usage tu ON pt.usage_id = tu.id AND tu.deleted = 0
         <where>

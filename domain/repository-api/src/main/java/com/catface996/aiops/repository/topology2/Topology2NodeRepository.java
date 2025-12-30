@@ -97,6 +97,7 @@ public interface Topology2NodeRepository {
             String nodeTypeCode,
             String nodeTypeName,
             String nodeStatus,
+            String nodeLayer,
             Integer positionX,
             Integer positionY,
             LocalDateTime addedAt,

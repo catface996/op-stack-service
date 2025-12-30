@@ -45,18 +45,6 @@ public class TopologyPO implements Serializable {
     private String status;
 
     /**
-     * 协调 Agent ID
-     */
-    @TableField("coordinator_agent_id")
-    private Long coordinatorAgentId;
-
-    /**
-     * Global Supervisor Agent ID
-     */
-    @TableField("global_supervisor_agent_id")
-    private Long globalSupervisorAgentId;
-
-    /**
      * 扩展属性（JSON格式）
      */
     @TableField("attributes")

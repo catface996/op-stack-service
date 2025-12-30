@@ -11,7 +11,6 @@ import java.time.LocalDateTime;
  * <ul>
  *   <li>FR-001: resource 表拆分为 topology 表和 node 表</li>
  *   <li>FR-002: topology 表字段定义</li>
- *   <li>FR-013: 支持 coordinator_agent_id 字段</li>
  * </ul>
  *
  * @author AI Assistant
@@ -38,16 +37,6 @@ public class Topology {
      * 拓扑图状态
      */
     private TopologyStatus status;
-
-    /**
-     * 协调 Agent ID（预留字段）
-     */
-    private Long coordinatorAgentId;
-
-    /**
-     * Global Supervisor Agent ID
-     */
-    private Long globalSupervisorAgentId;
 
     /**
      * 扩展属性（JSON格式）
@@ -82,13 +71,12 @@ public class Topology {
     }
 
     public Topology(Long id, String name, String description, TopologyStatus status,
-                    Long coordinatorAgentId, String attributes, Long createdBy,
+                    String attributes, Long createdBy,
                     Integer version, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.status = status;
-        this.coordinatorAgentId = coordinatorAgentId;
         this.attributes = attributes;
         this.createdBy = createdBy;
         this.version = version;
@@ -101,12 +89,10 @@ public class Topology {
     /**
      * 创建新拓扑图的工厂方法
      */
-    public static Topology create(String name, String description, Long coordinatorAgentId,
-                                  String attributes, Long createdBy) {
+    public static Topology create(String name, String description, String attributes, Long createdBy) {
         Topology topology = new Topology();
         topology.setName(name);
         topology.setDescription(description);
-        topology.setCoordinatorAgentId(coordinatorAgentId);
         topology.setAttributes(attributes);
         topology.setStatus(TopologyStatus.RUNNING);
         topology.setVersion(0);
@@ -157,15 +143,12 @@ public class Topology {
     /**
      * 更新拓扑图基本信息
      */
-    public void update(String name, String description, Long coordinatorAgentId, String attributes) {
+    public void update(String name, String description, String attributes) {
         if (name != null) {
             this.name = name;
         }
         if (description != null) {
             this.description = description;
-        }
-        if (coordinatorAgentId != null) {
-            this.coordinatorAgentId = coordinatorAgentId;
         }
         if (attributes != null) {
             this.attributes = attributes;
@@ -212,22 +195,6 @@ public class Topology {
 
     public void setStatus(TopologyStatus status) {
         this.status = status;
-    }
-
-    public Long getCoordinatorAgentId() {
-        return coordinatorAgentId;
-    }
-
-    public void setCoordinatorAgentId(Long coordinatorAgentId) {
-        this.coordinatorAgentId = coordinatorAgentId;
-    }
-
-    public Long getGlobalSupervisorAgentId() {
-        return globalSupervisorAgentId;
-    }
-
-    public void setGlobalSupervisorAgentId(Long globalSupervisorAgentId) {
-        this.globalSupervisorAgentId = globalSupervisorAgentId;
     }
 
     public String getAttributes() {
@@ -277,7 +244,6 @@ public class Topology {
                 ", name='" + name + '\'' +
                 ", description='" + description + '\'' +
                 ", status=" + status +
-                ", coordinatorAgentId=" + coordinatorAgentId +
                 ", version=" + version +
                 ", createdAt=" + createdAt +
                 ", updatedAt=" + updatedAt +

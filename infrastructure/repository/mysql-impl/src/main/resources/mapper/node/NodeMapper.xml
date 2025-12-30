@@ -4,13 +4,16 @@
 <mapper namespace="com.catface996.aiops.repository.mysql.mapper.node.NodeMapper">
 
     <sql id="Base_Column_List">
-        id, name, description, node_type_id, status, attributes,
+        id, name, description, node_type_id, status, layer, attributes,
         created_by, created_at, updated_by, updated_at, version, deleted
     </sql>
 
     <!-- 分页查询节点（带类型信息） -->
     <select id="selectPageWithTypeInfo" resultType="com.catface996.aiops.repository.mysql.po.node.NodePO">
-        SELECT DISTINCT n.*, nt.code AS node_type_code, nt.name AS node_type_name
+        SELECT DISTINCT n.id, n.name, n.description, n.node_type_id, n.status, n.layer,
+               n.attributes, n.created_by, n.created_at, n.updated_by, n.updated_at,
+               n.version, n.deleted,
+               nt.code AS node_type_code, nt.name AS node_type_name
         FROM node n
         JOIN node_type nt ON n.node_type_id = nt.id
         <if test="topologyId != null">
@@ -26,6 +29,9 @@
             </if>
             <if test="status != null and status != ''">
                 AND n.status = #{status}
+            </if>
+            <if test="layer != null and layer != ''">
+                AND n.layer = #{layer}
             </if>
             <if test="topologyId != null">
                 AND t2n.topology_id = #{topologyId}
@@ -52,6 +58,9 @@
             <if test="status != null and status != ''">
                 AND n.status = #{status}
             </if>
+            <if test="layer != null and layer != ''">
+                AND n.layer = #{layer}
+            </if>
             <if test="topologyId != null">
                 AND t2n.topology_id = #{topologyId}
             </if>
@@ -60,7 +69,10 @@
 
     <!-- 根据ID查询节点（带类型信息） -->
     <select id="selectByIdWithTypeInfo" resultType="com.catface996.aiops.repository.mysql.po.node.NodePO">
-        SELECT n.*, nt.code AS node_type_code, nt.name AS node_type_name
+        SELECT n.id, n.name, n.description, n.node_type_id, n.status, n.layer,
+               n.attributes, n.created_by, n.created_at, n.updated_by, n.updated_at,
+               n.version, n.deleted,
+               nt.code AS node_type_code, nt.name AS node_type_name
         FROM node n
         JOIN node_type nt ON n.node_type_id = nt.id
         WHERE n.id = #{id} AND n.deleted = 0

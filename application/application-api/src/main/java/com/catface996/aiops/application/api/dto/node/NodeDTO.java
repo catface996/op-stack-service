@@ -54,8 +54,8 @@ public class NodeDTO {
     @Schema(description = "状态显示名称", example = "运行中")
     private String statusDisplay;
 
-    @Schema(description = "Agent Team ID")
-    private Long agentTeamId;
+    @Schema(description = "架构层级", example = "BUSINESS_APPLICATION")
+    private String layer;
 
     @Schema(description = "扩展属性（JSON格式）", example = "{\"ip\": \"192.168.1.100\", \"port\": 8080}")
     private String attributes;

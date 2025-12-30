@@ -8,6 +8,7 @@ import com.catface996.aiops.application.api.dto.node.request.QueryNodesRequest;
 import com.catface996.aiops.application.api.dto.node.request.UpdateNodeRequest;
 import com.catface996.aiops.application.api.service.node.NodeApplicationService;
 import com.catface996.aiops.domain.model.node.Node;
+import com.catface996.aiops.domain.model.node.NodeLayer;
 import com.catface996.aiops.domain.model.node.NodeStatus;
 import com.catface996.aiops.domain.model.node.NodeType;
 import com.catface996.aiops.domain.service.node.NodeDomainService;
@@ -55,11 +56,13 @@ public class NodeApplicationServiceImpl implements NodeApplicationService {
     public NodeDTO createNode(CreateNodeRequest request, Long operatorId, String operatorName) {
         logger.info("创建节点，name: {}, operatorId: {}", request.getName(), operatorId);
 
+        NodeLayer layer = parseLayer(request.getLayer());
+
         Node node = nodeDomainService.createNode(
                 request.getName(),
                 request.getDescription(),
                 request.getNodeTypeId(),
-                request.getAgentTeamId(),
+                layer,
                 request.getAttributes(),
                 operatorId
         );
@@ -70,10 +73,12 @@ public class NodeApplicationServiceImpl implements NodeApplicationService {
     @Override
     public PageResult<NodeDTO> listNodes(QueryNodesRequest request) {
         NodeStatus status = parseStatus(request.getStatus());
+        NodeLayer layer = parseLayer(request.getLayer());
 
         List<Node> nodes = nodeDomainService.listNodes(
                 request.getNodeTypeId(),
                 status,
+                layer,
                 request.getKeyword(),
                 request.getTopologyId(),
                 request.getPage(),
@@ -83,6 +88,7 @@ public class NodeApplicationServiceImpl implements NodeApplicationService {
         long total = nodeDomainService.countNodes(
                 request.getNodeTypeId(),
                 status,
+                layer,
                 request.getKeyword(),
                 request.getTopologyId()
         );
@@ -110,7 +116,6 @@ public class NodeApplicationServiceImpl implements NodeApplicationService {
                 nodeId,
                 request.getName(),
                 request.getDescription(),
-                request.getAgentTeamId(),
                 request.getAttributes(),
                 request.getVersion(),
                 operatorId
@@ -144,7 +149,6 @@ public class NodeApplicationServiceImpl implements NodeApplicationService {
                 .name(node.getName())
                 .description(node.getDescription())
                 .nodeTypeId(node.getNodeTypeId())
-                .agentTeamId(node.getAgentTeamId())
                 .attributes(node.getAttributes())
                 .version(node.getVersion())
                 .createdBy(node.getCreatedBy())
@@ -154,6 +158,10 @@ public class NodeApplicationServiceImpl implements NodeApplicationService {
         if (node.getStatus() != null) {
             builder.status(node.getStatus().name())
                     .statusDisplay(node.getStatus().getDescription());
+        }
+
+        if (node.getLayer() != null) {
+            builder.layer(node.getLayer().name());
         }
 
         // 获取节点类型信息
@@ -193,6 +201,18 @@ public class NodeApplicationServiceImpl implements NodeApplicationService {
             return NodeStatus.valueOf(status);
         } catch (IllegalArgumentException e) {
             logger.warn("无效的节点状态: {}", status);
+            return null;
+        }
+    }
+
+    private NodeLayer parseLayer(String layer) {
+        if (layer == null || layer.isEmpty()) {
+            return null;
+        }
+        try {
+            return NodeLayer.valueOf(layer);
+        } catch (IllegalArgumentException e) {
+            logger.warn("无效的架构层级: {}", layer);
             return null;
         }
     }

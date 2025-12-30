@@ -97,4 +97,14 @@ public interface AgentBoundMapper extends BaseMapper<AgentBoundPO> {
     int existsBinding(@Param("agentId") Long agentId,
                        @Param("entityId") Long entityId,
                        @Param("entityType") String entityType);
+
+    /**
+     * 批量查询指定实体的 Agent 绑定（带 Agent 详情）
+     *
+     * @param entityType 实体类型
+     * @param entityIds  实体 ID 列表
+     * @return 绑定列表（包含 Agent 详情）
+     */
+    List<AgentBoundPO> selectByEntityIds(@Param("entityType") String entityType,
+                                          @Param("entityIds") List<Long> entityIds);
 }
