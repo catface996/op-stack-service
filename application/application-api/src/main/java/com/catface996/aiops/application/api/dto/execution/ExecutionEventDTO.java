@@ -48,6 +48,9 @@ public class ExecutionEventDTO {
     @Schema(description = "运行 ID", example = "a1567309-4c03-43f8-bbae-9a2d75fd6d80")
     private String runId;
 
+    @Schema(description = "诊断任务 ID", example = "1")
+    private Long taskId;
+
     @Schema(description = "Agent ID（绑定关系 ID，用于追溯）", example = "100")
     private String agentId;
 

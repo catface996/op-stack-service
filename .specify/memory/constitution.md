@@ -1,12 +1,12 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.3.0 → 1.4.0 (MINOR: Added Process Management Standards)
+Version change: 1.4.0 → 1.5.0 (MINOR: Added Async Implementation Standards)
 
 Modified principles: None
 
 Added sections:
-- IX. Process Management Standards (新增进程管理规范)
+- X. Async Implementation Standards (新增异步实现规范)
 
 Removed sections: None
 
@@ -394,6 +394,109 @@ ps aux | grep bootstrap | grep -v grep | awk '{print $2}' | xargs kill
 |------|------|------|
 | local | 8081 | 本地开发环境 |
 
+### X. Async Implementation Standards
+
+异步任务执行 MUST 使用 Spring 提供的异步机制，MUST NOT 直接使用 `CompletableFuture.runAsync()` 等 JDK 原生方式。
+
+#### 推荐方案（按优先级排序）
+
+| 方案 | 适用场景 | 说明 |
+|------|----------|------|
+| **Spring @Async** | 简单异步任务 | **首选**，可读性最强 |
+| Spring ApplicationEvent | 需要解耦的场景 | 事件驱动，符合 DDD |
+| 注入 TaskExecutor | 需要细粒度控制 | 复杂调度场景 |
+
+#### Spring @Async 规范（MUST）
+
+1. 异步方法 MUST 定义在独立的 Service 类中（避免 self-injection 问题）
+2. MUST 使用自定义线程池，MUST NOT 使用默认的 SimpleAsyncTaskExecutor
+3. MUST 配置合理的线程池参数（核心线程数、最大线程数、队列容量）
+4. 异步方法 MUST 使用 `@Async("executorName")` 指定线程池名称
+
+#### 线程池配置规范
+
+```java
+@Configuration
+@EnableAsync
+public class AsyncConfig {
+
+    @Bean("taskExecutor")
+    public Executor taskExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(5);
+        executor.setQueueCapacity(100);
+        executor.setThreadNamePrefix("async-task-");
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        executor.initialize();
+        return executor;
+    }
+}
+```
+
+#### 线程池命名规范
+
+| 业务场景 | Bean 名称 | 线程前缀 |
+|----------|-----------|----------|
+| 诊断任务 | `diagnosisExecutor` | `diagnosis-` |
+| 通用任务 | `taskExecutor` | `async-task-` |
+| 事件处理 | `eventExecutor` | `event-` |
+
+#### 异步 Service 类规范
+
+```java
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class MyAsyncService {
+
+    // 正确：指定线程池名称
+    @Async("taskExecutor")
+    public void processAsync(Long id) {
+        log.info("异步处理任务，id: {}", id);
+        // 业务逻辑
+    }
+
+    // 正确：有返回值的异步方法
+    @Async("taskExecutor")
+    public CompletableFuture<Result> processWithResult(Long id) {
+        // 业务逻辑
+        return CompletableFuture.completedFuture(result);
+    }
+}
+```
+
+#### 禁止的方式（MUST NOT）
+
+```java
+// MUST NOT: 直接使用 CompletableFuture.runAsync()
+CompletableFuture.runAsync(() -> {
+    // 使用默认 ForkJoinPool，不便于监控
+});
+
+// MUST NOT: 使用 new Thread()
+new Thread(() -> {
+    // 无法复用线程，资源浪费
+}).start();
+
+// MUST NOT: 未指定线程池的 @Async
+@Async  // 缺少线程池名称
+public void badAsync() { }
+
+// MUST NOT: 同一类中调用异步方法（代理失效）
+public void caller() {
+    this.asyncMethod();  // 代理不生效，同步执行
+}
+```
+
+#### 原因
+
+- **可观测性**: 自定义线程池便于监控线程状态和调优
+- **可控性**: 线程池参数可配置，避免资源耗尽
+- **可读性**: @Async 声明式编程，代码意图清晰
+- **可测试性**: 便于 mock 和单元测试
+- **可追踪性**: 自定义线程名前缀便于日志追踪
+
 ## API Design Standards
 
 ### Request/Response 规范
@@ -469,5 +572,6 @@ mvn test
 - 数据库表设计 MUST 遵循 Database Design Standards
 - SQL 查询 MUST 遵循 SQL Query Standards
 - 进程管理 MUST 遵循 Process Management Standards（使用端口号终止进程）
+- 异步任务 MUST 遵循 Async Implementation Standards（使用 Spring @Async）
 
-**Version**: 1.4.0 | **Ratified**: 2025-12-27 | **Last Amended**: 2025-12-30
+**Version**: 1.5.0 | **Ratified**: 2025-12-27 | **Last Amended**: 2026-01-05

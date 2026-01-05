@@ -6,19 +6,23 @@ import com.catface996.aiops.application.api.dto.execution.request.CancelExecutio
 import com.catface996.aiops.application.api.dto.execution.request.TriggerExecutionRequest;
 import com.catface996.aiops.application.api.service.agentbound.AgentBoundApplicationService;
 import com.catface996.aiops.application.api.service.execution.ExecutionApplicationService;
+import com.catface996.aiops.application.impl.service.diagnosis.DiagnosisPersistenceService;
 import com.catface996.aiops.application.impl.service.execution.client.ExecutorServiceClient;
 import com.catface996.aiops.application.impl.service.execution.client.dto.CreateHierarchyRequest;
 import com.catface996.aiops.application.impl.service.execution.client.dto.ExecutorEvent;
 import com.catface996.aiops.application.impl.service.execution.client.dto.StartRunRequest;
 import com.catface996.aiops.application.impl.service.execution.transformer.HierarchyTransformer;
+import com.catface996.aiops.domain.model.diagnosis.DiagnosisTask;
+import com.catface996.aiops.infrastructure.cache.redis.diagnosis.DiagnosisStreamCacheService;
+import com.catface996.aiops.repository.diagnosis.DiagnosisTaskRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Map;
 
 /**
  * 执行应用服务实现
@@ -36,6 +40,9 @@ public class ExecutionApplicationServiceImpl implements ExecutionApplicationServ
     private final AgentBoundApplicationService agentBoundApplicationService;
     private final ExecutorServiceClient executorServiceClient;
     private final HierarchyTransformer hierarchyTransformer;
+    private final DiagnosisTaskRepository diagnosisTaskRepository;
+    private final DiagnosisPersistenceService persistenceService;
+    private final DiagnosisStreamCacheService cacheService;
 
     @Override
     public Flux<ExecutionEventDTO> triggerExecution(TriggerExecutionRequest request) {
@@ -63,14 +70,23 @@ public class ExecutionApplicationServiceImpl implements ExecutionApplicationServ
             return Flux.just(ExecutionEventDTO.error("Topology has no teams configured"));
         }
 
-        // Step 3: 转换为 Executor 格式
+        // Step 3: 创建诊断任务（在调用 executor 之前）
+        DiagnosisTask diagnosisTask = createDiagnosisTask(
+                request.getTopologyId(),
+                request.getUserMessage(),
+                request.getUserId()
+        );
+        final Long taskId = diagnosisTask.getId();
+        log.info("Created diagnosis task: {}", taskId);
+
+        // Step 4: 转换为 Executor 格式
         CreateHierarchyRequest createRequest = hierarchyTransformer.transform(hierarchyStructure);
 
         log.info("Creating hierarchy '{}' with {} teams",
                 createRequest.getName(),
                 createRequest.getTeams() != null ? createRequest.getTeams().size() : 0);
 
-        // Step 4: 调用 Executor 服务（异步流）
+        // Step 5: 调用 Executor 服务（异步流）
         return executorServiceClient.createHierarchy(createRequest)
                 .flatMapMany(createResponse -> {
                     log.info("Hierarchy created: {}", createResponse.getHierarchyId());
@@ -85,15 +101,98 @@ public class ExecutionApplicationServiceImpl implements ExecutionApplicationServ
                                 log.info("Run started: {}", startResponse.getRunId());
                                 String runId = startResponse.getRunId();
 
-                                // 直接返回 Executor 的事件流
-                                return executorServiceClient.streamEvents(runId)
-                                        .map(this::transformEvent);
+                                // 更新诊断任务的 runId
+                                diagnosisTaskRepository.updateRunId(taskId, runId);
+
+                                // 获取 Executor 的事件流
+                                Flux<ExecutorEvent> eventStream = executorServiceClient.streamEvents(runId);
+
+                                // 转换并收集流式数据到 Redis
+                                return eventStream
+                                        .map(this::transformEvent)
+                                        .doOnNext(event -> collectDiagnosisEvent(taskId, event))
+                                        .doOnComplete(() -> onDiagnosisComplete(taskId))
+                                        .doOnError(error -> onDiagnosisError(taskId, error.getMessage()))
+                                        .concatWith(Flux.defer(() -> {
+                                            // 在流开始时发送包含 taskId 的 started 事件
+                                            return Flux.empty();
+                                        }))
+                                        .startWith(createStartedEvent(runId, taskId));
                             });
                 })
                 .onErrorResume(e -> {
                     log.error("Executor service error: {}", e.getMessage(), e);
+                    onDiagnosisError(taskId, e.getMessage());
                     return Flux.just(ExecutionEventDTO.error("Executor service error: " + e.getMessage()));
                 });
+    }
+
+    /**
+     * 创建诊断任务
+     */
+    @Transactional
+    public DiagnosisTask createDiagnosisTask(Long topologyId, String userQuestion, Long operatorId) {
+        DiagnosisTask task = DiagnosisTask.create(topologyId, userQuestion, operatorId);
+        return diagnosisTaskRepository.save(task);
+    }
+
+    /**
+     * 创建 started 事件（包含 taskId）
+     */
+    private ExecutionEventDTO createStartedEvent(String runId, Long taskId) {
+        return ExecutionEventDTO.builder()
+                .type("started")
+                .runId(runId)
+                .taskId(taskId)
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
+
+    /**
+     * 收集诊断事件到 Redis
+     */
+    private void collectDiagnosisEvent(Long taskId, ExecutionEventDTO event) {
+        if (event == null || event.getAgentId() == null) {
+            return;
+        }
+        try {
+            Long agentBoundId = Long.parseLong(event.getAgentId());
+            String agentName = event.getAgentName();
+            String content = event.getContent();
+            String type = event.getType();
+
+            if ("llm.stream".equals(type) || "llm.reasoning".equals(type)) {
+                if (content != null) {
+                    cacheService.appendStreamContent(taskId, agentBoundId, agentName, content);
+                }
+            } else if ("lifecycle.started".equals(type)) {
+                cacheService.appendStreamContent(taskId, agentBoundId, agentName != null ? agentName : "Unknown", "");
+            } else if ("lifecycle.completed".equals(type)) {
+                cacheService.markAgentEnded(taskId, agentBoundId);
+            }
+        } catch (NumberFormatException e) {
+            log.debug("Ignoring event with non-numeric agentId: {}", event.getAgentId());
+        }
+    }
+
+    /**
+     * 诊断完成回调
+     *
+     * <p>触发异步持久化处理</p>
+     */
+    private void onDiagnosisComplete(Long taskId) {
+        log.info("Diagnosis completed, triggering async persistence for taskId: {}", taskId);
+        persistenceService.handleCompletionAsync(taskId);
+    }
+
+    /**
+     * 诊断错误回调
+     *
+     * <p>触发异步错误处理</p>
+     */
+    private void onDiagnosisError(Long taskId, String errorMessage) {
+        log.error("Diagnosis error for taskId: {}, error: {}", taskId, errorMessage);
+        persistenceService.handleErrorAsync(taskId, errorMessage);
     }
 
     @Override
@@ -104,6 +203,10 @@ public class ExecutionApplicationServiceImpl implements ExecutionApplicationServ
 
         if (Boolean.TRUE.equals(success)) {
             log.info("Execution cancelled successfully: {}", request.getRunId());
+
+            // 异步处理诊断任务取消（使用 Spring @Async）
+            persistenceService.handleCancellationAsync(request.getRunId());
+
             return ExecutionEventDTO.cancelled(request.getRunId());
         } else {
             log.warn("Failed to cancel execution: {}", request.getRunId());

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.catface996.aiops.repository.mysql.mapper.diagnosis.AgentDiagnosisProcessMapper">
+
+    <!-- 基础字段列表 -->
+    <sql id="Base_Column_List">
+        id, task_id, agent_bound_id, agent_name, content, started_at, ended_at,
+        created_at, updated_at, deleted
+    </sql>
+
+    <!-- 根据诊断任务ID查询所有Agent诊断过程 -->
+    <select id="selectByTaskId" resultType="com.catface996.aiops.repository.mysql.po.diagnosis.AgentDiagnosisProcessPO">
+        SELECT <include refid="Base_Column_List"/>
+        FROM agent_diagnosis_process
+        WHERE task_id = #{taskId} AND deleted = 0
+        ORDER BY started_at ASC
+    </select>
+
+    <!-- 统计诊断任务的Agent数量 -->
+    <select id="countByTaskId" resultType="int">
+        SELECT COUNT(*)
+        FROM agent_diagnosis_process
+        WHERE task_id = #{taskId} AND deleted = 0
+    </select>
+
+    <!-- 批量插入Agent诊断过程 -->
+    <insert id="batchInsert" parameterType="list">
+        INSERT INTO agent_diagnosis_process
+        (task_id, agent_bound_id, agent_name, content, started_at, ended_at, created_at, updated_at, deleted)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.taskId}, #{item.agentBoundId}, #{item.agentName}, #{item.content},
+             #{item.startedAt}, #{item.endedAt}, NOW(), NOW(), 0)
+        </foreach>
+    </insert>
+
+</mapper>

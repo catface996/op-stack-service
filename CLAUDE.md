@@ -54,10 +54,9 @@ mvn test
 Java 21 (LTS): Follow standard conventions
 
 ## Recent Changes
+- 044-diagnosis-task: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
 - 042-refactor-executor-integration: Refactor Executor integration - use agent_bound.id as agent_id, get system_prompt from PromptTemplate.content
 - 041-cleanup-obsolete-fields: Added Java 21 (LTS) + Spring Boot 3.4.x, MyBatis-Plus 3.5.x, SpringDoc OpenAPI
-- 040-agent-bound-refactor: Added Java 21 (LTS) + Spring Boot 3.4.x, MyBatis-Plus 3.5.x, SpringDoc OpenAPI
-- 039-trigger-multiagent-execution: Added Java 21 (LTS) + Spring Boot 3.4.x, Spring WebFlux (for WebClient SSE), MyBatis-Plus 3.5.x, SpringDoc OpenAPI
 
 
 <!-- MANUAL ADDITIONS START -->

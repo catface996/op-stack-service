@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.catface996.aiops.repository.mysql.mapper.diagnosis.DiagnosisTaskMapper">
+
+    <!-- 基础字段列表 -->
+    <sql id="Base_Column_List">
+        id, topology_id, user_question, status, error_message, run_id, completed_at,
+        created_by, created_at, updated_by, updated_at, version, deleted
+    </sql>
+
+    <!-- 根据ID查询诊断任务（带拓扑图名称） -->
+    <select id="selectByIdWithTopologyName" resultType="com.catface996.aiops.repository.mysql.po.diagnosis.DiagnosisTaskPO">
+        SELECT
+            dt.id, dt.topology_id, dt.user_question, dt.status, dt.error_message,
+            dt.run_id, dt.completed_at, dt.created_by, dt.created_at,
+            dt.updated_by, dt.updated_at, dt.version, dt.deleted,
+            t.name AS topologyName
+        FROM diagnosis_task dt
+        LEFT JOIN topology t ON dt.topology_id = t.id AND t.deleted = 0
+        WHERE dt.id = #{id} AND dt.deleted = 0
+    </select>
+
+    <!-- 分页查询拓扑图的诊断任务历史（带Agent数量统计） -->
+    <select id="selectPageByTopologyId" resultType="com.catface996.aiops.repository.mysql.po.diagnosis.DiagnosisTaskPO">
+        SELECT
+            dt.id, dt.topology_id, dt.user_question, dt.status, dt.error_message,
+            dt.run_id, dt.completed_at, dt.created_by, dt.created_at,
+            dt.updated_by, dt.updated_at, dt.version, dt.deleted,
+            (SELECT COUNT(*) FROM agent_diagnosis_process adp WHERE adp.task_id = dt.id AND adp.deleted = 0) AS agentCount
+        FROM diagnosis_task dt
+        WHERE dt.topology_id = #{topologyId} AND dt.deleted = 0
+        ORDER BY dt.created_at DESC
+    </select>
+
+    <!-- 查询运行中的诊断任务 -->
+    <select id="selectRunningTasks" resultType="com.catface996.aiops.repository.mysql.po.diagnosis.DiagnosisTaskPO">
+        SELECT
+            dt.id, dt.topology_id, dt.user_question, dt.status, dt.error_message,
+            dt.run_id, dt.completed_at, dt.created_by, dt.created_at,
+            dt.updated_by, dt.updated_at, dt.version, dt.deleted,
+            t.name AS topologyName
+        FROM diagnosis_task dt
+        LEFT JOIN topology t ON dt.topology_id = t.id AND t.deleted = 0
+        WHERE dt.status = 'RUNNING' AND dt.deleted = 0
+        <if test="topologyId != null">
+            AND dt.topology_id = #{topologyId}
+        </if>
+        ORDER BY dt.created_at DESC
+    </select>
+
+    <!-- 更新诊断任务状态 -->
+    <update id="updateStatus">
+        UPDATE diagnosis_task
+        SET status = #{status},
+            <if test="errorMessage != null">
+            error_message = #{errorMessage},
+            </if>
+            <if test="completedAt != null">
+            completed_at = #{completedAt},
+            </if>
+            updated_at = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <!-- 更新executor运行ID -->
+    <update id="updateRunId">
+        UPDATE diagnosis_task
+        SET run_id = #{runId}, updated_at = NOW()
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+</mapper>
